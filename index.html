@@ -1,1 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentinel AI | Cybersecurity Scanner</title>
+  <meta name="description" content="Sentinel AI helps beginners, developers and small businesses understand cybersecurity risks and learn how to stay protected.">
 
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #07111f;
+      color: #ffffff;
+      line-height: 1.6;
+    }
+
+    header {
+      padding: 18px 6%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #18304a;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .logo span {
+      color: #38bdf8;
+    }
+
+    nav a {
+      color: #cbd5e1;
+      text-decoration: none;
+      margin-left: 18px;
+      font-size: 14px;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 80px 20px 60px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #102a43;
+      color: #38bdf8;
+      padding: 8px 14px;
+      border-radius: 30px;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: clamp(40px, 8vw, 72px);
+      line-height: 1.05;
+      margin-bottom: 22px;
+    }
+
+    h1 span {
+      color: #38bdf8;
+    }
+
+    .hero p {
+      color: #a9b8c9;
+      max-width: 700px;
+      margin: auto;
+      font-size: 18px;
+    }
+
+    .buttons {
+      margin-top: 32px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 13px 22px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      margin: 6px;
+    }
+
+    .primary {
+      background: #38bdf8;
+      color: #06111f;
+    }
+
+    .secondary {
+      border: 1px solid #31506d;
+      color: #ffffff;
+    }
+
+    section {
+      padding: 60px 6%;
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    .section-title {
+      text-align: center;
+      margin-bottom: 35px;
+      font-size: 32px;
+    }
+
+    .section-text {
+      text-align: center;
+      color: #a9b8c9;
+      max-width: 750px;
+      margin: -20px auto 35px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: #0c1b2d;
+      border: 1px solid #18304a;
+      padding: 25px;
+      border-radius: 14px;
+    }
+
+    .card h3 {
+      margin-bottom: 10px;
+      color: #38bdf8;
+    }
+
+    .card p {
+      color: #a9b8c9;
+      font-size: 15px;
+    }
+
+    .scanner {
+      background: #0c1b2d;
+      border: 1px solid #24415e;
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 700px;
+      margin: auto;
+    }
+
+    input {
+      width: 100%;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #31506d;
+      background: #07111f;
+      color: white;
+      margin: 12px 0;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 8px;
+      background: #38bdf8;
+      color: #06111f;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #result {
+      margin-top: 20px;
+      color: #a9b8c9;
+      display: none;
+    }
+
+    .mission {
+      text-align: center;
+      background: #0b1d31;
+      border-radius: 18px;
+      padding: 45px 25px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px 15px;
+      border-top: 1px solid #18304a;
+      color: #8295aa;
+      font-size: 14px;
+    }
+
+    @media (max-width: 650px) {
+      header {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      nav a {
+        margin: 0 7px;
+      }
+
+      .hero {
+        padding-top: 55px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">🛡️ Sentinel <span>AI</span></div>
+
+  <nav>
+    <a href="#features">Features</a>
+    <a href="#scanner">Scanner</a>
+    <a href="#mission">Mission</a>
+  </nav>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="badge">AI-Powered Cybersecurity Education</div>
+
+    <h1>Understand Security.<br><span>Stay Protected.</span></h1>
+
+    <p>
+      Sentinel AI helps beginners, developers and small businesses
+      understand cybersecurity risks in simple language and learn
+      practical ways to stay safer online.
+    </p>
+
+    <div class="buttons">
+      <a class="btn primary" href="#scanner">Try Security Check</a>
+      <a class="btn secondary" href="#features">Explore Sentinel AI</a>
+    </div>
+  </section>
+
+  <section id="features">
+    <h2 class="section-title">What Sentinel AI Does</h2>
+
+    <p class="section-text">
+      A beginner-friendly security mentor designed to make cybersecurity
+      easier to understand.
+    </p>
+
+    <div class="cards">
+
+      <div class="card">
+        <h3>🔍 Security Scanner</h3>
+        <p>
+          Identify common security concerns and learn what they mean
+          without complicated technical language.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>🤖 AI Security Mentor</h3>
+        <p>
+          Get simple explanations of cybersecurity concepts,
+          vulnerabilities and defensive practices.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>🛠️ Fix Guidance</h3>
+        <p>
+          Learn practical defensive steps to improve website,
+          account and digital security.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>🎓 Cyber Education</h3>
+        <p>
+          Build cybersecurity knowledge through simple examples
+          designed for beginners and students.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="scanner">
+    <h2 class="section-title">Security Check</h2>
+
+    <div class="scanner">
+
+      <p>
+        Enter a website address to begin a basic security-awareness
+        check. This demo does not perform a real security scan yet.
+      </p>
+
+      <input
+        id="website"
+        type="text"
+        placeholder="https://example.com"
+      >
+
+      <button onclick="runCheck()">Start Security Check</button>
+
+      <div id="result"></div>
+
+    </div>
+  </section>
+
+  <section id="mission">
+
+    <div class="mission">
+
+      <h2 class="section-title">Our Mission</h2>
+
+      <p>
+        Sentinel AI is dedicated to making cybersecurity simple,
+        accessible and understandable for everyone.
+        Our goal is to help individuals, students and businesses
+        learn security and make safer decisions in the digital world.
+      </p>
+
+    </div>
+
+  </section>
+
+</main>
+
+<footer>
+  © 2026 Sentinel AI · AI Cybersecurity Scanner & Security Education Platform
+</footer>
+
+<script>
+  function runCheck() {
+
+    const website = document.getElementById("website").value.trim();
+    const result = document.getElementById("result");
+
+    result.style.display = "block";
+
+    if (!website) {
+      result.innerHTML = "⚠️ Please enter a website address first.";
+      return;
+    }
+
+    result.innerHTML =
+      "🛡️ Demo check started for <strong>" +
+      website +
+      "</strong>.<br><br>" +
+      "This MVP currently provides security education only. " +
+      "Real automated scanning will be added in a future version.";
+  }
+</script>
+
+</body>
+  </html>
