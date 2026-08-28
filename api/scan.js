@@ -1,4 +1,4 @@
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Only POST requests are allowed."
@@ -29,30 +29,91 @@ export default function handler(req, res) {
     });
   }
 
-  const checks = [
-    {
+  try {
+    const response = await fetch(url.href, {
+      method: "GET",
+      redirect: "follow"
+    });
+
+    const headers = response.headers;
+
+    const checks = [];
+
+    // HTTPS
+    checks.push({
       name: "HTTPS",
       status: "PASS",
       message: "The website uses HTTPS."
-    },
-    {
-      name: "Secure connection",
-      status: "INFO",
-      message: "HTTPS helps protect data while it travels between the visitor and website."
-    },
-    {
-      name: "Security headers",
-      status: "INFO",
-      message: "A full header analysis will be added in the next scanner version."
-    }
-  ];
+    });
 
-  return res.status(200).json({
-    success: true,
-    website: url.href,
-    product: "Sentinel AI",
-    checks,
-    message:
-      "Security-awareness check completed. This version performs basic checks only."
-  });
+    // HSTS
+    checks.push({
+      name: "HSTS",
+      status: headers.has("strict-transport-security")
+        ? "PASS"
+        : "WARNING",
+      message: headers.has("strict-transport-security")
+        ? "HTTP Strict Transport Security is enabled."
+        : "HSTS header was not detected."
+    });
+
+    // Content Security Policy
+    checks.push({
+      name: "Content Security Policy",
+      status: headers.has("content-security-policy")
+        ? "PASS"
+        : "WARNING",
+      message: headers.has("content-security-policy")
+        ? "CSP header was detected."
+        : "CSP header was not detected."
+    });
+
+    // X-Frame-Options
+    checks.push({
+      name: "X-Frame-Options",
+      status: headers.has("x-frame-options")
+        ? "PASS"
+        : "WARNING",
+      message: headers.has("x-frame-options")
+        ? "Clickjacking protection header was detected."
+        : "X-Frame-Options header was not detected."
+    });
+
+    // X-Content-Type-Options
+    checks.push({
+      name: "X-Content-Type-Options",
+      status: headers.has("x-content-type-options")
+        ? "PASS"
+        : "WARNING",
+      message: headers.has("x-content-type-options")
+        ? "MIME-sniffing protection is enabled."
+        : "X-Content-Type-Options header was not detected."
+    });
+
+    // Referrer Policy
+    checks.push({
+      name: "Referrer-Policy",
+      status: headers.has("referrer-policy")
+        ? "PASS"
+        : "INFO",
+      message: headers.has("referrer-policy")
+        ? "A Referrer-Policy header was detected."
+        : "Referrer-Policy header was not detected."
+    });
+
+    return res.status(200).json({
+      success: true,
+      website: response.url,
+      product: "Sentinel AI",
+      checks,
+      message:
+        "Security header awareness check completed."
+    });
+
+  } catch (error) {
+    return res.status(502).json({
+      error:
+        "Sentinel AI could not reach the requested website."
+    });
+  }
 }
