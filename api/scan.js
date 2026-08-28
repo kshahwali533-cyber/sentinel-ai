@@ -39,14 +39,12 @@ export default async function handler(req, res) {
 
     const checks = [];
 
-    // HTTPS
     checks.push({
       name: "HTTPS",
       status: "PASS",
       message: "The website uses HTTPS."
     });
 
-    // HSTS
     checks.push({
       name: "HSTS",
       status: headers.has("strict-transport-security")
@@ -54,10 +52,12 @@ export default async function handler(req, res) {
         : "WARNING",
       message: headers.has("strict-transport-security")
         ? "HTTP Strict Transport Security is enabled."
-        : "HSTS header was not detected."
+        : "HSTS header was not detected.",
+      fix: headers.has("strict-transport-security")
+        ? ""
+        : "Enable HSTS on the website."
     });
 
-    // Content Security Policy
     checks.push({
       name: "Content Security Policy",
       status: headers.has("content-security-policy")
@@ -65,10 +65,12 @@ export default async function handler(req, res) {
         : "WARNING",
       message: headers.has("content-security-policy")
         ? "CSP header was detected."
-        : "CSP header was not detected."
+        : "CSP header was not detected.",
+      fix: headers.has("content-security-policy")
+        ? ""
+        : "Add a Content-Security-Policy header."
     });
 
-    // X-Frame-Options
     checks.push({
       name: "X-Frame-Options",
       status: headers.has("x-frame-options")
@@ -76,10 +78,12 @@ export default async function handler(req, res) {
         : "WARNING",
       message: headers.has("x-frame-options")
         ? "Clickjacking protection header was detected."
-        : "X-Frame-Options header was not detected."
+        : "X-Frame-Options header was not detected.",
+      fix: headers.has("x-frame-options")
+        ? ""
+        : "Add X-Frame-Options protection."
     });
 
-    // X-Content-Type-Options
     checks.push({
       name: "X-Content-Type-Options",
       status: headers.has("x-content-type-options")
@@ -87,10 +91,12 @@ export default async function handler(req, res) {
         : "WARNING",
       message: headers.has("x-content-type-options")
         ? "MIME-sniffing protection is enabled."
-        : "X-Content-Type-Options header was not detected."
+        : "X-Content-Type-Options header was not detected.",
+      fix: headers.has("x-content-type-options")
+        ? ""
+        : "Add X-Content-Type-Options: nosniff."
     });
 
-    // Referrer Policy
     checks.push({
       name: "Referrer-Policy",
       status: headers.has("referrer-policy")
@@ -98,13 +104,36 @@ export default async function handler(req, res) {
         : "INFO",
       message: headers.has("referrer-policy")
         ? "A Referrer-Policy header was detected."
-        : "Referrer-Policy header was not detected."
+        : "Referrer-Policy header was not detected.",
+      fix: headers.has("referrer-policy")
+        ? ""
+        : "Consider adding a Referrer-Policy header."
     });
+
+    const passed = checks.filter(
+      check => check.status === "PASS"
+    ).length;
+
+    const score = Math.round(
+      (passed / checks.length) * 100
+    );
+
+    let riskLevel = "Low";
+
+    if (score < 80) {
+      riskLevel = "Medium";
+    }
+
+    if (score < 50) {
+      riskLevel = "High";
+    }
 
     return res.status(200).json({
       success: true,
       website: response.url,
       product: "Sentinel AI",
+      securityScore: score,
+      riskLevel,
       checks,
       message:
         "Security header awareness check completed."
