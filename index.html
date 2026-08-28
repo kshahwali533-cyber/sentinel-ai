@@ -3,8 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Sentinel AI | Cybersecurity Scanner</title>
-  <meta name="description" content="Sentinel AI helps beginners, developers and small businesses understand cybersecurity risks and learn how to stay protected.">
+
+  <meta
+    name="description"
+    content="Sentinel AI helps beginners, developers and small businesses understand cybersecurity risks and improve website security."
+  >
 
   <style>
     * {
@@ -175,10 +180,86 @@
       cursor: pointer;
     }
 
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
     #result {
-      margin-top: 20px;
-      color: #a9b8c9;
+      margin-top: 25px;
       display: none;
+    }
+
+    .score-box {
+      background: #07111f;
+      border: 1px solid #31506d;
+      border-radius: 14px;
+      padding: 25px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .score {
+      font-size: 48px;
+      font-weight: bold;
+      color: #38bdf8;
+    }
+
+    .risk {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    .check {
+      background: #07111f;
+      border: 1px solid #18304a;
+      border-radius: 10px;
+      padding: 16px;
+      margin: 10px 0;
+    }
+
+    .check-name {
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+    .pass {
+      color: #4ade80;
+      font-weight: bold;
+    }
+
+    .warning {
+      color: #facc15;
+      font-weight: bold;
+    }
+
+    .info {
+      color: #38bdf8;
+      font-weight: bold;
+    }
+
+    .message {
+      color: #a9b8c9;
+      margin-top: 5px;
+      font-size: 14px;
+    }
+
+    .fix {
+      margin-top: 8px;
+      padding: 10px;
+      background: #102a43;
+      border-radius: 7px;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+
+    .error {
+      background: #35151a;
+      border: 1px solid #7f1d1d;
+      color: #fecaca;
+      padding: 15px;
+      border-radius: 10px;
     }
 
     .mission {
@@ -228,9 +309,15 @@
 <main>
 
   <section class="hero">
-    <div class="badge">AI-Powered Cybersecurity Education</div>
 
-    <h1>Understand Security.<br><span>Stay Protected.</span></h1>
+    <div class="badge">
+      AI-Powered Cybersecurity Education
+    </div>
+
+    <h1>
+      Understand Security.<br>
+      <span>Stay Protected.</span>
+    </h1>
 
     <p>
       Sentinel AI helps beginners, developers and small businesses
@@ -239,23 +326,33 @@
     </p>
 
     <div class="buttons">
-      <a class="btn primary" href="#scanner">Try Security Check</a>
-      <a class="btn secondary" href="#features">Explore Sentinel AI</a>
+      <a class="btn primary" href="#scanner">
+        Try Security Check
+      </a>
+
+      <a class="btn secondary" href="#features">
+        Explore Sentinel AI
+      </a>
     </div>
+
   </section>
 
   <section id="features">
-    <h2 class="section-title">What Sentinel AI Does</h2>
+
+    <h2 class="section-title">
+      What Sentinel AI Does
+    </h2>
 
     <p class="section-text">
-      A beginner-friendly security mentor designed to make cybersecurity
-      easier to understand.
+      A beginner-friendly security mentor designed to make
+      cybersecurity easier to understand.
     </p>
 
     <div class="cards">
 
       <div class="card">
         <h3>🔍 Security Scanner</h3>
+
         <p>
           Identify common security concerns and learn what they mean
           without complicated technical language.
@@ -264,6 +361,7 @@
 
       <div class="card">
         <h3>🤖 AI Security Mentor</h3>
+
         <p>
           Get simple explanations of cybersecurity concepts,
           vulnerabilities and defensive practices.
@@ -272,6 +370,7 @@
 
       <div class="card">
         <h3>🛠️ Fix Guidance</h3>
+
         <p>
           Learn practical defensive steps to improve website,
           account and digital security.
@@ -280,6 +379,7 @@
 
       <div class="card">
         <h3>🎓 Cyber Education</h3>
+
         <p>
           Build cybersecurity knowledge through simple examples
           designed for beginners and students.
@@ -287,15 +387,21 @@
       </div>
 
     </div>
+
   </section>
 
   <section id="scanner">
-    <h2 class="section-title">Security Check</h2>
+
+    <h2 class="section-title">
+      Security Check
+    </h2>
 
     <div class="scanner">
 
       <p>
-        Enter a website address to check HTTPS and important security headers. Sentinel AI will analyze the website and show the results below.
+        Enter a website address to check HTTPS and important
+        security headers. Sentinel AI will analyze the website
+        and show the results below.
       </p>
 
       <input
@@ -304,18 +410,23 @@
         placeholder="https://example.com"
       >
 
-      <button onclick="runCheck()">Start Security Check</button>
+      <button id="scanButton" onclick="runCheck()">
+        Start Security Check
+      </button>
 
       <div id="result"></div>
 
     </div>
+
   </section>
 
   <section id="mission">
 
     <div class="mission">
 
-      <h2 class="section-title">Our Mission</h2>
+      <h2 class="section-title">
+        Our Mission
+      </h2>
 
       <p>
         Sentinel AI is dedicated to making cybersecurity simple,
@@ -335,48 +446,145 @@
 </footer>
 
 <script>
-  async function runCheck() {
-  const website = document.getElementById("website").value.trim();
-  const result = document.getElementById("result");
+
+async function runCheck() {
+
+  const website =
+    document.getElementById("website").value.trim();
+
+  const result =
+    document.getElementById("result");
+
+  const button =
+    document.getElementById("scanButton");
 
   result.style.display = "block";
-  result.innerHTML = "🛡️ Checking security... Please wait.";
+
+  result.innerHTML =
+    "🛡️ Checking security... Please wait.";
 
   if (!website) {
-    result.innerHTML = "⚠️ Please enter a website address first.";
+
+    result.innerHTML =
+      '<div class="error">⚠️ Please enter a website address first.</div>';
+
     return;
   }
 
+  button.disabled = true;
+
   try {
+
     const response = await fetch("/api/scan", {
+
       method: "POST",
+
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ website })
+
+      body: JSON.stringify({
+        website: website
+      })
+
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      result.innerHTML = "⚠️ " + (data.error || "Security check failed.");
+
+      result.innerHTML =
+        '<div class="error">⚠️ ' +
+        (data.error || "Security check failed.") +
+        '</div>';
+
+      button.disabled = false;
+
       return;
     }
 
+    let checksHTML = "";
+
+    data.checks.forEach(function(check) {
+
+      let statusClass = "info";
+
+      if (check.status === "PASS") {
+        statusClass = "pass";
+      }
+
+      if (check.status === "WARNING") {
+        statusClass = "warning";
+      }
+
+      checksHTML +=
+        '<div class="check">' +
+
+        '<div class="check-name">' +
+        check.name +
+        ' — <span class="' +
+        statusClass +
+        '">' +
+        check.status +
+        '</span></div>' +
+
+        '<div class="message">' +
+        check.message +
+        '</div>' +
+
+        (check.fix
+          ? '<div class="fix">🔧 <strong>Fix:</strong> ' +
+            check.fix +
+            '</div>'
+          : '') +
+
+        '</div>';
+
+    });
+
     result.innerHTML =
-      "🛡️ <strong>Security Check Complete</strong><br><br>" +
-      "Website: <strong>" + data.website + "</strong><br><br>" +
-      data.checks.map(check =>
-        "• <strong>" + check.name + "</strong>: " +
-        check.status + " — " + check.message
-      ).join("<br>") +
-      "<br><br>✅ " + data.message;
+
+      '<div class="score-box">' +
+
+      '<div>🛡️ Security Score</div>' +
+
+      '<div class="score">' +
+      data.securityScore +
+      '/100' +
+      '</div>' +
+
+      '<div class="risk">' +
+      'Risk Level: ' +
+      data.riskLevel +
+      '</div>' +
+
+      '</div>' +
+
+      '<div class="check">' +
+      '<strong>Website:</strong> ' +
+      data.website +
+      '</div>' +
+
+      checksHTML +
+
+      '<div class="message">' +
+      '✅ ' +
+      data.message +
+      '</div>';
+
   } catch (error) {
+
     result.innerHTML =
-      "❌ Unable to connect to Sentinel AI scanner.";
+      '<div class="error">' +
+      '❌ Unable to connect to Sentinel AI scanner.' +
+      '</div>';
+
   }
+
+  button.disabled = false;
 }
+
 </script>
+
 </body>
 </html>
-
