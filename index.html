@@ -336,26 +336,46 @@
 </footer>
 
 <script>
-  function runCheck() {
+  async function runCheck() {
+  const website = document.getElementById("website").value.trim();
+  const result = document.getElementById("result");
 
-    const website = document.getElementById("website").value.trim();
-    const result = document.getElementById("result");
+  result.style.display = "block";
+  result.innerHTML = "🛡️ Checking security... Please wait.";
 
-    result.style.display = "block";
+  if (!website) {
+    result.innerHTML = "⚠️ Please enter a website address first.";
+    return;
+  }
 
-    if (!website) {
-      result.innerHTML = "⚠️ Please enter a website address first.";
+  try {
+    const response = await fetch("/api/scan", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ website })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      result.innerHTML = "⚠️ " + (data.error || "Security check failed.");
       return;
     }
 
     result.innerHTML =
-      "🛡️ Demo check started for <strong>" +
-      website +
-      "</strong>.<br><br>" +
-      "This MVP currently provides security education only. " +
-      "Real automated scanning will be added in a future version.";
+      "🛡️ <strong>Security Check Complete</strong><br><br>" +
+      "Website: <strong>" + data.website + "</strong><br><br>" +
+      data.checks.map(check =>
+        "• <strong>" + check.name + "</strong>: " +
+        check.status + " — " + check.message
+      ).join("<br>") +
+      "<br><br>✅ " + data.message;
+  } catch (error) {
+    result.innerHTML =
+      "❌ Unable to connect to Sentinel AI scanner.";
   }
-</script>
+}
 
-</body>
-  </html>
+
