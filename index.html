@@ -206,6 +206,13 @@
       color: #06111f;
     }
 
+    .rescan-button {
+      margin-top: 12px;
+      background: #102a43;
+      color: #ffffff;
+      border: 1px solid #31506d;
+    }
+
     #result {
       margin-top: 25px;
       display: none;
@@ -230,6 +237,98 @@
       font-size: 20px;
       font-weight: bold;
       margin-top: 5px;
+    }
+
+    .health-center {
+      background: linear-gradient(135deg, #0b1d31, #102a43);
+      border: 1px solid #31506d;
+      border-radius: 16px;
+      padding: 24px;
+      margin: 20px 0;
+    }
+
+    .health-title {
+      color: #38bdf8;
+      font-size: 23px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .health-subtitle {
+      color: #a9b8c9;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .health-box {
+      background: #07111f;
+      border: 1px solid #18304a;
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .health-number {
+      font-size: 28px;
+      font-weight: bold;
+      color: #38bdf8;
+    }
+
+    .priority {
+      margin-top: 20px;
+    }
+
+    .priority h3 {
+      color: #ffffff;
+      margin-bottom: 10px;
+    }
+
+    .priority-item {
+      background: #07111f;
+      border-left: 4px solid #facc15;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 8px 0;
+    }
+
+    .priority-item strong {
+      color: #facc15;
+    }
+
+    .good-status {
+      border-left-color: #4ade80;
+    }
+
+    .good-status strong {
+      color: #4ade80;
+    }
+
+    .action-plan {
+      background: #07111f;
+      border: 1px solid #18304a;
+      border-radius: 12px;
+      padding: 18px;
+      margin-top: 20px;
+    }
+
+    .action-plan h3 {
+      color: #38bdf8;
+      margin-bottom: 10px;
+    }
+
+    .action-plan ol {
+      padding-left: 22px;
+      color: #cbd5e1;
+    }
+
+    .action-plan li {
+      margin: 8px 0;
     }
 
     .summary {
@@ -356,7 +455,8 @@
         padding-top: 55px;
       }
 
-      .summary {
+      .summary,
+      .health-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -513,6 +613,140 @@
 <script>
 
 let latestScan = null;
+let latestReport = null;
+
+function escapeHTML(value) {
+  const div = document.createElement("div");
+  div.textContent = value == null ? "" : String(value);
+  return div.innerHTML;
+}
+
+function getStatusClass(status) {
+
+  if (status === "PASS") {
+    return "pass";
+  }
+
+  if (status === "WARNING") {
+    return "warning";
+  }
+
+  return "info";
+}
+
+
+function buildHealthCenter(data, summary) {
+
+  const warnings = data.checks.filter(function(check) {
+    return check.status === "WARNING";
+  });
+
+  let priorityHTML = "";
+
+  if (warnings.length === 0) {
+
+    priorityHTML =
+      '<div class="priority-item good-status">' +
+      '<strong>✅ Excellent</strong><br>' +
+      'No warning findings were detected in this security-awareness scan.' +
+      '</div>';
+
+  } else {
+
+    warnings.slice(0, 5).forEach(function(check, index) {
+
+      priorityHTML +=
+        '<div class="priority-item">' +
+        '<strong>Priority ' + (index + 1) + ': ' +
+        escapeHTML(check.name) +
+        '</strong>' +
+        '<div class="message">' +
+        escapeHTML(check.fix || check.message) +
+        '</div>' +
+        '</div>';
+
+    });
+
+  }
+
+  let actionHTML = "";
+
+  if (warnings.length === 0) {
+
+    actionHTML =
+      '<ol>' +
+      '<li>Continue using HTTPS across the website.</li>' +
+      '<li>Review security headers regularly.</li>' +
+      '<li>Run another scan after major website changes.</li>' +
+      '</ol>';
+
+  } else {
+
+    actionHTML =
+      '<ol>' +
+      '<li>Start with the highest-priority warning above.</li>' +
+      '<li>Apply the recommended defensive fix.</li>' +
+      '<li>Run Sentinel AI again to verify the result.</li>' +
+      '</ol>';
+
+  }
+
+  return (
+
+    '<div class="health-center">' +
+
+    '<div class="health-title">🛡️ Security Health Center</div>' +
+
+    '<div class="health-subtitle">' +
+    'Your security status at a glance — with the most important actions first.' +
+    '</div>' +
+
+    '<div class="health-grid">' +
+
+    '<div class="health-box">' +
+    '<div class="health-number">' +
+    data.securityScore +
+    '</div>' +
+    '<div>Security Score</div>' +
+    '</div>' +
+
+    '<div class="health-box">' +
+    '<div class="health-number">' +
+    summary.passed +
+    '</div>' +
+    '<div>Passed</div>' +
+    '</div>' +
+
+    '<div class="health-box">' +
+    '<div class="health-number">' +
+    summary.warnings +
+    '</div>' +
+    '<div>Priority Warnings</div>' +
+    '</div>' +
+
+    '</div>' +
+
+    '<div class="priority">' +
+
+    '<h3>🎯 Priority Fixes</h3>' +
+
+    priorityHTML +
+
+    '</div>' +
+
+    '<div class="action-plan">' +
+
+    '<h3>🚀 Recommended Action Plan</h3>' +
+
+    actionHTML +
+
+    '</div>' +
+
+    '</div>'
+
+  );
+}
+
 
 async function runCheck() {
 
@@ -528,12 +762,16 @@ async function runCheck() {
   result.style.display = "block";
 
   if (!website) {
+
     result.innerHTML =
       '<div class="error">⚠️ Please enter a website address first.</div>';
+
     return;
   }
 
   button.disabled = true;
+
+  latestReport = null;
 
   result.innerHTML =
     "🛡️ Checking security... Please wait.";
@@ -541,13 +779,17 @@ async function runCheck() {
   try {
 
     const response = await fetch("/api/scan", {
+
       method: "POST",
+
       headers: {
         "Content-Type": "application/json"
       },
+
       body: JSON.stringify({
         website: website
       })
+
     });
 
     const data = await response.json();
@@ -556,7 +798,7 @@ async function runCheck() {
 
       result.innerHTML =
         '<div class="error">⚠️ ' +
-        (data.error || "Security check failed.") +
+        escapeHTML(data.error || "Security check failed.") +
         '</div>';
 
       button.disabled = false;
@@ -569,34 +811,28 @@ async function runCheck() {
 
     data.checks.forEach(function(check) {
 
-      let statusClass = "info";
-
-      if (check.status === "PASS") {
-        statusClass = "pass";
-      }
-
-      if (check.status === "WARNING") {
-        statusClass = "warning";
-      }
+      const statusClass =
+        getStatusClass(check.status);
 
       checksHTML +=
+
         '<div class="check">' +
 
         '<div class="check-name">' +
-        check.name +
+        escapeHTML(check.name) +
         ' — <span class="' +
         statusClass +
         '">' +
-        check.status +
+        escapeHTML(check.status) +
         '</span></div>' +
 
         '<div class="message">' +
-        check.message +
+        escapeHTML(check.message) +
         '</div>' +
 
         (check.fix
           ? '<div class="fix">🔧 <strong>Fix:</strong> ' +
-            check.fix +
+            escapeHTML(check.fix) +
             '</div>'
           : '') +
 
@@ -604,11 +840,28 @@ async function runCheck() {
 
     });
 
+
     const summary = data.summary || {
+
       totalChecks: data.checks.length,
-      passed: data.checks.filter(c => c.status === "PASS").length,
-      warnings: data.checks.filter(c => c.status === "WARNING").length
+
+      passed:
+        data.checks.filter(function(c) {
+          return c.status === "PASS";
+        }).length,
+
+      warnings:
+        data.checks.filter(function(c) {
+          return c.status === "WARNING";
+        }).length,
+
+      informational:
+        data.checks.filter(function(c) {
+          return c.status === "INFO";
+        }).length
+
     };
+
 
     result.innerHTML =
 
@@ -617,21 +870,23 @@ async function runCheck() {
       '<div>🛡️ Security Score</div>' +
 
       '<div class="score">' +
-      data.securityScore +
+      escapeHTML(data.securityScore) +
       '/100' +
       '</div>' +
 
       '<div class="risk">' +
       'Risk Level: ' +
-      data.riskLevel +
+      escapeHTML(data.riskLevel) +
       '</div>' +
 
       '</div>' +
 
       '<div class="check">' +
       '<strong>Website:</strong> ' +
-      data.website +
+      escapeHTML(data.website) +
       '</div>' +
+
+      buildHealthCenter(data, summary) +
 
       '<div class="summary">' +
 
@@ -664,6 +919,10 @@ async function runCheck() {
       '📄 Generate Professional Security Report' +
       '</button>' +
 
+      '<button class="rescan-button" onclick="reScan()">' +
+      '🔄 Re-scan This Website' +
+      '</button>' +
+
       '<div id="reportArea"></div>';
 
   } catch (error) {
@@ -679,14 +938,36 @@ async function runCheck() {
 }
 
 
+function reScan() {
+
+  if (!latestScan || !latestScan.website) {
+    return;
+  }
+
+  document.getElementById("website").value =
+    latestScan.website;
+
+  document.getElementById("scanner").scrollIntoView({
+    behavior: "smooth"
+  });
+
+  setTimeout(function() {
+    runCheck();
+  }, 500);
+
+}
+
+
 async function generateReport() {
 
   const reportArea =
     document.getElementById("reportArea");
 
   if (!latestScan) {
+
     reportArea.innerHTML =
       '<div class="error">⚠️ Run a security scan first.</div>';
+
     return;
   }
 
@@ -704,10 +985,18 @@ async function generateReport() {
       },
 
       body: JSON.stringify({
+
         website: latestScan.website,
-        securityScore: latestScan.securityScore,
-        riskLevel: latestScan.riskLevel,
-        checks: latestScan.checks
+
+        securityScore:
+          latestScan.securityScore,
+
+        riskLevel:
+          latestScan.riskLevel,
+
+        checks:
+          latestScan.checks
+
       })
 
     });
@@ -715,14 +1004,21 @@ async function generateReport() {
     const data = await response.json();
 
     if (!response.ok) {
+
       reportArea.innerHTML =
         '<div class="error">⚠️ ' +
-        (data.error || "Report generation failed.") +
+        escapeHTML(
+          data.error ||
+          "Report generation failed."
+        ) +
         '</div>';
+
       return;
     }
 
     const report = data.report;
+
+    latestReport = report;
 
     let findingsHTML = "";
 
@@ -736,15 +1032,17 @@ async function generateReport() {
       report.findings.forEach(function(item) {
 
         findingsHTML +=
+
           "<li><strong>" +
-          item.title +
+          escapeHTML(item.title) +
           ":</strong> " +
-          item.fix +
+          escapeHTML(item.fix) +
           "</li>";
 
       });
 
     }
+
 
     let recommendationsHTML = "";
 
@@ -752,10 +1050,11 @@ async function generateReport() {
 
       recommendationsHTML +=
         "<li>" +
-        item +
+        escapeHTML(item) +
         "</li>";
 
     });
+
 
     reportArea.innerHTML =
 
@@ -764,25 +1063,25 @@ async function generateReport() {
       '<h3>📄 Sentinel AI Professional Security Report</h3>' +
 
       '<p><strong>Website:</strong> ' +
-      report.website +
+      escapeHTML(report.website) +
       '</p>' +
 
       '<p><strong>Security Score:</strong> ' +
-      report.securityScore +
+      escapeHTML(report.securityScore) +
       '/100</p>' +
 
       '<p><strong>Risk Level:</strong> ' +
-      report.riskLevel +
+      escapeHTML(report.riskLevel) +
       '</p>' +
 
       '<h3>Summary</h3>' +
 
       '<p>' +
-      report.summary.passed +
+      escapeHTML(report.summary.passed) +
       ' passed · ' +
-      report.summary.warnings +
+      escapeHTML(report.summary.warnings) +
       ' warnings · ' +
-      report.summary.informational +
+      escapeHTML(report.summary.informational) +
       ' informational</p>' +
 
       '<h3>Findings & Fixes</h3>' +
@@ -798,7 +1097,7 @@ async function generateReport() {
       '</ul>' +
 
       '<p class="message">' +
-      report.disclaimer +
+      escapeHTML(report.disclaimer) +
       '</p>' +
 
       '</div>' +
@@ -820,7 +1119,8 @@ async function generateReport() {
 
 function downloadReport() {
 
-  const report = document.getElementById("printableReport");
+  const report =
+    document.getElementById("printableReport");
 
   if (!report) {
     return;
@@ -831,64 +1131,99 @@ function downloadReport() {
       ? latestScan.website
       : "website";
 
+
   const content = `
+
 <!DOCTYPE html>
+
 <html>
+
 <head>
+
 <meta charset="UTF-8">
+
 <title>Sentinel AI Security Report</title>
+
 <style>
+
 body {
   font-family: Arial, sans-serif;
   padding: 40px;
   color: #111827;
   line-height: 1.6;
 }
+
 h1, h2, h3 {
   color: #0f172a;
 }
+
 .report-box {
   border: 1px solid #cbd5e1;
   border-radius: 12px;
   padding: 25px;
 }
+
 li {
   margin: 8px 0;
 }
+
 </style>
+
 </head>
+
 <body>
+
 <h1>🛡️ Sentinel AI</h1>
+
+<p>
+Professional Security Report
+</p>
+
 <div class="report-box">
+
 ${report.innerHTML}
+
 </div>
+
 </body>
+
 </html>
+
 `;
+
 
   const blob =
     new Blob([content], {
       type: "text/html"
     });
 
+
   const url =
     URL.createObjectURL(blob);
+
 
   const link =
     document.createElement("a");
 
+
   link.href = url;
+
 
   link.download =
     "sentinel-ai-security-report.html";
 
+
   document.body.appendChild(link);
+
 
   link.click();
 
+
   document.body.removeChild(link);
 
+
   URL.revokeObjectURL(url);
+
 }
 
 </script>
