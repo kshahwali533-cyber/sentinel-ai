@@ -153,7 +153,7 @@
       border: 1px solid #24415e;
       border-radius: 16px;
       padding: 30px;
-      max-width: 700px;
+      max-width: 750px;
       margin: auto;
     }
 
@@ -185,6 +185,13 @@
       cursor: wait;
     }
 
+    .report-button {
+      margin-top: 18px;
+      background: #172b42;
+      color: #38bdf8;
+      border: 1px solid #31506d;
+    }
+
     #result {
       margin-top: 25px;
       display: none;
@@ -209,6 +216,27 @@
       font-size: 20px;
       font-weight: bold;
       margin-top: 5px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .summary-box {
+      background: #07111f;
+      border: 1px solid #18304a;
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .summary-number {
+      font-size: 25px;
+      font-weight: bold;
+      color: #38bdf8;
     }
 
     .check {
@@ -262,6 +290,24 @@
       border-radius: 10px;
     }
 
+    .report {
+      background: #0b1d31;
+      border: 1px solid #31506d;
+      border-radius: 14px;
+      padding: 25px;
+      margin-top: 20px;
+    }
+
+    .report h3 {
+      color: #38bdf8;
+      margin-bottom: 12px;
+    }
+
+    .report li {
+      margin: 8px 0 8px 20px;
+      color: #cbd5e1;
+    }
+
     .mission {
       text-align: center;
       background: #0b1d31;
@@ -289,6 +335,10 @@
 
       .hero {
         padding-top: 55px;
+      }
+
+      .summary {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -352,7 +402,6 @@
 
       <div class="card">
         <h3>🔍 Security Scanner</h3>
-
         <p>
           Identify common security concerns and learn what they mean
           without complicated technical language.
@@ -361,7 +410,6 @@
 
       <div class="card">
         <h3>🤖 AI Security Mentor</h3>
-
         <p>
           Get simple explanations of cybersecurity concepts,
           vulnerabilities and defensive practices.
@@ -370,7 +418,6 @@
 
       <div class="card">
         <h3>🛠️ Fix Guidance</h3>
-
         <p>
           Learn practical defensive steps to improve website,
           account and digital security.
@@ -379,7 +426,6 @@
 
       <div class="card">
         <h3>🎓 Cyber Education</h3>
-
         <p>
           Build cybersecurity knowledge through simple examples
           designed for beginners and students.
@@ -447,6 +493,8 @@
 
 <script>
 
+let latestScan = null;
+
 async function runCheck() {
 
   const website =
@@ -460,33 +508,27 @@ async function runCheck() {
 
   result.style.display = "block";
 
-  result.innerHTML =
-    "🛡️ Checking security... Please wait.";
-
   if (!website) {
-
     result.innerHTML =
       '<div class="error">⚠️ Please enter a website address first.</div>';
-
     return;
   }
 
   button.disabled = true;
 
+  result.innerHTML =
+    "🛡️ Checking security... Please wait.";
+
   try {
 
     const response = await fetch("/api/scan", {
-
       method: "POST",
-
       headers: {
         "Content-Type": "application/json"
       },
-
       body: JSON.stringify({
         website: website
       })
-
     });
 
     const data = await response.json();
@@ -499,9 +541,10 @@ async function runCheck() {
         '</div>';
 
       button.disabled = false;
-
       return;
     }
+
+    latestScan = data;
 
     let checksHTML = "";
 
@@ -542,6 +585,12 @@ async function runCheck() {
 
     });
 
+    const summary = data.summary || {
+      totalChecks: data.checks.length,
+      passed: data.checks.filter(c => c.status === "PASS").length,
+      warnings: data.checks.filter(c => c.status === "WARNING").length
+    };
+
     result.innerHTML =
 
       '<div class="score-box">' +
@@ -565,12 +614,38 @@ async function runCheck() {
       data.website +
       '</div>' +
 
+      '<div class="summary">' +
+
+      '<div class="summary-box">' +
+      '<div class="summary-number">' +
+      summary.totalChecks +
+      '</div>' +
+      '<div>Total Checks</div>' +
+      '</div>' +
+
+      '<div class="summary-box">' +
+      '<div class="summary-number">' +
+      summary.passed +
+      '</div>' +
+      '<div>Passed</div>' +
+      '</div>' +
+
+      '<div class="summary-box">' +
+      '<div class="summary-number">' +
+      summary.warnings +
+      '</div>' +
+      '<div>Warnings</div>' +
+      '</div>' +
+
+      '</div>' +
+
       checksHTML +
 
-      '<div class="message">' +
-      '✅ ' +
-      data.message +
-      '</div>';
+      '<button class="report-button" onclick="generateReport()">' +
+      '📄 Generate Professional Security Report' +
+      '</button>' +
+
+      '<div id="reportArea"></div>';
 
   } catch (error) {
 
@@ -582,6 +657,141 @@ async function runCheck() {
   }
 
   button.disabled = false;
+}
+
+
+async function generateReport() {
+
+  const reportArea =
+    document.getElementById("reportArea");
+
+  if (!latestScan) {
+    reportArea.innerHTML =
+      '<div class="error">⚠️ Run a security scan first.</div>';
+    return;
+  }
+
+  reportArea.innerHTML =
+    '<div class="report">📄 Generating professional report...</div>';
+
+  try {
+
+    const response = await fetch("/api/report", {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        website: latestScan.website,
+        securityScore: latestScan.securityScore,
+        riskLevel: latestScan.riskLevel,
+        checks: latestScan.checks
+      })
+
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      reportArea.innerHTML =
+        '<div class="error">⚠️ ' +
+        (data.error || "Report generation failed.") +
+        '</div>';
+      return;
+    }
+
+    const report = data.report;
+
+    let findingsHTML = "";
+
+    if (report.findings.length === 0) {
+
+      findingsHTML =
+        "<li>No warning findings were detected.</li>";
+
+    } else {
+
+      report.findings.forEach(function(item) {
+
+        findingsHTML +=
+          "<li><strong>" +
+          item.title +
+          ":</strong> " +
+          item.fix +
+          "</li>";
+
+      });
+
+    }
+
+    let recommendationsHTML = "";
+
+    report.recommendations.forEach(function(item) {
+
+      recommendationsHTML +=
+        "<li>" +
+        item +
+        "</li>";
+
+    });
+
+    reportArea.innerHTML =
+
+      '<div class="report">' +
+
+      '<h3>📄 Sentinel AI Professional Security Report</h3>' +
+
+      '<p><strong>Website:</strong> ' +
+      report.website +
+      '</p>' +
+
+      '<p><strong>Security Score:</strong> ' +
+      report.securityScore +
+      '/100</p>' +
+
+      '<p><strong>Risk Level:</strong> ' +
+      report.riskLevel +
+      '</p>' +
+
+      '<h3>Summary</h3>' +
+
+      '<p>' +
+      report.summary.passed +
+      ' passed · ' +
+      report.summary.warnings +
+      ' warnings · ' +
+      report.summary.informational +
+      ' informational</p>' +
+
+      '<h3>Findings & Fixes</h3>' +
+
+      '<ul>' +
+      findingsHTML +
+      '</ul>' +
+
+      '<h3>Recommendations</h3>' +
+
+      '<ul>' +
+      recommendationsHTML +
+      '</ul>' +
+
+      '<p class="message">' +
+      report.disclaimer +
+      '</p>' +
+
+      '</div>';
+
+  } catch (error) {
+
+    reportArea.innerHTML =
+      '<div class="error">' +
+      '❌ Unable to generate the security report.' +
+      '</div>';
+
+  }
 }
 
 </script>
