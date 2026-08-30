@@ -38,7 +38,8 @@
       font-weight: bold;
     }
 
-    .logo span {
+    .logo span,
+    h1 span {
       color: #38bdf8;
     }
 
@@ -70,10 +71,6 @@
       font-size: clamp(40px, 8vw, 72px);
       line-height: 1.05;
       margin-bottom: 22px;
-    }
-
-    h1 span {
-      color: #38bdf8;
     }
 
     .hero p {
@@ -157,6 +154,11 @@
       margin: auto;
     }
 
+    .scanner-intro {
+      color: #a9b8c9;
+      margin-bottom: 10px;
+    }
+
     input {
       width: 100%;
       padding: 15px;
@@ -186,15 +188,68 @@
     }
 
     .report-button {
-      margin-top: 18px;
-      background: #172b42;
-      color: #38bdf8;
-      border: 1px solid #31506d;
+      margin-top: 25px;
+      background: #38bdf8;
+      color: #06111f;
+      border: 2px solid #7dd3fc;
     }
 
-    #result {
+    .report-button:hover {
+      opacity: 0.9;
+    }
+
+    .report {
+      background: #0b1d31;
+      border: 1px solid #31506d;
+      border-radius: 14px;
+      padding: 25px;
+      margin-top: 20px;
+    }
+
+    .report h3 {
+      color: #38bdf8;
+      margin: 18px 0 10px;
+    }
+
+    .report h3:first-child {
+      margin-top: 0;
+    }
+
+    .report p {
+      color: #cbd5e1;
+      margin: 7px 0;
+    }
+
+    .report li {
+      margin: 8px 0 8px 20px;
+      color: #cbd5e1;
+    }
+
+    .report-actions {
       margin-top: 25px;
-      display: none;
+    }
+
+    .download-button {
+      background: #38bdf8;
+      color: #06111f;
+    }
+
+    .error {
+      background: #35151a;
+      border: 1px solid #7f1d1d;
+      color: #fecaca;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 15px;
+    }
+
+    .loading {
+      background: #102a43;
+      border: 1px solid #31506d;
+      color: #38bdf8;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
     }
 
     .score-box {
@@ -249,7 +304,6 @@
 
     .check-name {
       font-weight: bold;
-      color: #ffffff;
     }
 
     .pass {
@@ -282,32 +336,6 @@
       font-size: 14px;
     }
 
-    .error {
-      background: #35151a;
-      border: 1px solid #7f1d1d;
-      color: #fecaca;
-      padding: 15px;
-      border-radius: 10px;
-    }
-
-    .report {
-      background: #0b1d31;
-      border: 1px solid #31506d;
-      border-radius: 14px;
-      padding: 25px;
-      margin-top: 20px;
-    }
-
-    .report h3 {
-      color: #38bdf8;
-      margin-bottom: 12px;
-    }
-
-    .report li {
-      margin: 8px 0 8px 20px;
-      color: #cbd5e1;
-    }
-
     .mission {
       text-align: center;
       background: #0b1d31;
@@ -333,10 +361,6 @@
         margin: 0 7px;
       }
 
-      .hero {
-        padding-top: 55px;
-      }
-
       .summary {
         grid-template-columns: 1fr;
       }
@@ -356,144 +380,159 @@
   </nav>
 </header>
 
+
 <main>
 
-  <section class="hero">
+<section class="hero">
 
-    <div class="badge">
-      AI-Powered Cybersecurity Education
+  <div class="badge">
+    AI-Powered Cybersecurity Education
+  </div>
+
+  <h1>
+    Understand Security.<br>
+    <span>Stay Protected.</span>
+  </h1>
+
+  <p>
+    Sentinel AI helps beginners, developers and small businesses
+    understand cybersecurity risks in simple language and learn
+    practical ways to stay safer online.
+  </p>
+
+  <div class="buttons">
+    <a class="btn primary" href="#scanner">
+      Try Security Check
+    </a>
+
+    <a class="btn secondary" href="#features">
+      Explore Sentinel AI
+    </a>
+  </div>
+
+</section>
+
+
+<section id="features">
+
+  <h2 class="section-title">
+    What Sentinel AI Does
+  </h2>
+
+  <p class="section-text">
+    A beginner-friendly security mentor designed to make
+    cybersecurity easier to understand.
+  </p>
+
+  <div class="cards">
+
+    <div class="card">
+      <h3>🔍 Security Scanner</h3>
+      <p>
+        Identify common security concerns and learn what they mean
+        without complicated technical language.
+      </p>
     </div>
 
-    <h1>
-      Understand Security.<br>
-      <span>Stay Protected.</span>
-    </h1>
+    <div class="card">
+      <h3>🤖 AI Security Mentor</h3>
+      <p>
+        Get simple explanations of cybersecurity concepts,
+        vulnerabilities and defensive practices.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>🛠️ Fix Guidance</h3>
+      <p>
+        Learn practical defensive steps to improve website,
+        account and digital security.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>🎓 Cyber Education</h3>
+      <p>
+        Build cybersecurity knowledge through simple examples
+        designed for beginners and students.
+      </p>
+    </div>
+
+  </div>
+
+</section>
+
+
+<section id="scanner">
+
+  <h2 class="section-title">
+    Security Check
+  </h2>
+
+  <div class="scanner">
+
+    <p class="scanner-intro">
+      Enter a website address to check HTTPS and important
+      security headers. Sentinel AI will analyze the website
+      and show the results below.
+    </p>
+
+    <input
+      id="website"
+      type="text"
+      placeholder="https://example.com"
+    >
+
+    <button
+      id="scanButton"
+      onclick="runCheck()"
+    >
+      🛡️ Start Security Check
+    </button>
+
+    <div id="result"></div>
+
+  </div>
+
+</section>
+
+
+<section id="mission">
+
+  <div class="mission">
+
+    <h2 class="section-title">
+      Our Mission
+    </h2>
 
     <p>
-      Sentinel AI helps beginners, developers and small businesses
-      understand cybersecurity risks in simple language and learn
-      practical ways to stay safer online.
+      Sentinel AI is dedicated to making cybersecurity simple,
+      accessible and understandable for everyone.
+      Our goal is to help individuals, students and businesses
+      learn security and make safer decisions in the digital world.
     </p>
 
-    <div class="buttons">
-      <a class="btn primary" href="#scanner">
-        Try Security Check
-      </a>
+  </div>
 
-      <a class="btn secondary" href="#features">
-        Explore Sentinel AI
-      </a>
-    </div>
-
-  </section>
-
-  <section id="features">
-
-    <h2 class="section-title">
-      What Sentinel AI Does
-    </h2>
-
-    <p class="section-text">
-      A beginner-friendly security mentor designed to make
-      cybersecurity easier to understand.
-    </p>
-
-    <div class="cards">
-
-      <div class="card">
-        <h3>🔍 Security Scanner</h3>
-        <p>
-          Identify common security concerns and learn what they mean
-          without complicated technical language.
-        </p>
-      </div>
-
-      <div class="card">
-        <h3>🤖 AI Security Mentor</h3>
-        <p>
-          Get simple explanations of cybersecurity concepts,
-          vulnerabilities and defensive practices.
-        </p>
-      </div>
-
-      <div class="card">
-        <h3>🛠️ Fix Guidance</h3>
-        <p>
-          Learn practical defensive steps to improve website,
-          account and digital security.
-        </p>
-      </div>
-
-      <div class="card">
-        <h3>🎓 Cyber Education</h3>
-        <p>
-          Build cybersecurity knowledge through simple examples
-          designed for beginners and students.
-        </p>
-      </div>
-
-    </div>
-
-  </section>
-
-  <section id="scanner">
-
-    <h2 class="section-title">
-      Security Check
-    </h2>
-
-    <div class="scanner">
-
-      <p>
-        Enter a website address to check HTTPS and important
-        security headers. Sentinel AI will analyze the website
-        and show the results below.
-      </p>
-
-      <input
-        id="website"
-        type="text"
-        placeholder="https://example.com"
-      >
-
-      <button id="scanButton" onclick="runCheck()">
-        Start Security Check
-      </button>
-
-      <div id="result"></div>
-
-    </div>
-
-  </section>
-
-  <section id="mission">
-
-    <div class="mission">
-
-      <h2 class="section-title">
-        Our Mission
-      </h2>
-
-      <p>
-        Sentinel AI is dedicated to making cybersecurity simple,
-        accessible and understandable for everyone.
-        Our goal is to help individuals, students and businesses
-        learn security and make safer decisions in the digital world.
-      </p>
-
-    </div>
-
-  </section>
+</section>
 
 </main>
+
 
 <footer>
   © 2026 Sentinel AI · AI Cybersecurity Scanner & Security Education Platform
 </footer>
 
+
 <script>
 
 let latestScan = null;
+let latestReport = null;
+
+
+/* =========================
+   SECURITY SCAN
+========================= */
 
 async function runCheck() {
 
@@ -506,90 +545,147 @@ async function runCheck() {
   const button =
     document.getElementById("scanButton");
 
+
   result.style.display = "block";
 
+
   if (!website) {
+
     result.innerHTML =
       '<div class="error">⚠️ Please enter a website address first.</div>';
+
     return;
   }
 
+
   button.disabled = true;
 
+  latestScan = null;
+  latestReport = null;
+
+
   result.innerHTML =
-    "🛡️ Checking security... Please wait.";
+    '<div class="loading">🛡️ Checking security... Please wait.</div>';
+
 
   try {
 
     const response = await fetch("/api/scan", {
+
       method: "POST",
+
       headers: {
         "Content-Type": "application/json"
       },
+
       body: JSON.stringify({
         website: website
       })
+
     });
 
+
     const data = await response.json();
+
 
     if (!response.ok) {
 
       result.innerHTML =
         '<div class="error">⚠️ ' +
-        (data.error || "Security check failed.") +
+        escapeHTML(data.error || "Security check failed.") +
         '</div>';
 
       button.disabled = false;
+
       return;
     }
 
+
     latestScan = data;
+
+
+    const checks =
+      Array.isArray(data.checks)
+        ? data.checks
+        : [];
+
 
     let checksHTML = "";
 
-    data.checks.forEach(function(check) {
+
+    checks.forEach(function(check) {
 
       let statusClass = "info";
+
 
       if (check.status === "PASS") {
         statusClass = "pass";
       }
 
+
       if (check.status === "WARNING") {
         statusClass = "warning";
       }
 
+
       checksHTML +=
+
         '<div class="check">' +
 
         '<div class="check-name">' +
-        check.name +
+
+        escapeHTML(
+          check.name || "Security Check"
+        ) +
+
         ' — <span class="' +
         statusClass +
         '">' +
-        check.status +
+
+        escapeHTML(
+          check.status || "INFO"
+        ) +
+
         '</span></div>' +
 
         '<div class="message">' +
-        check.message +
+
+        escapeHTML(
+          check.message || ""
+        ) +
+
         '</div>' +
 
-        (check.fix
+        (
+          check.fix
           ? '<div class="fix">🔧 <strong>Fix:</strong> ' +
-            check.fix +
+            escapeHTML(check.fix) +
             '</div>'
-          : '') +
+          : ''
+        ) +
 
         '</div>';
 
     });
 
-    const summary = data.summary || {
-      totalChecks: data.checks.length,
-      passed: data.checks.filter(c => c.status === "PASS").length,
-      warnings: data.checks.filter(c => c.status === "WARNING").length
-    };
+
+    const summary =
+      data.summary || {
+
+        totalChecks: checks.length,
+
+        passed:
+          checks.filter(function(c) {
+            return c.status === "PASS";
+          }).length,
+
+        warnings:
+          checks.filter(function(c) {
+            return c.status === "WARNING";
+          }).length
+
+      };
+
 
     result.innerHTML =
 
@@ -598,54 +694,97 @@ async function runCheck() {
       '<div>🛡️ Security Score</div>' +
 
       '<div class="score">' +
-      data.securityScore +
-      '/100' +
-      '</div>' +
+
+      escapeHTML(
+        data.securityScore
+      ) +
+
+      '/100</div>' +
 
       '<div class="risk">' +
+
       'Risk Level: ' +
-      data.riskLevel +
+
+      escapeHTML(
+        data.riskLevel || "Unknown"
+      ) +
+
       '</div>' +
 
       '</div>' +
+
 
       '<div class="check">' +
+
       '<strong>Website:</strong> ' +
-      data.website +
+
+      escapeHTML(
+        data.website || website
+      ) +
+
       '</div>' +
+
 
       '<div class="summary">' +
 
       '<div class="summary-box">' +
+
       '<div class="summary-number">' +
+
       summary.totalChecks +
+
       '</div>' +
+
       '<div>Total Checks</div>' +
+
       '</div>' +
 
+
       '<div class="summary-box">' +
+
       '<div class="summary-number">' +
+
       summary.passed +
+
       '</div>' +
+
       '<div>Passed</div>' +
+
       '</div>' +
+
 
       '<div class="summary-box">' +
+
       '<div class="summary-number">' +
+
       summary.warnings +
+
       '</div>' +
+
       '<div>Warnings</div>' +
+
       '</div>' +
 
       '</div>' +
+
 
       checksHTML +
 
-      '<button class="report-button" onclick="generateReport()">' +
+
+      /* REPORT BUTTON */
+
+      '<button ' +
+      'id="reportButton" ' +
+      'class="report-button" ' +
+      'onclick="generateReport()">' +
+
       '📄 Generate Professional Security Report' +
+
       '</button>' +
 
+
       '<div id="reportArea"></div>';
+
 
   } catch (error) {
 
@@ -656,23 +795,45 @@ async function runCheck() {
 
   }
 
+
   button.disabled = false;
+
 }
 
+
+
+/* =========================
+   GENERATE REPORT
+========================= */
 
 async function generateReport() {
 
   const reportArea =
     document.getElementById("reportArea");
 
+  const reportButton =
+    document.getElementById("reportButton");
+
+
   if (!latestScan) {
+
     reportArea.innerHTML =
-      '<div class="error">⚠️ Run a security scan first.</div>';
+      '<div class="error">' +
+      '⚠️ Run a security scan first.' +
+      '</div>';
+
     return;
   }
 
+
+  reportButton.disabled = true;
+
+
   reportArea.innerHTML =
-    '<div class="report">📄 Generating professional report...</div>';
+    '<div class="loading">' +
+    '📄 Generating Professional Security Report...' +
+    '</div>';
+
 
   try {
 
@@ -685,104 +846,222 @@ async function generateReport() {
       },
 
       body: JSON.stringify({
-        website: latestScan.website,
-        securityScore: latestScan.securityScore,
-        riskLevel: latestScan.riskLevel,
-        checks: latestScan.checks
+
+        website:
+          latestScan.website,
+
+        securityScore:
+          latestScan.securityScore,
+
+        riskLevel:
+          latestScan.riskLevel,
+
+        checks:
+          latestScan.checks
+
       })
 
     });
 
-    const data = await response.json();
+
+    const data =
+      await response.json();
+
 
     if (!response.ok) {
+
       reportArea.innerHTML =
-        '<div class="error">⚠️ ' +
-        (data.error || "Report generation failed.") +
+        '<div class="error">' +
+        '⚠️ ' +
+        escapeHTML(
+          data.error ||
+          "Report generation failed."
+        ) +
         '</div>';
+
+      reportButton.disabled = false;
+
       return;
     }
 
-    const report = data.report;
+
+    const report =
+      data.report;
+
+
+    latestReport =
+      report;
+
 
     let findingsHTML = "";
 
-    if (report.findings.length === 0) {
+
+    if (
+      !report.findings ||
+      report.findings.length === 0
+    ) {
 
       findingsHTML =
-        "<li>No warning findings were detected.</li>";
+        '<li>✅ No warning findings were detected.</li>';
 
     } else {
 
       report.findings.forEach(function(item) {
 
         findingsHTML +=
-          "<li><strong>" +
-          item.title +
-          ":</strong> " +
-          item.fix +
-          "</li>";
+
+          '<li>' +
+
+          '<strong>' +
+
+          escapeHTML(
+            item.title ||
+            "Security Finding"
+          ) +
+
+          ':</strong> ' +
+
+          escapeHTML(
+            item.fix ||
+            "Review this security setting."
+          ) +
+
+          '</li>';
 
       });
 
     }
 
+
     let recommendationsHTML = "";
 
-    report.recommendations.forEach(function(item) {
 
-      recommendationsHTML +=
-        "<li>" +
-        item +
-        "</li>";
+    if (
+      report.recommendations &&
+      report.recommendations.length
+    ) {
 
-    });
+      report.recommendations.forEach(function(item) {
+
+        recommendationsHTML +=
+
+          '<li>' +
+
+          escapeHTML(item) +
+
+          '</li>';
+
+      });
+
+    }
+
+
+    const summary =
+      report.summary || {};
+
 
     reportArea.innerHTML =
 
-      '<div class="report">' +
+      '<div class="report" id="professionalReport">' +
 
       '<h3>📄 Sentinel AI Professional Security Report</h3>' +
 
       '<p><strong>Website:</strong> ' +
-      report.website +
+
+      escapeHTML(
+        report.website
+      ) +
+
       '</p>' +
 
       '<p><strong>Security Score:</strong> ' +
-      report.securityScore +
+
+      escapeHTML(
+        report.securityScore
+      ) +
+
       '/100</p>' +
 
       '<p><strong>Risk Level:</strong> ' +
-      report.riskLevel +
+
+      escapeHTML(
+        report.riskLevel
+      ) +
+
       '</p>' +
+
 
       '<h3>Summary</h3>' +
 
       '<p>' +
-      report.summary.passed +
+
+      escapeHTML(
+        summary.passed || 0
+      ) +
+
       ' passed · ' +
-      report.summary.warnings +
+
+      escapeHTML(
+        summary.warnings || 0
+      ) +
+
       ' warnings · ' +
-      report.summary.informational +
+
+      escapeHTML(
+        summary.informational || 0
+      ) +
+
       ' informational</p>' +
+
 
       '<h3>Findings & Fixes</h3>' +
 
       '<ul>' +
+
       findingsHTML +
+
       '</ul>' +
+
 
       '<h3>Recommendations</h3>' +
 
       '<ul>' +
+
       recommendationsHTML +
+
       '</ul>' +
 
+
       '<p class="message">' +
-      report.disclaimer +
+
+      escapeHTML(
+        report.disclaimer || ""
+      ) +
+
       '</p>' +
 
+
+      '<div class="report-actions">' +
+
+      '<button ' +
+      'class="download-button" ' +
+      'onclick="downloadReport()">' +
+
+      '⬇️ Download Report' +
+
+      '</button>' +
+
+      '</div>' +
+
+
       '</div>';
+
+
+    reportArea.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
 
   } catch (error) {
 
@@ -792,6 +1071,219 @@ async function generateReport() {
       '</div>';
 
   }
+
+
+  reportButton.disabled = false;
+
+}
+
+
+
+/* =========================
+   DOWNLOAD REPORT
+========================= */
+
+function downloadReport() {
+
+  if (!latestReport) {
+
+    alert(
+      "Please generate the report first."
+    );
+
+    return;
+  }
+
+
+  const report =
+    latestReport;
+
+
+  let findings = "";
+
+
+  if (
+    report.findings &&
+    report.findings.length
+  ) {
+
+    report.findings.forEach(
+      function(item, index) {
+
+        findings +=
+
+          (index + 1) +
+          ". " +
+
+          (item.title || "Security Finding") +
+
+          "\n" +
+
+          "Fix: " +
+
+          (item.fix || "") +
+
+          "\n\n";
+
+      }
+    );
+
+  } else {
+
+    findings =
+      "No warning findings were detected.\n\n";
+
+  }
+
+
+  let recommendations = "";
+
+
+  if (
+    report.recommendations &&
+    report.recommendations.length
+  ) {
+
+    report.recommendations.forEach(
+      function(item, index) {
+
+        recommendations +=
+
+          (index + 1) +
+          ". " +
+          item +
+          "\n";
+
+      }
+    );
+
+  }
+
+
+  const text =
+
+    "SENTINEL AI\n" +
+
+    "PROFESSIONAL SECURITY REPORT\n" +
+
+    "====================================\n\n" +
+
+    "Website: " +
+    (report.website || "") +
+    "\n" +
+
+    "Security Score: " +
+    (report.securityScore || "") +
+    "/100\n" +
+
+    "Risk Level: " +
+    (report.riskLevel || "") +
+    "\n\n" +
+
+    "SUMMARY\n" +
+
+    "------------------------------------\n" +
+
+    "Passed: " +
+    (report.summary?.passed || 0) +
+    "\n" +
+
+    "Warnings: " +
+    (report.summary?.warnings || 0) +
+    "\n" +
+
+    "Informational: " +
+    (report.summary?.informational || 0) +
+    "\n\n" +
+
+    "FINDINGS & FIXES\n" +
+
+    "------------------------------------\n" +
+
+    findings +
+
+    "\nRECOMMENDATIONS\n" +
+
+    "------------------------------------\n" +
+
+    recommendations +
+
+    "\nDISCLAIMER\n" +
+
+    "------------------------------------\n" +
+
+    (report.disclaimer || "") +
+
+    "\n\nGenerated by Sentinel AI\n";
+
+
+  const blob =
+    new Blob(
+      [text],
+      {
+        type:
+          "text/plain;charset=utf-8"
+      }
+    );
+
+
+  const url =
+    URL.createObjectURL(blob);
+
+
+  const link =
+    document.createElement("a");
+
+
+  link.href =
+    url;
+
+
+  link.download =
+    "Sentinel-AI-Security-Report.txt";
+
+
+  document.body.appendChild(link);
+
+
+  link.click();
+
+
+  document.body.removeChild(link);
+
+
+  URL.revokeObjectURL(url);
+
+}
+
+
+
+/* =========================
+   HTML SAFETY
+========================= */
+
+function escapeHTML(value) {
+
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+
+  return String(value)
+
+    .replace(/&/g, "&amp;")
+
+    .replace(/</g, "&lt;")
+
+    .replace(/>/g, "&gt;")
+
+    .replace(/"/g, "&quot;")
+
+    .replace(/'/g, "&#039;");
+
 }
 
 </script>
