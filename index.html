@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Sentinel AI | Cybersecurity Scanner</title>
+  <title>Sentinel AI | Cybersecurity Scanner & Security Mentor</title>
 
   <meta
     name="description"
-    content="Sentinel AI helps beginners, developers and small businesses understand cybersecurity risks and improve website security."
+    content="Sentinel AI scans websites, explains security risks and provides simple defensive guidance for beginners, developers and small businesses."
   >
 
   <!-- Vercel Web Analytics -->
@@ -39,6 +39,10 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid #18304a;
+      position: sticky;
+      top: 0;
+      background: rgba(7, 17, 31, 0.96);
+      z-index: 10;
     }
 
     .logo {
@@ -46,7 +50,8 @@
       font-weight: bold;
     }
 
-    .logo span {
+    .logo span,
+    h1 span {
       color: #38bdf8;
     }
 
@@ -55,6 +60,10 @@
       text-decoration: none;
       margin-left: 18px;
       font-size: 14px;
+    }
+
+    nav a:hover {
+      color: #38bdf8;
     }
 
     .hero {
@@ -80,13 +89,9 @@
       margin-bottom: 22px;
     }
 
-    h1 span {
-      color: #38bdf8;
-    }
-
     .hero p {
       color: #a9b8c9;
-      max-width: 700px;
+      max-width: 720px;
       margin: auto;
       font-size: 18px;
     }
@@ -161,7 +166,7 @@
       border: 1px solid #24415e;
       border-radius: 16px;
       padding: 30px;
-      max-width: 750px;
+      max-width: 800px;
       margin: auto;
     }
 
@@ -188,12 +193,17 @@
       cursor: pointer;
     }
 
+    button:hover {
+      opacity: 0.9;
+    }
+
     button:disabled {
       opacity: 0.6;
       cursor: wait;
     }
 
-    .report-button {
+    .report-button,
+    .mentor-button {
       margin-top: 18px;
       background: #172b42;
       color: #38bdf8;
@@ -207,9 +217,9 @@
     }
 
     .rescan-button {
-      margin-top: 12px;
-      background: #102a43;
-      color: #ffffff;
+      margin-top: 10px;
+      background: transparent;
+      color: #38bdf8;
       border: 1px solid #31506d;
     }
 
@@ -239,96 +249,52 @@
       margin-top: 5px;
     }
 
-    .health-center {
-      background: linear-gradient(135deg, #0b1d31, #102a43);
+    .health {
+      background: linear-gradient(145deg, #0b2035, #0c1b2d);
       border: 1px solid #31506d;
       border-radius: 16px;
-      padding: 24px;
+      padding: 25px;
       margin: 20px 0;
     }
 
-    .health-title {
+    .health h3 {
       color: #38bdf8;
-      font-size: 23px;
-      font-weight: bold;
       margin-bottom: 8px;
     }
 
     .health-subtitle {
       color: #a9b8c9;
-      font-size: 14px;
       margin-bottom: 20px;
     }
 
-    .health-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-
-    .health-box {
+    .priority {
       background: #07111f;
       border: 1px solid #18304a;
       border-radius: 10px;
       padding: 15px;
-      text-align: center;
+      margin: 10px 0;
     }
 
-    .health-number {
-      font-size: 28px;
-      font-weight: bold;
-      color: #38bdf8;
-    }
-
-    .priority {
-      margin-top: 20px;
-    }
-
-    .priority h3 {
-      color: #ffffff;
-      margin-bottom: 10px;
-    }
-
-    .priority-item {
-      background: #07111f;
-      border-left: 4px solid #facc15;
-      border-radius: 8px;
-      padding: 12px;
-      margin: 8px 0;
-    }
-
-    .priority-item strong {
+    .priority strong {
       color: #facc15;
     }
 
-    .good-status {
-      border-left-color: #4ade80;
-    }
-
-    .good-status strong {
-      color: #4ade80;
-    }
-
     .action-plan {
-      background: #07111f;
-      border: 1px solid #18304a;
-      border-radius: 12px;
-      padding: 18px;
       margin-top: 20px;
+      background: #102a43;
+      border-radius: 10px;
+      padding: 18px;
     }
 
-    .action-plan h3 {
+    .action-plan h4 {
       color: #38bdf8;
-      margin-bottom: 10px;
-    }
-
-    .action-plan ol {
-      padding-left: 22px;
-      color: #cbd5e1;
+      margin-bottom: 8px;
     }
 
     .action-plan li {
-      margin: 8px 0;
+      margin-left: 20px;
+      color: #cbd5e1;
+      margin-bottom: 5px;
     }
 
     .summary {
@@ -395,12 +361,48 @@
       font-size: 14px;
     }
 
-    .error {
-      background: #35151a;
-      border: 1px solid #7f1d1d;
-      color: #fecaca;
-      padding: 15px;
+    .mentor {
+      background: #091a2b;
+      border: 1px solid #38bdf8;
+      border-radius: 14px;
+      padding: 22px;
+      margin-top: 20px;
+    }
+
+    .mentor h3 {
+      color: #38bdf8;
+      margin-bottom: 8px;
+    }
+
+    .mentor-intro {
+      color: #a9b8c9;
+      margin-bottom: 18px;
+    }
+
+    .mentor-item {
+      background: #07111f;
+      border: 1px solid #18304a;
       border-radius: 10px;
+      padding: 16px;
+      margin: 10px 0;
+    }
+
+    .mentor-item h4 {
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+
+    .mentor-item p {
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+
+    .mentor-fix {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 7px;
+      background: #102a43;
+      color: #cbd5e1;
     }
 
     .report {
@@ -455,8 +457,7 @@
         padding-top: 55px;
       }
 
-      .summary,
-      .health-grid {
+      .summary {
         grid-template-columns: 1fr;
       }
     }
@@ -480,7 +481,7 @@
   <section class="hero">
 
     <div class="badge">
-      AI-Powered Cybersecurity Education
+      AI-Powered Cybersecurity Scanner & Security Mentor
     </div>
 
     <h1>
@@ -490,8 +491,8 @@
 
     <p>
       Sentinel AI helps beginners, developers and small businesses
-      understand cybersecurity risks in simple language and learn
-      practical ways to stay safer online.
+      discover common website security concerns, understand them in
+      simple language and follow practical defensive guidance.
     </p>
 
     <div class="buttons">
@@ -513,8 +514,8 @@
     </h2>
 
     <p class="section-text">
-      A beginner-friendly security mentor designed to make
-      cybersecurity easier to understand.
+      A beginner-friendly security platform that combines website
+      checks, security education and practical defensive guidance.
     </p>
 
     <div class="cards">
@@ -522,32 +523,32 @@
       <div class="card">
         <h3>🔍 Security Scanner</h3>
         <p>
-          Identify common security concerns and learn what they mean
-          without complicated technical language.
+          Check common website security settings and identify
+          potential security concerns.
         </p>
       </div>
 
       <div class="card">
-        <h3>🤖 AI Security Mentor</h3>
+        <h3>🤖 Security Mentor</h3>
         <p>
-          Get simple explanations of cybersecurity concepts,
-          vulnerabilities and defensive practices.
+          Understand findings in simple language and learn why
+          each security setting matters.
         </p>
       </div>
 
       <div class="card">
         <h3>🛠️ Fix Guidance</h3>
         <p>
-          Learn practical defensive steps to improve website,
-          account and digital security.
+          Get practical defensive recommendations for improving
+          website security.
         </p>
       </div>
 
       <div class="card">
-        <h3>🎓 Cyber Education</h3>
+        <h3>📄 Professional Reports</h3>
         <p>
-          Build cybersecurity knowledge through simple examples
-          designed for beginners and students.
+          Generate a structured security-awareness report that
+          summarizes findings and recommended actions.
         </p>
       </div>
 
@@ -561,18 +562,19 @@
       Security Check
     </h2>
 
-    <div class="scanner">
+    <p class="section-text">
+      Enter a website address you own or are authorized to test.
+      Sentinel AI performs a security-awareness check of common
+      HTTPS and security-header settings.
+    </p>
 
-      <p>
-        Enter a website address to check HTTPS and important
-        security headers. Sentinel AI will analyze the website
-        and show the results below.
-      </p>
+    <div class="scanner">
 
       <input
         id="website"
         type="text"
         placeholder="https://example.com"
+        autocomplete="url"
       >
 
       <button id="scanButton" onclick="runCheck()">
@@ -613,140 +615,11 @@
 <script>
 
 let latestScan = null;
-let latestReport = null;
-
-function escapeHTML(value) {
-  const div = document.createElement("div");
-  div.textContent = value == null ? "" : String(value);
-  return div.innerHTML;
-}
-
-function getStatusClass(status) {
-
-  if (status === "PASS") {
-    return "pass";
-  }
-
-  if (status === "WARNING") {
-    return "warning";
-  }
-
-  return "info";
-}
 
 
-function buildHealthCenter(data, summary) {
-
-  const warnings = data.checks.filter(function(check) {
-    return check.status === "WARNING";
-  });
-
-  let priorityHTML = "";
-
-  if (warnings.length === 0) {
-
-    priorityHTML =
-      '<div class="priority-item good-status">' +
-      '<strong>✅ Excellent</strong><br>' +
-      'No warning findings were detected in this security-awareness scan.' +
-      '</div>';
-
-  } else {
-
-    warnings.slice(0, 5).forEach(function(check, index) {
-
-      priorityHTML +=
-        '<div class="priority-item">' +
-        '<strong>Priority ' + (index + 1) + ': ' +
-        escapeHTML(check.name) +
-        '</strong>' +
-        '<div class="message">' +
-        escapeHTML(check.fix || check.message) +
-        '</div>' +
-        '</div>';
-
-    });
-
-  }
-
-  let actionHTML = "";
-
-  if (warnings.length === 0) {
-
-    actionHTML =
-      '<ol>' +
-      '<li>Continue using HTTPS across the website.</li>' +
-      '<li>Review security headers regularly.</li>' +
-      '<li>Run another scan after major website changes.</li>' +
-      '</ol>';
-
-  } else {
-
-    actionHTML =
-      '<ol>' +
-      '<li>Start with the highest-priority warning above.</li>' +
-      '<li>Apply the recommended defensive fix.</li>' +
-      '<li>Run Sentinel AI again to verify the result.</li>' +
-      '</ol>';
-
-  }
-
-  return (
-
-    '<div class="health-center">' +
-
-    '<div class="health-title">🛡️ Security Health Center</div>' +
-
-    '<div class="health-subtitle">' +
-    'Your security status at a glance — with the most important actions first.' +
-    '</div>' +
-
-    '<div class="health-grid">' +
-
-    '<div class="health-box">' +
-    '<div class="health-number">' +
-    data.securityScore +
-    '</div>' +
-    '<div>Security Score</div>' +
-    '</div>' +
-
-    '<div class="health-box">' +
-    '<div class="health-number">' +
-    summary.passed +
-    '</div>' +
-    '<div>Passed</div>' +
-    '</div>' +
-
-    '<div class="health-box">' +
-    '<div class="health-number">' +
-    summary.warnings +
-    '</div>' +
-    '<div>Priority Warnings</div>' +
-    '</div>' +
-
-    '</div>' +
-
-    '<div class="priority">' +
-
-    '<h3>🎯 Priority Fixes</h3>' +
-
-    priorityHTML +
-
-    '</div>' +
-
-    '<div class="action-plan">' +
-
-    '<h3>🚀 Recommended Action Plan</h3>' +
-
-    actionHTML +
-
-    '</div>' +
-
-    '</div>'
-
-  );
-}
-
+/* =========================
+   SECURITY SCANNER
+========================= */
 
 async function runCheck() {
 
@@ -762,16 +635,12 @@ async function runCheck() {
   result.style.display = "block";
 
   if (!website) {
-
     result.innerHTML =
       '<div class="error">⚠️ Please enter a website address first.</div>';
-
     return;
   }
 
   button.disabled = true;
-
-  latestReport = null;
 
   result.innerHTML =
     "🛡️ Checking security... Please wait.";
@@ -798,7 +667,7 @@ async function runCheck() {
 
       result.innerHTML =
         '<div class="error">⚠️ ' +
-        escapeHTML(data.error || "Security check failed.") +
+        (data.error || "Security check failed.") +
         '</div>';
 
       button.disabled = false;
@@ -807,123 +676,7 @@ async function runCheck() {
 
     latestScan = data;
 
-    let checksHTML = "";
-
-    data.checks.forEach(function(check) {
-
-      const statusClass =
-        getStatusClass(check.status);
-
-      checksHTML +=
-
-        '<div class="check">' +
-
-        '<div class="check-name">' +
-        escapeHTML(check.name) +
-        ' — <span class="' +
-        statusClass +
-        '">' +
-        escapeHTML(check.status) +
-        '</span></div>' +
-
-        '<div class="message">' +
-        escapeHTML(check.message) +
-        '</div>' +
-
-        (check.fix
-          ? '<div class="fix">🔧 <strong>Fix:</strong> ' +
-            escapeHTML(check.fix) +
-            '</div>'
-          : '') +
-
-        '</div>';
-
-    });
-
-
-    const summary = data.summary || {
-
-      totalChecks: data.checks.length,
-
-      passed:
-        data.checks.filter(function(c) {
-          return c.status === "PASS";
-        }).length,
-
-      warnings:
-        data.checks.filter(function(c) {
-          return c.status === "WARNING";
-        }).length,
-
-      informational:
-        data.checks.filter(function(c) {
-          return c.status === "INFO";
-        }).length
-
-    };
-
-
-    result.innerHTML =
-
-      '<div class="score-box">' +
-
-      '<div>🛡️ Security Score</div>' +
-
-      '<div class="score">' +
-      escapeHTML(data.securityScore) +
-      '/100' +
-      '</div>' +
-
-      '<div class="risk">' +
-      'Risk Level: ' +
-      escapeHTML(data.riskLevel) +
-      '</div>' +
-
-      '</div>' +
-
-      '<div class="check">' +
-      '<strong>Website:</strong> ' +
-      escapeHTML(data.website) +
-      '</div>' +
-
-      buildHealthCenter(data, summary) +
-
-      '<div class="summary">' +
-
-      '<div class="summary-box">' +
-      '<div class="summary-number">' +
-      summary.totalChecks +
-      '</div>' +
-      '<div>Total Checks</div>' +
-      '</div>' +
-
-      '<div class="summary-box">' +
-      '<div class="summary-number">' +
-      summary.passed +
-      '</div>' +
-      '<div>Passed</div>' +
-      '</div>' +
-
-      '<div class="summary-box">' +
-      '<div class="summary-number">' +
-      summary.warnings +
-      '</div>' +
-      '<div>Warnings</div>' +
-      '</div>' +
-
-      '</div>' +
-
-      checksHTML +
-
-      '<button class="report-button" onclick="generateReport()">' +
-      '📄 Generate Professional Security Report' +
-      '</button>' +
-
-      '<button class="rescan-button" onclick="reScan()">' +
-      '🔄 Re-scan This Website' +
-      '</button>' +
-
-      '<div id="reportArea"></div>';
+    renderScan(data);
 
   } catch (error) {
 
@@ -938,25 +691,412 @@ async function runCheck() {
 }
 
 
-function reScan() {
+/* =========================
+   DISPLAY SCAN
+========================= */
 
-  if (!latestScan || !latestScan.website) {
-    return;
-  }
+function renderScan(data) {
 
-  document.getElementById("website").value =
-    latestScan.website;
+  const result =
+    document.getElementById("result");
 
-  document.getElementById("scanner").scrollIntoView({
-    behavior: "smooth"
+  let checksHTML = "";
+
+  data.checks.forEach(function(check) {
+
+    let statusClass = "info";
+
+    if (check.status === "PASS") {
+      statusClass = "pass";
+    }
+
+    if (check.status === "WARNING") {
+      statusClass = "warning";
+    }
+
+    checksHTML +=
+
+      '<div class="check">' +
+
+      '<div class="check-name">' +
+      escapeHTML(check.name) +
+      ' — <span class="' +
+      statusClass +
+      '">' +
+      escapeHTML(check.status) +
+      '</span></div>' +
+
+      '<div class="message">' +
+      escapeHTML(check.message) +
+      '</div>' +
+
+      (check.fix
+        ? '<div class="fix">🔧 <strong>Fix:</strong> ' +
+          escapeHTML(check.fix) +
+          '</div>'
+        : '') +
+
+      '</div>';
+
   });
 
-  setTimeout(function() {
-    runCheck();
-  }, 500);
+
+  const summary = data.summary || {
+
+    totalChecks: data.checks.length,
+
+    passed:
+      data.checks.filter(
+        c => c.status === "PASS"
+      ).length,
+
+    warnings:
+      data.checks.filter(
+        c => c.status === "WARNING"
+      ).length
+
+  };
+
+
+  const warnings =
+    data.checks.filter(
+      c => c.status === "WARNING"
+    );
+
+
+  let priorityHTML = "";
+
+  if (warnings.length === 0) {
+
+    priorityHTML =
+      '<div class="priority">' +
+      '✅ No priority warnings were detected.' +
+      '</div>';
+
+  } else {
+
+    warnings.slice(0, 5).forEach(function(item, index) {
+
+      priorityHTML +=
+
+        '<div class="priority">' +
+
+        '<strong>Priority ' +
+        (index + 1) +
+        ': ' +
+        escapeHTML(item.name) +
+        '</strong>' +
+
+        '<div class="message">' +
+        escapeHTML(
+          item.fix || item.message
+        ) +
+        '</div>' +
+
+        '</div>';
+
+    });
+
+  }
+
+
+  result.innerHTML =
+
+    '<div class="score-box">' +
+
+      '<div>🛡️ Security Score</div>' +
+
+      '<div class="score">' +
+      data.securityScore +
+      '/100' +
+      '</div>' +
+
+      '<div class="risk">' +
+      'Risk Level: ' +
+      escapeHTML(data.riskLevel) +
+      '</div>' +
+
+    '</div>' +
+
+
+    '<div class="health">' +
+
+      '<h3>🛡️ Security Health Center</h3>' +
+
+      '<div class="health-subtitle">' +
+      'Your security status at a glance — with the most important actions first.' +
+      '</div>' +
+
+      '<div class="summary">' +
+
+        '<div class="summary-box">' +
+          '<div class="summary-number">' +
+          data.securityScore +
+          '</div>' +
+          '<div>Security Score</div>' +
+        '</div>' +
+
+        '<div class="summary-box">' +
+          '<div class="summary-number">' +
+          summary.passed +
+          '</div>' +
+          '<div>Passed</div>' +
+        '</div>' +
+
+        '<div class="summary-box">' +
+          '<div class="summary-number">' +
+          summary.warnings +
+          '</div>' +
+          '<div>Priority Warnings</div>' +
+        '</div>' +
+
+      '</div>' +
+
+
+      '<h3>🎯 Priority Fixes</h3>' +
+
+      priorityHTML +
+
+
+      '<div class="action-plan">' +
+
+        '<h4>🚀 Recommended Action Plan</h4>' +
+
+        '<ol>' +
+          '<li>Start with the highest-priority warning above.</li>' +
+          '<li>Apply the recommended defensive fix.</li>' +
+          '<li>Run Sentinel AI again to verify the result.</li>' +
+        '</ol>' +
+
+      '</div>' +
+
+    '</div>' +
+
+
+    '<div class="check">' +
+      '<strong>Website:</strong> ' +
+      escapeHTML(data.website) +
+    '</div>' +
+
+
+    checksHTML +
+
+
+    '<button class="mentor-button" onclick="openMentor()">' +
+      '🤖 Explain & Fix with Security Mentor' +
+    '</button>' +
+
+
+    '<button class="report-button" onclick="generateReport()">' +
+      '📄 Generate Professional Security Report' +
+    '</button>' +
+
+
+    '<button class="rescan-button" onclick="runCheck()">' +
+      '🔄 Re-scan This Website' +
+    '</button>' +
+
+
+    '<div id="mentorArea"></div>' +
+
+    '<div id="reportArea"></div>';
 
 }
 
+
+/* =========================
+   SECURITY MENTOR
+========================= */
+
+function openMentor() {
+
+  const mentorArea =
+    document.getElementById("mentorArea");
+
+  if (!latestScan) {
+
+    mentorArea.innerHTML =
+      '<div class="error">' +
+      '⚠️ Run a security scan first.' +
+      '</div>';
+
+    return;
+  }
+
+
+  const warnings =
+    latestScan.checks.filter(
+      check => check.status === "WARNING"
+    );
+
+
+  let mentorHTML =
+
+    '<div class="mentor">' +
+
+      '<h3>🤖 Sentinel AI Security Mentor</h3>' +
+
+      '<div class="mentor-intro">' +
+      'Here is a simple explanation of the most important findings and what you can do defensively.' +
+      '</div>';
+
+
+  if (warnings.length === 0) {
+
+    mentorHTML +=
+
+      '<div class="mentor-item">' +
+
+        '<h4>✅ No priority warnings detected</h4>' +
+
+        '<p>' +
+        'The current scan did not identify warning-level findings. Continue monitoring your website and review security settings after major changes.' +
+        '</p>' +
+
+      '</div>';
+
+  } else {
+
+    warnings.forEach(function(check, index) {
+
+      mentorHTML +=
+
+        '<div class="mentor-item">' +
+
+          '<h4>' +
+          (index + 1) +
+          '. ' +
+          escapeHTML(check.name) +
+          '</h4>' +
+
+          '<p><strong>What does it mean?</strong><br>' +
+          escapeHTML(getMentorExplanation(check.name)) +
+          '</p>' +
+
+          '<p style="margin-top:10px;">' +
+          '<strong>Why does it matter?</strong><br>' +
+          escapeHTML(getMentorRisk(check.name)) +
+          '</p>' +
+
+          '<div class="mentor-fix">' +
+          '🛠️ <strong>Defensive action:</strong> ' +
+          escapeHTML(
+            check.fix ||
+            "Review this security setting and apply a secure configuration."
+          ) +
+          '</div>' +
+
+        '</div>';
+
+    });
+
+  }
+
+
+  mentorHTML +=
+
+      '<div class="mentor-item">' +
+
+        '<h4>🔄 What should you do next?</h4>' +
+
+        '<p>' +
+        'Apply the defensive recommendations, then use “Re-scan This Website” to check whether the security posture has improved.' +
+        '</p>' +
+
+      '</div>' +
+
+      '<p class="message">' +
+      'Security Mentor provides educational and defensive guidance. It is not a substitute for a complete penetration test or professional security audit.' +
+      '</p>' +
+
+    '</div>';
+
+
+  mentorArea.innerHTML = mentorHTML;
+
+  mentorArea.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+}
+
+
+/* =========================
+   MENTOR KNOWLEDGE
+========================= */
+
+function getMentorExplanation(name) {
+
+  const value =
+    name.toLowerCase();
+
+  if (value.includes("hsts")) {
+
+    return "HSTS tells browsers to use HTTPS when connecting to the website. It helps reduce certain downgrade and insecure-connection risks.";
+
+  }
+
+  if (value.includes("content security policy")) {
+
+    return "Content Security Policy, or CSP, controls which types of content a browser is allowed to load. It can help reduce the impact of certain injection and cross-site scripting attacks.";
+
+  }
+
+  if (value.includes("clickjacking")) {
+
+    return "Clickjacking protection helps prevent another website from embedding your pages in a frame and tricking visitors into clicking something they did not intend to click.";
+
+  }
+
+  if (value.includes("x-content-type-options")) {
+
+    return "X-Content-Type-Options helps prevent browsers from incorrectly interpreting a file as a different content type.";
+
+  }
+
+  return "This security setting is related to the website's defensive configuration. Review the scanner recommendation and apply the appropriate secure configuration.";
+
+}
+
+
+function getMentorRisk(name) {
+
+  const value =
+    name.toLowerCase();
+
+  if (value.includes("hsts")) {
+
+    return "Without HSTS, a browser may have fewer protections against attempts to downgrade a secure connection to an insecure one.";
+
+  }
+
+  if (value.includes("content security policy")) {
+
+    return "A missing CSP means the browser has fewer restrictions on where content can come from, which can increase the impact of some client-side injection problems.";
+
+  }
+
+  if (value.includes("clickjacking")) {
+
+    return "Without clear frame protection, attackers may be able to visually embed a page and attempt to trick users into interacting with it.";
+
+  }
+
+  if (value.includes("x-content-type-options")) {
+
+    return "Without this header, browsers may perform content-type sniffing in situations where a stricter interpretation would be safer.";
+
+  }
+
+  return "Security misconfiguration can increase exposure to common web threats. The correct defensive configuration depends on the website and its technology stack.";
+
+}
+
+
+/* =========================
+   PROFESSIONAL REPORT
+========================= */
 
 async function generateReport() {
 
@@ -971,58 +1111,66 @@ async function generateReport() {
     return;
   }
 
+
   reportArea.innerHTML =
     '<div class="report">📄 Generating professional report...</div>';
 
+
   try {
 
-    const response = await fetch("/api/report", {
+    const response =
+      await fetch("/api/report", {
 
-      method: "POST",
+        method: "POST",
 
-      headers: {
-        "Content-Type": "application/json"
-      },
+        headers: {
+          "Content-Type": "application/json"
+        },
 
-      body: JSON.stringify({
+        body: JSON.stringify({
 
-        website: latestScan.website,
+          website:
+            latestScan.website,
 
-        securityScore:
-          latestScan.securityScore,
+          securityScore:
+            latestScan.securityScore,
 
-        riskLevel:
-          latestScan.riskLevel,
+          riskLevel:
+            latestScan.riskLevel,
 
-        checks:
-          latestScan.checks
+          checks:
+            latestScan.checks
 
-      })
+        })
 
-    });
+      });
 
-    const data = await response.json();
+
+    const data =
+      await response.json();
+
 
     if (!response.ok) {
 
       reportArea.innerHTML =
         '<div class="error">⚠️ ' +
-        escapeHTML(
-          data.error ||
-          "Report generation failed."
-        ) +
+        (data.error ||
+          "Report generation failed.") +
         '</div>';
 
       return;
     }
 
-    const report = data.report;
 
-    latestReport = report;
+    const report =
+      data.report;
+
 
     let findingsHTML = "";
 
-    if (report.findings.length === 0) {
+
+    if (!report.findings ||
+        report.findings.length === 0) {
 
       findingsHTML =
         "<li>No warning findings were detected.</li>";
@@ -1046,6 +1194,7 @@ async function generateReport() {
 
     let recommendationsHTML = "";
 
+
     report.recommendations.forEach(function(item) {
 
       recommendationsHTML +=
@@ -1060,45 +1209,45 @@ async function generateReport() {
 
       '<div class="report" id="printableReport">' +
 
-      '<h3>📄 Sentinel AI Professional Security Report</h3>' +
+        '<h3>📄 Sentinel AI Professional Security Report</h3>' +
 
-      '<p><strong>Website:</strong> ' +
-      escapeHTML(report.website) +
-      '</p>' +
+        '<p><strong>Website:</strong> ' +
+        escapeHTML(report.website) +
+        '</p>' +
 
-      '<p><strong>Security Score:</strong> ' +
-      escapeHTML(report.securityScore) +
-      '/100</p>' +
+        '<p><strong>Security Score:</strong> ' +
+        report.securityScore +
+        '/100</p>' +
 
-      '<p><strong>Risk Level:</strong> ' +
-      escapeHTML(report.riskLevel) +
-      '</p>' +
+        '<p><strong>Risk Level:</strong> ' +
+        escapeHTML(report.riskLevel) +
+        '</p>' +
 
-      '<h3>Summary</h3>' +
+        '<h3>Summary</h3>' +
 
-      '<p>' +
-      escapeHTML(report.summary.passed) +
-      ' passed · ' +
-      escapeHTML(report.summary.warnings) +
-      ' warnings · ' +
-      escapeHTML(report.summary.informational) +
-      ' informational</p>' +
+        '<p>' +
+        report.summary.passed +
+        ' passed · ' +
+        report.summary.warnings +
+        ' warnings · ' +
+        report.summary.informational +
+        ' informational</p>' +
 
-      '<h3>Findings & Fixes</h3>' +
+        '<h3>Findings & Fixes</h3>' +
 
-      '<ul>' +
-      findingsHTML +
-      '</ul>' +
+        '<ul>' +
+        findingsHTML +
+        '</ul>' +
 
-      '<h3>Recommendations</h3>' +
+        '<h3>Recommendations</h3>' +
 
-      '<ul>' +
-      recommendationsHTML +
-      '</ul>' +
+        '<ul>' +
+        recommendationsHTML +
+        '</ul>' +
 
-      '<p class="message">' +
-      escapeHTML(report.disclaimer) +
-      '</p>' +
+        '<p class="message">' +
+        escapeHTML(report.disclaimer) +
+        '</p>' +
 
       '</div>' +
 
@@ -1114,22 +1263,23 @@ async function generateReport() {
       '</div>';
 
   }
+
 }
 
+
+/* =========================
+   DOWNLOAD REPORT
+========================= */
 
 function downloadReport() {
 
   const report =
     document.getElementById("printableReport");
 
+
   if (!report) {
     return;
   }
-
-  const website =
-    latestScan && latestScan.website
-      ? latestScan.website
-      : "website";
 
 
   const content = `
@@ -1175,10 +1325,6 @@ li {
 
 <h1>🛡️ Sentinel AI</h1>
 
-<p>
-Professional Security Report
-</p>
-
 <div class="report-box">
 
 ${report.innerHTML}
@@ -1193,9 +1339,10 @@ ${report.innerHTML}
 
 
   const blob =
-    new Blob([content], {
-      type: "text/html"
-    });
+    new Blob(
+      [content],
+      { type: "text/html" }
+    );
 
 
   const url =
@@ -1223,6 +1370,34 @@ ${report.innerHTML}
 
 
   URL.revokeObjectURL(url);
+
+}
+
+
+/* =========================
+   BASIC HTML SAFETY
+========================= */
+
+function escapeHTML(value) {
+
+  if (value === null ||
+      value === undefined) {
+
+    return "";
+
+  }
+
+  return String(value)
+
+    .replace(/&/g, "&amp;")
+
+    .replace(/</g, "&lt;")
+
+    .replace(/>/g, "&gt;")
+
+    .replace(/"/g, "&quot;")
+
+    .replace(/'/g, "&#039;");
 
 }
 
