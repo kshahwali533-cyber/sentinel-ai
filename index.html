@@ -1463,54 +1463,220 @@ async function generateReport() {
       report.summary.passed +
 
       ' passed · ' +
+/* =========================
+   REPORT
+========================= */
 
-      report.summary.warnings +
+async function generateReport() {
 
+  const reportArea =
+    document.getElementById("reportArea");
+
+  if (!latestScan) {
+
+    reportArea.innerHTML =
+      '<div class="error">' +
+      '⚠️ Run a security scan first.' +
+      '</div>';
+
+    return;
+  }
+
+  reportArea.innerHTML =
+    '<div class="report">' +
+    '📄 Generating professional report...' +
+    '</div>';
+
+  try {
+
+    const response =
+      await fetch("/api/report", {
+
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+
+          website:
+            latestScan.website,
+
+          securityScore:
+            latestScan.securityScore,
+
+          riskLevel:
+            latestScan.riskLevel,
+
+          checks:
+            latestScan.checks,
+
+          scanId:
+            latestScan.scanId
+
+        })
+
+      });
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+
+      reportArea.innerHTML =
+        '<div class="error">⚠️ ' +
+        escapeHTML(
+          data.error ||
+          "Report generation failed."
+        ) +
+        '</div>';
+
+      return;
+    }
+
+    const report =
+      data.report;
+
+    if (!report) {
+
+      reportArea.innerHTML =
+        '<div class="error">' +
+        '❌ Report data was not returned.' +
+        '</div>';
+
+      return;
+    }
+
+    const summary =
+      report.executiveSummary || {};
+
+    const findings =
+      report.priorityFindings || [];
+
+    let findingsHTML = "";
+
+    if (!findings.length) {
+
+      findingsHTML =
+        "<li>No warning findings were detected.</li>";
+
+    } else {
+
+      findings.forEach(function(item) {
+
+        findingsHTML +=
+          "<li><strong>" +
+          escapeHTML(
+            item.title || "Security Finding"
+          ) +
+          ":</strong> " +
+          escapeHTML(
+            item.fix ||
+            item.message ||
+            "Review this security finding."
+          ) +
+          "</li>";
+
+      });
+
+    }
+
+    const recommendations =
+      report.recommendations || [];
+
+    let recommendationsHTML = "";
+
+    recommendations.forEach(function(item) {
+
+      recommendationsHTML +=
+        "<li>" +
+        escapeHTML(item) +
+        "</li>";
+
+    });
+
+    reportArea.innerHTML =
+
+      '<div class="report" id="printableReport">' +
+
+      '<h3>📄 Sentinel AI Professional Security Report</h3>' +
+
+      '<p><strong>Website:</strong> ' +
+      escapeHTML(report.website || latestScan.website) +
+      '</p>' +
+
+      '<p><strong>Security Score:</strong> ' +
+      escapeHTML(
+        String(
+          report.securityScore ??
+          latestScan.securityScore
+        )
+      ) +
+      '/100</p>' +
+
+      '<p><strong>Risk Level:</strong> ' +
+      escapeHTML(
+        report.riskLevel ||
+        latestScan.riskLevel
+      ) +
+      '</p>' +
+
+      '<p class="scan-id"><strong>Scan ID:</strong> ' +
+      escapeHTML(
+        report.scanId ||
+        latestScan.scanId ||
+        "N/A"
+      ) +
+      '</p>' +
+
+      '<h3>Summary</h3>' +
+
+      '<p>' +
+      (summary.passed || 0) +
+      ' passed · ' +
+      (summary.warnings || 0) +
       ' warnings · ' +
-
-      report.summary.informational +
-
+      (summary.informational || 0) +
       ' informational</p>' +
-
 
       '<h3>Findings & Fixes</h3>' +
 
       '<ul>' +
-
       findingsHTML +
-
       '</ul>' +
-
 
       '<h3>Recommendations</h3>' +
 
       '<ul>' +
-
       recommendationsHTML +
-
       '</ul>' +
 
-
       '<p class="message">' +
-
-      escapeHTML(report.disclaimer) +
-
+      escapeHTML(
+        report.disclaimer ||
+        "Sentinel AI provides automated security-awareness guidance and defensive recommendations."
+      ) +
       '</p>' +
 
       '</div>' +
 
-
-      '<button class="download-button" onclick="downloadReport()">' +
-
+      '<button class="secondary-button" onclick="downloadReport()">' +
       '⬇️ Download Report' +
-
       '</button>';
 
   } catch (error) {
 
+    console.error(
+      "Report generation error:",
+      error
+    );
+
     reportArea.innerHTML =
       '<div class="error">' +
       '❌ Unable to generate the security report.' +
+      '<br><br>' +
+      'Please try again.' +
       '</div>';
 
   }
