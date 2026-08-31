@@ -1,25 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  <title>Sentinel AI | Cybersecurity Scanner & Security Mentor</title><meta
+name="description"
+content="Sentinel AI is a beginner-friendly cybersecurity scanner and security mentor for websites."
 
-  <title>Sentinel AI | Cybersecurity Scanner & Security Mentor</title>
+«»
 
-  <meta
-    name="description"
-    content="Sentinel AI is a beginner-friendly cybersecurity scanner and security mentor for websites."
-  >
-
-  <!-- Vercel Web Analytics -->
-  <script>
+  <!-- Vercel Web Analytics -->  <script>
     window.va = window.va || function () {
       (window.vaq = window.vaq || []).push(arguments);
     };
-  </script>
-  <script defer src="/_vercel/insights/script.js"></script>
-
-  <style>
+  </script>  <script defer src="/_vercel/insights/script.js"></script>  <style>
     * {
       box-sizing: border-box;
       margin: 0;
@@ -423,7 +415,6 @@
     }
 
     @media (max-width: 650px) {
-
       header {
         flex-direction: column;
         gap: 12px;
@@ -445,212 +436,131 @@
         padding: 20px;
       }
     }
-  </style>
-</head>
-
-<body>
-
-<header>
-
-  <div class="logo">
+  </style></head><body><header>  <div class="logo">
     🛡️ Sentinel <span>AI</span>
-  </div>
-
-  <nav>
+  </div>  <nav>
     <a href="#features">Features</a>
     <a href="#scanner">Scanner</a>
     <a href="#history">History</a>
     <a href="#mission">Mission</a>
-  </nav>
-
-</header>
-
-<main>
-
-<section class="hero">
-
-  <div class="badge">
+  </nav></header><main><section class="hero">  <div class="badge">
     AI-Powered Cybersecurity Scanner & Security Mentor
-  </div>
-
-  <h1>
+  </div>  <h1>
     Understand Security.<br>
     <span>Stay Protected.</span>
-  </h1>
-
-  <p>
+  </h1>  <p>
     Sentinel AI helps beginners, developers and small businesses
     discover common website security concerns, understand them in
     simple language and follow practical defensive guidance.
-  </p>
+  </p>  <div class="buttons"><a class="btn primary" href="#scanner">
+  🛡️ Try Security Check
+</a>
 
-  <div class="buttons">
+<a class="btn secondary" href="#features">
+  Explore Sentinel AI
+</a>
 
-    <a class="btn primary" href="#scanner">
-      🛡️ Try Security Check
-    </a>
-
-    <a class="btn secondary" href="#features">
-      Explore Sentinel AI
-    </a>
-
-  </div>
-
-</section>
-
-
-<section id="features">
-
-  <h2 class="section-title">
+  </div></section><section id="features">  <h2 class="section-title">
     What Sentinel AI Does
-  </h2>
-
-  <p class="section-text">
+  </h2>  <p class="section-text">
     A beginner-friendly security platform combining website checks,
     security education and practical defensive guidance.
+  </p>  <div class="cards"><div class="card">
+  <h3>🔍 Security Scanner</h3>
+  <p>
+    Check common website security settings and identify
+    potential security concerns.
   </p>
+</div>
 
-  <div class="cards">
+<div class="card">
+  <h3>🤖 Security Mentor</h3>
+  <p>
+    Understand findings in simple language and learn why
+    each security setting matters.
+  </p>
+</div>
 
-    <div class="card">
-      <h3>🔍 Security Scanner</h3>
-      <p>
-        Check common website security settings and identify
-        potential security concerns.
-      </p>
-    </div>
+<div class="card">
+  <h3>🛠️ Fix Guidance</h3>
+  <p>
+    Get practical defensive recommendations for improving
+    website security.
+  </p>
+</div>
 
-    <div class="card">
-      <h3>🤖 Security Mentor</h3>
-      <p>
-        Understand findings in simple language and learn why
-        each security setting matters.
-      </p>
-    </div>
+<div class="card">
+  <h3>📄 Professional Reports</h3>
+  <p>
+    Generate structured security-awareness reports with
+    findings and recommended actions.
+  </p>
+</div>
 
-    <div class="card">
-      <h3>🛠️ Fix Guidance</h3>
-      <p>
-        Get practical defensive recommendations for improving
-        website security.
-      </p>
-    </div>
-
-    <div class="card">
-      <h3>📄 Professional Reports</h3>
-      <p>
-        Generate structured security-awareness reports with
-        findings and recommended actions.
-      </p>
-    </div>
-
-  </div>
-
-</section>
-
-
-<section id="scanner">
-
-  <h2 class="section-title">
+  </div></section><section id="scanner">  <h2 class="section-title">
     Security Check
-  </h2>
+  </h2>  <div class="scanner"><p>
+  Enter a website address you own or are authorized to test.
+  Sentinel AI performs a security-awareness check of common
+  HTTPS and security-header settings.
+</p>
 
-  <div class="scanner">
+<div class="notice">
+  ⚠️ Use Sentinel AI only on websites you own or have permission
+  to test.
+</div>
 
-    <p>
-      Enter a website address you own or are authorized to test.
-      Sentinel AI performs a security-awareness check of common
-      HTTPS and security-header settings.
-    </p>
+<input
+  id="website"
+  type="text"
+  placeholder="https://example.com"
+  autocomplete="url"
+>
 
-    <div class="notice">
-      ⚠️ Use Sentinel AI only on websites you own or have permission
-      to test.
-    </div>
+<button
+  id="scanButton"
+  type="button"
+  onclick="runCheck()"
+>
+  🛡️ Start Security Check
+</button>
 
-    <input
-      id="website"
-      type="text"
-      placeholder="https://example.com"
-      autocomplete="url"
-    >
+<div id="result"></div>
 
-    <button
-      id="scanButton"
-      type="button"
-      onclick="runCheck()"
-    >
-      🛡️ Start Security Check
-    </button>
-
-    <div id="result"></div>
-
-  </div>
-
-</section>
-
-
-<section id="history">
-
-  <h2 class="section-title">
+  </div></section><section id="history">  <h2 class="section-title">
     Scan History
-  </h2>
+  </h2>  <div class="history"><h3>
+  📊 Your Recent Scans
+</h3>
 
-  <div class="history">
-
-    <h3>
-      📊 Your Recent Scans
-    </h3>
-
-    <div id="historyList">
-      <div class="empty-history">
-        No scans saved yet. Run your first security check above.
-      </div>
-    </div>
-
-    <button
-      class="secondary-button"
-      type="button"
-      onclick="clearHistory()"
-    >
-      🗑️ Clear Local History
-    </button>
-
+<div id="historyList">
+  <div class="empty-history">
+    No scans saved yet. Run your first security check above.
   </div>
+</div>
 
-</section>
+<button
+  class="secondary-button"
+  type="button"
+  onclick="clearHistory()"
+>
+  🗑️ Clear Local History
+</button>
 
+  </div></section><section id="mission">  <div class="mission"><h2 class="section-title">
+  Our Mission
+</h2>
 
-<section id="mission">
+<p>
+  Sentinel AI is dedicated to making cybersecurity simple,
+  accessible and understandable for everyone.
+  Our goal is to help individuals, students and businesses
+  learn security and make safer decisions in the digital world.
+</p>
 
-  <div class="mission">
+  </div></section></main><footer>© 2026 Sentinel AI · AI Cybersecurity Scanner & Security Education Platform
 
-    <h2 class="section-title">
-      Our Mission
-    </h2>
-
-    <p>
-      Sentinel AI is dedicated to making cybersecurity simple,
-      accessible and understandable for everyone.
-      Our goal is to help individuals, students and businesses
-      learn security and make safer decisions in the digital world.
-    </p>
-
-  </div>
-
-</section>
-
-</main>
-
-
-<footer>
-
-  © 2026 Sentinel AI · AI Cybersecurity Scanner & Security Education Platform
-
-</footer>
-
-
-<script>
+</footer><script>
 
 let latestScan = null;
 
@@ -670,18 +580,14 @@ async function runCheck() {
   const button =
     document.getElementById("scanButton");
 
-
   if (!websiteInput || !result || !button) {
     return;
   }
 
-
   const website =
     websiteInput.value.trim();
 
-
   result.style.display = "block";
-
 
   if (!website) {
 
@@ -693,10 +599,8 @@ async function runCheck() {
     return;
   }
 
-
   let normalizedWebsite =
     website;
-
 
   if (
     !normalizedWebsite.startsWith("http://") &&
@@ -707,7 +611,6 @@ async function runCheck() {
       "https://" + normalizedWebsite;
 
   }
-
 
   try {
 
@@ -723,16 +626,13 @@ async function runCheck() {
     return;
   }
 
-
   button.disabled = true;
-
 
   result.innerHTML =
     '<div class="notice">' +
     '🛡️ Sentinel AI is checking the website...<br>' +
     'Please wait.' +
     '</div>';
-
 
   try {
 
@@ -751,10 +651,8 @@ async function runCheck() {
 
       });
 
-
     const data =
       await response.json();
-
 
     if (!response.ok) {
 
@@ -771,7 +669,6 @@ async function runCheck() {
       return;
     }
 
-
     if (
       !data ||
       !Array.isArray(data.checks)
@@ -787,24 +684,19 @@ async function runCheck() {
       return;
     }
 
-
     latestScan =
       data;
 
-
     latestScan.scanId =
       createScanId();
-
 
     saveScanHistory(
       latestScan
     );
 
-
     renderScan(
       latestScan
     );
-
 
   } catch (error) {
 
@@ -812,7 +704,6 @@ async function runCheck() {
       "Scanner error:",
       error
     );
-
 
     result.innerHTML =
       '<div class="error">' +
@@ -822,7 +713,6 @@ async function runCheck() {
       '</div>';
 
   }
-
 
   button.disabled = false;
 
@@ -838,30 +728,24 @@ function renderScan(data) {
   const result =
     document.getElementById("result");
 
-
   if (!result) {
     return;
   }
 
-
   let checksHTML = "";
-
 
   data.checks.forEach(function(check) {
 
     let statusClass =
       "info";
 
-
     if (check.status === "PASS") {
       statusClass = "pass";
     }
 
-
     if (check.status === "WARNING") {
       statusClass = "warning";
     }
-
 
     checksHTML +=
 
@@ -1133,17 +1017,14 @@ function showMentor() {
   const area =
     document.getElementById("mentorArea");
 
-
   if (!area || !latestScan) {
     return;
   }
-
 
   const warnings =
     latestScan.checks.filter(
       c => c.status === "WARNING"
     );
-
 
   if (warnings.length === 0) {
 
@@ -1161,7 +1042,6 @@ function showMentor() {
 
     return;
   }
-
 
   let html =
 
@@ -1271,50 +1151,190 @@ function getMentorExplanation(name) {
     "HSTS": {
 
       meaning:
-        "HSTS tells browsers to use HTTPS when connecting to the website. " +
-        "It helps reduce certain downgrade and insecure-connection risks.",
+        "HSTS tells the browser to always use HTTPS when connecting to the website.",
 
       why:
-        "Without HSTS, a browser may have fewer protections against attempts " +
-        "to downgrade a secure connection to an insecure one."
+        "It helps reduce the risk of attackers forcing a browser to use an insecure HTTP connection."
 
     },
 
     "Content Security Policy": {
 
       meaning:
-        "Content Security Policy, or CSP, controls which types of content " +
-        "a browser is allowed to load.",
+        "Content Security Policy (CSP) controls which sources a browser is allowed to load content from.",
 
       why:
-        "A missing CSP means the browser has fewer restrictions on where " +
-        "content can come from, which can increase the impact of some " +
-        "client-side injection problems."
+        "A strong CSP can reduce the impact of certain cross-site scripting and other client-side injection attacks."
 
     },
 
     "Clickjacking Protection": {
 
       meaning:
-        "Clickjacking protection helps prevent another website from embedding " +
-        "your pages in a frame and tricking visitors into clicking something " +
-        "they did not intend to click.",
+        "Clickjacking protection prevents other websites from embedding your pages in frames without permission.",
 
       why:
-        "Without clear frame protection, attackers may be able to visually " +
-        "embed a page and attempt to trick users into interacting with it."
+        "This helps protect visitors from being tricked into clicking buttons or links they did not intend to use."
 
     },
 
     "X-Content-Type-Options": {
 
       meaning:
-        "This header helps browsers avoid incorrectly guessing the type of " +
-        "content being served.",
+        "This security header tells browsers not to guess the type of content being served.",
 
       why:
-        "Using nosniff can reduce certain risks associated with MIME-type " +
-        "interpretation."
+        "The nosniff setting can reduce certain risks caused by incorrect MIME-type interpretation."
+
+    },
+
+    "Referrer-Policy": {
+
+      meaning:
+        "Referrer-Policy controls how much information about the previous page is sent when a user follows a link.",
+
+      why:
+        "A restrictive policy can reduce unnecessary exposure of URLs and other browsing information."
+
+    },
+
+    "Permissions-Policy": {
+
+      meaning:
+        "Permissions-Policy controls which browser features and capabilities a website can use.",
+
+      why:
+        "Restricting unnecessary browser features can reduce the attack surface and protect user privacy."
+
+    },
+
+    "CORS Policy": {
+
+      meaning:
+        "CORS controls which other websites are allowed to request resources from your website through a browser.",
+
+      why:
+        "A properly configured CORS policy helps prevent unauthorized cross-origin access to sensitive resources."
+
+    },
+
+    "Server Information Exposure": {
+
+      meaning:
+        "Server information exposure happens when response headers reveal unnecessary details about the server software.",
+
+      why:
+        "Reducing unnecessary server information can make it harder for attackers to identify technologies and versions."
+
+    },
+
+    "Cookie Security": {
+
+      meaning:
+        "Cookie security controls how website cookies are stored and sent by the browser. Important attributes include Secure, HttpOnly and SameSite.",
+
+      why:
+        "Secure helps ensure cookies are sent only over HTTPS, HttpOnly helps prevent JavaScript from reading sensitive cookies, and SameSite can reduce unwanted cross-site cookie transmission."
+
+    },
+
+    "Cache-Control": {
+
+      meaning:
+        "Cache-Control tells browsers and intermediary systems how website responses should be stored and reused.",
+
+      why:
+        "A suitable caching policy can help prevent sensitive information from being stored or reused inappropriately."
+
+    },
+
+    "Cross-Origin-Opener-Policy": {
+
+      meaning:
+        "Cross-Origin-Opener-Policy controls how the website interacts with browsing contexts from other origins.",
+
+      why:
+        "It can provide stronger isolation between your website and unrelated websites."
+
+    },
+
+    "Cross-Origin-Resource-Policy": {
+
+      meaning:
+        "Cross-Origin-Resource-Policy controls which other origins can load certain resources from the website.",
+
+      why:
+        "It can reduce unwanted cross-origin access to website resources."
+
+    },
+
+    "Cross-Origin-Embedder-Policy": {
+
+      meaning:
+        "Cross-Origin-Embedder-Policy controls which cross-origin resources a page is allowed to load.",
+
+      why:
+        "When required by an application, COEP can provide stronger cross-origin isolation."
+
+    },
+
+    "HTTPS": {
+
+      meaning:
+        "HTTPS encrypts communication between the visitor's browser and the website.",
+
+      why:
+        "Encryption helps protect information from being intercepted or modified while travelling between the browser and server."
+
+    },
+
+    "Secure Final Destination": {
+
+      meaning:
+        "This check confirms that the final website destination uses HTTPS.",
+
+      why:
+        "Keeping the final destination on HTTPS helps protect the connection throughout the browsing process."
+
+    },
+
+    "Content-Type": {
+
+      meaning:
+        "The Content-Type header tells the browser what type of content the server is returning.",
+
+      why:
+        "Correct content types help browsers interpret responses safely and consistently."
+
+    },
+
+    "Hostname Configuration": {
+
+      meaning:
+        "This check confirms that a public hostname was supplied for the security assessment.",
+
+      why:
+        "A valid hostname allows the scanner to identify and assess the intended website."
+
+    },
+
+    "Security.txt": {
+
+      meaning:
+        "security.txt provides a standard location where security researchers can find information about reporting security issues.",
+
+      why:
+        "It can make responsible vulnerability reporting easier and help security researchers contact the appropriate team."
+
+    },
+
+    "Robots.txt": {
+
+      meaning:
+        "robots.txt provides instructions to search engine crawlers about which areas of a website they may or may not crawl.",
+
+      why:
+        "It helps communicate crawling preferences, although it is not a security control or access restriction."
 
     }
 
@@ -1327,7 +1347,7 @@ function getMentorExplanation(name) {
       "This security setting helps strengthen the website's defensive posture.",
 
     why:
-      "Missing security controls can reduce the protection available to users."
+      "Missing or weak security controls can reduce the protection available to users."
 
   };
 
@@ -1343,11 +1363,9 @@ async function generateReport() {
   const reportArea =
     document.getElementById("reportArea");
 
-
   if (!reportArea) {
     return;
   }
-
 
   if (!latestScan) {
 
@@ -1359,12 +1377,10 @@ async function generateReport() {
     return;
   }
 
-
   reportArea.innerHTML =
     '<div class="report">' +
     '📄 Generating professional report...' +
     '</div>';
-
 
   try {
 
@@ -1437,7 +1453,11 @@ async function generateReport() {
 
 
     const findings =
-      report.priorityFindings || [];
+      Array.isArray(report.findings)
+        ? report.findings
+        : latestScan.checks.filter(
+            c => c.status === "WARNING"
+          );
 
 
     let findingsHTML =
@@ -1459,6 +1479,7 @@ async function generateReport() {
 
           escapeHTML(
             item.title ||
+            item.name ||
             "Security Finding"
           ) +
 
@@ -1478,24 +1499,35 @@ async function generateReport() {
 
 
     const recommendations =
-      report.recommendations || [];
+      Array.isArray(report.recommendations)
+        ? report.recommendations
+        : [];
 
 
     let recommendationsHTML =
       "";
 
 
-    recommendations.forEach(function(item) {
+    if (!recommendations.length) {
 
-      recommendationsHTML +=
+      recommendationsHTML =
+        "<li>Review all warning findings and apply the recommended defensive fixes.</li>";
 
-        "<li>" +
+    } else {
 
-        escapeHTML(item) +
+      recommendations.forEach(function(item) {
 
-        "</li>";
+        recommendationsHTML +=
 
-    });
+          "<li>" +
+
+          escapeHTML(item) +
+
+          "</li>";
+
+      });
+
+    }
 
 
     reportArea.innerHTML =
@@ -1601,7 +1633,6 @@ async function generateReport() {
       error
     );
 
-
     reportArea.innerHTML =
       '<div class="error">' +
       '❌ Unable to generate the security report.' +
@@ -1622,7 +1653,6 @@ function downloadReport() {
 
   const report =
     document.getElementById("printableReport");
-
 
   if (!report) {
     return;
@@ -1664,385 +1694,337 @@ li {
   margin: 8px 0;
 }
 
-</style>
-
-</head>
-
-<body>
-
-<h1>🛡️ Sentinel AI</h1>
-
-<p>
+</style></head><body><h1>🛡️ Sentinel AI</h1><p>
 Security Awareness Report
-</p>
+</p><div class="report-box">${report.innerHTML}
 
-<div class="report-box">
+</div></body></html>`;
 
-${report.innerHTML}
+const blob =
+new Blob(
+[content],
+{
+type: "text/html"
+}
+);
 
-</div>
+const url =
+URL.createObjectURL(blob);
 
-</body>
+const link =
+document.createElement("a");
 
-</html>
+link.href =
+url;
 
-`;
+link.download =
+"sentinel-ai-security-report.html";
 
+document.body.appendChild(link);
 
-  const blob =
-    new Blob(
-      [content],
-      {
-        type: "text/html"
-      }
-    );
+link.click();
 
+document.body.removeChild(link);
 
-  const url =
-    URL.createObjectURL(blob);
-
-
-  const link =
-    document.createElement("a");
-
-
-  link.href =
-    url;
-
-
-  link.download =
-    "sentinel-ai-security-report.html";
-
-
-  document.body.appendChild(link);
-
-
-  link.click();
-
-
-  document.body.removeChild(link);
-
-
-  URL.revokeObjectURL(url);
+URL.revokeObjectURL(url);
 
 }
 
-
 /* =========================
-   RESCAN
+RESCAN
 ========================= */
 
 function rescanWebsite() {
 
-  if (!latestScan) {
-    return;
-  }
+if (!latestScan) {
+return;
+}
 
+const website =
+document.getElementById("website");
 
-  const website =
-    document.getElementById("website");
+const scanner =
+document.getElementById("scanner");
 
+if (website) {
 
-  const scanner =
-    document.getElementById("scanner");
-
-
-  if (website) {
-
-    website.value =
-      latestScan.website;
-
-  }
-
-
-  runCheck();
-
-
-  if (scanner) {
-
-    window.scrollTo({
-
-      top:
-        scanner.offsetTop - 70,
-
-      behavior:
-        "smooth"
-
-    });
-
-  }
+website.value =
+  latestScan.website;
 
 }
 
+runCheck();
+
+if (scanner) {
+
+window.scrollTo({
+
+  top:
+    scanner.offsetTop - 70,
+
+  behavior:
+    "smooth"
+
+});
+
+}
+
+}
 
 /* =========================
-   HISTORY
+HISTORY
 ========================= */
 
 function createScanId() {
 
-  const time =
-    Date.now().toString(36);
+const time =
+Date.now().toString(36);
 
+const random =
+Math.random()
+.toString(36)
+.substring(2, 7);
 
-  const random =
-    Math.random()
-      .toString(36)
-      .substring(2, 7);
+return (
 
+"SA-" +
+time +
+"-" +
+random
 
-  return (
-
-    "SA-" +
-    time +
-    "-" +
-    random
-
-  ).toUpperCase();
+).toUpperCase();
 
 }
-
 
 function saveScanHistory(scan) {
 
-  try {
+try {
 
-    const history =
-      JSON.parse(
+const history =
+  JSON.parse(
 
-        localStorage.getItem(
-          "sentinelAIHistory"
-        ) || "[]"
+    localStorage.getItem(
+      "sentinelAIHistory"
+    ) || "[]"
 
-      );
-
-
-    const item = {
-
-      scanId:
-        scan.scanId,
-
-      website:
-        scan.website,
-
-      securityScore:
-        scan.securityScore,
-
-      riskLevel:
-        scan.riskLevel,
-
-      date:
-        new Date().toISOString()
-
-    };
+  );
 
 
-    history.unshift(item);
+const item = {
+
+  scanId:
+    scan.scanId,
+
+  website:
+    scan.website,
+
+  securityScore:
+    scan.securityScore,
+
+  riskLevel:
+    scan.riskLevel,
+
+  date:
+    new Date().toISOString()
+
+};
 
 
-    const limited =
-      history.slice(0, 10);
+history.unshift(item);
 
 
-    localStorage.setItem(
-
-      "sentinelAIHistory",
-
-      JSON.stringify(limited)
-
-    );
+const limited =
+  history.slice(0, 10);
 
 
-    renderHistory();
+localStorage.setItem(
 
-  } catch (error) {
+  "sentinelAIHistory",
 
-    console.log(
-      "History storage unavailable."
-    );
+  JSON.stringify(limited)
 
-  }
+);
+
+
+renderHistory();
+
+} catch (error) {
+
+console.log(
+  "History storage unavailable."
+);
 
 }
 
+}
 
 function renderHistory() {
 
-  const container =
-    document.getElementById(
-      "historyList"
-    );
+const container =
+document.getElementById(
+"historyList"
+);
 
-
-  if (!container) {
-    return;
-  }
-
-
-  try {
-
-    const history =
-      JSON.parse(
-
-        localStorage.getItem(
-          "sentinelAIHistory"
-        ) || "[]"
-
-      );
-
-
-    if (!history.length) {
-
-      container.innerHTML =
-        '<div class="empty-history">' +
-        'No scans saved yet. Run your first security check above.' +
-        '</div>';
-
-      return;
-    }
-
-
-    container.innerHTML =
-      "";
-
-
-    history.forEach(function(item) {
-
-      const div =
-        document.createElement("div");
-
-
-      div.className =
-        "history-item";
-
-
-      const date =
-        new Date(item.date)
-          .toLocaleString();
-
-
-      div.innerHTML =
-
-        '<strong>' +
-
-        escapeHTML(
-          item.website
-        ) +
-
-        '</strong>' +
-
-        '<br>' +
-
-        '<span class="history-score">' +
-
-        escapeHTML(
-          String(
-            item.securityScore
-          )
-        ) +
-
-        '/100' +
-
-        '</span>' +
-
-        ' · ' +
-
-        escapeHTML(
-          item.riskLevel
-        ) +
-
-        '<br>' +
-
-        '<span class="scan-id">' +
-
-        escapeHTML(
-          item.scanId
-        ) +
-
-        ' · ' +
-
-        escapeHTML(
-          date
-        ) +
-
-        '</span>';
-
-
-      container.appendChild(
-        div
-      );
-
-    });
-
-  } catch (error) {
-
-    container.innerHTML =
-      '<div class="empty-history">' +
-      'Unable to load local scan history.' +
-      '</div>';
-
-  }
-
+if (!container) {
+return;
 }
 
+try {
 
-function clearHistory() {
+const history =
+  JSON.parse(
 
-  try {
-
-    localStorage.removeItem(
+    localStorage.getItem(
       "sentinelAIHistory"
-    );
+    ) || "[]"
 
-  } catch (error) {
-
-    console.log(
-      "Unable to clear history."
-    );
-
-  }
+  );
 
 
-  renderHistory();
+if (!history.length) {
 
+  container.innerHTML =
+    '<div class="empty-history">' +
+    'No scans saved yet. Run your first security check above.' +
+    '</div>';
+
+  return;
 }
 
 
-/* =========================
-   SECURITY
-========================= */
+container.innerHTML =
+  "";
 
-function escapeHTML(value) {
+
+history.forEach(function(item) {
 
   const div =
     document.createElement("div");
 
 
-  div.textContent =
-    value == null
-      ? ""
-      : String(value);
+  div.className =
+    "history-item";
 
 
-  return div.innerHTML;
+  const date =
+    new Date(item.date)
+      .toLocaleString();
+
+
+  div.innerHTML =
+
+    '<strong>' +
+
+    escapeHTML(
+      item.website
+    ) +
+
+    '</strong>' +
+
+    '<br>' +
+
+    '<span class="history-score">' +
+
+    escapeHTML(
+      String(
+        item.securityScore
+      )
+    ) +
+
+    '/100' +
+
+    '</span>' +
+
+    ' · ' +
+
+    escapeHTML(
+      item.riskLevel
+    ) +
+
+    '<br>' +
+
+    '<span class="scan-id">' +
+
+    escapeHTML(
+      item.scanId
+    ) +
+
+    ' · ' +
+
+    escapeHTML(
+      date
+    ) +
+
+    '</span>';
+
+
+  container.appendChild(
+    div
+  );
+
+});
+
+} catch (error) {
+
+container.innerHTML =
+  '<div class="empty-history">' +
+  'Unable to load local scan history.' +
+  '</div>';
 
 }
 
+}
+
+function clearHistory() {
+
+try {
+
+localStorage.removeItem(
+  "sentinelAIHistory"
+);
+
+} catch (error) {
+
+console.log(
+  "Unable to clear history."
+);
+
+}
+
+renderHistory();
+
+}
 
 /* =========================
-   START
+SECURITY
+========================= */
+
+function escapeHTML(value) {
+
+const div =
+document.createElement("div");
+
+div.textContent =
+value == null
+? ""
+: String(value);
+
+return div.innerHTML;
+
+}
+
+/* =========================
+START
 ========================= */
 
 document.addEventListener(
-  "DOMContentLoaded",
-  function() {
+"DOMContentLoaded",
+function() {
 
-    renderHistory();
+renderHistory();
 
-  }
+}
 );
 
-</script>
-
-</body>
+</script></body>
 </html>
