@@ -55,7 +55,13 @@
       font-weight: bold;
     }
 
-    .logo span {
+    .logo span,
+    h1 span,
+    .card h3,
+    .health h3,
+    .mentor h3,
+    .history h3,
+    .report h3 {
       color: #38bdf8;
     }
 
@@ -91,10 +97,6 @@
       font-size: clamp(40px, 8vw, 72px);
       line-height: 1.05;
       margin-bottom: 22px;
-    }
-
-    h1 span {
-      color: #38bdf8;
     }
 
     .hero p {
@@ -161,7 +163,6 @@
 
     .card h3 {
       margin-bottom: 10px;
-      color: #38bdf8;
     }
 
     .card p {
@@ -249,7 +250,9 @@
       margin-top: 5px;
     }
 
-    .health {
+    .health,
+    .mentor,
+    .report {
       background: #0b1d31;
       border: 1px solid #31506d;
       border-radius: 14px;
@@ -257,8 +260,9 @@
       margin-bottom: 20px;
     }
 
-    .health h3 {
-      color: #38bdf8;
+    .health h3,
+    .mentor h3,
+    .report h3 {
       margin-bottom: 10px;
     }
 
@@ -314,7 +318,6 @@
 
     .check-name {
       font-weight: bold;
-      color: #ffffff;
     }
 
     .pass {
@@ -355,42 +358,6 @@
       border-radius: 10px;
     }
 
-    .report {
-      background: #0b1d31;
-      border: 1px solid #31506d;
-      border-radius: 14px;
-      padding: 25px;
-      margin-top: 20px;
-    }
-
-    .report h3 {
-      color: #38bdf8;
-      margin-bottom: 12px;
-      margin-top: 18px;
-    }
-
-    .report h3:first-child {
-      margin-top: 0;
-    }
-
-    .report li {
-      margin: 8px 0 8px 20px;
-      color: #cbd5e1;
-    }
-
-    .mentor {
-      background: #0b1d31;
-      border: 1px solid #31506d;
-      border-radius: 14px;
-      padding: 25px;
-      margin-top: 20px;
-    }
-
-    .mentor h3 {
-      color: #38bdf8;
-      margin-bottom: 14px;
-    }
-
     .mentor-item {
       background: #07111f;
       border: 1px solid #18304a;
@@ -403,6 +370,11 @@
       color: #38bdf8;
     }
 
+    .report li {
+      margin: 8px 0 8px 20px;
+      color: #cbd5e1;
+    }
+
     .history {
       margin-top: 35px;
       background: #0b1d31;
@@ -411,22 +383,12 @@
       padding: 25px;
     }
 
-    .history h3 {
-      color: #38bdf8;
-      margin-bottom: 15px;
-    }
-
     .history-item {
       background: #07111f;
       border: 1px solid #18304a;
       border-radius: 10px;
       padding: 14px;
       margin: 10px 0;
-      cursor: pointer;
-    }
-
-    .history-item:hover {
-      border-color: #38bdf8;
     }
 
     .history-score {
@@ -613,7 +575,11 @@
       autocomplete="url"
     >
 
-    <button id="scanButton" onclick="runCheck()">
+    <button
+      id="scanButton"
+      type="button"
+      onclick="runCheck()"
+    >
       🛡️ Start Security Check
     </button>
 
@@ -644,6 +610,7 @@
 
     <button
       class="secondary-button"
+      type="button"
       onclick="clearHistory()"
     >
       🗑️ Clear Local History
@@ -694,8 +661,8 @@ let latestScan = null;
 
 async function runCheck() {
 
-  const website =
-    document.getElementById("website").value.trim();
+  const websiteInput =
+    document.getElementById("website");
 
   const result =
     document.getElementById("result");
@@ -703,7 +670,18 @@ async function runCheck() {
   const button =
     document.getElementById("scanButton");
 
+
+  if (!websiteInput || !result || !button) {
+    return;
+  }
+
+
+  const website =
+    websiteInput.value.trim();
+
+
   result.style.display = "block";
+
 
   if (!website) {
 
@@ -716,7 +694,9 @@ async function runCheck() {
   }
 
 
-  let normalizedWebsite = website;
+  let normalizedWebsite =
+    website;
+
 
   if (
     !normalizedWebsite.startsWith("http://") &&
@@ -733,7 +713,7 @@ async function runCheck() {
 
     new URL(normalizedWebsite);
 
-  } catch {
+  } catch (error) {
 
     result.innerHTML =
       '<div class="error">' +
@@ -746,6 +726,7 @@ async function runCheck() {
 
   button.disabled = true;
 
+
   result.innerHTML =
     '<div class="notice">' +
     '🛡️ Sentinel AI is checking the website...<br>' +
@@ -755,22 +736,24 @@ async function runCheck() {
 
   try {
 
-    const response = await fetch("/api/scan", {
+    const response =
+      await fetch("/api/scan", {
 
-      method: "POST",
+        method: "POST",
 
-      headers: {
-        "Content-Type": "application/json"
-      },
+        headers: {
+          "Content-Type": "application/json"
+        },
 
-      body: JSON.stringify({
-        website: normalizedWebsite
-      })
+        body: JSON.stringify({
+          website: normalizedWebsite
+        })
 
-    });
+      });
 
 
-    const data = await response.json();
+    const data =
+      await response.json();
 
 
     if (!response.ok) {
@@ -778,7 +761,8 @@ async function runCheck() {
       result.innerHTML =
         '<div class="error">⚠️ ' +
         escapeHTML(
-          data.error || "Security check failed."
+          data.error ||
+          "Security check failed."
         ) +
         '</div>';
 
@@ -788,15 +772,28 @@ async function runCheck() {
     }
 
 
-    latestScan = data;
+    if (
+      !data ||
+      !Array.isArray(data.checks)
+    ) {
+
+      result.innerHTML =
+        '<div class="error">' +
+        '❌ Scanner returned an invalid response.' +
+        '</div>';
+
+      button.disabled = false;
+
+      return;
+    }
 
 
-    const scanId =
-      createScanId();
+    latestScan =
+      data;
 
 
     latestScan.scanId =
-      scanId;
+      createScanId();
 
 
     saveScanHistory(
@@ -810,6 +807,12 @@ async function runCheck() {
 
 
   } catch (error) {
+
+    console.error(
+      "Scanner error:",
+      error
+    );
+
 
     result.innerHTML =
       '<div class="error">' +
@@ -836,12 +839,18 @@ function renderScan(data) {
     document.getElementById("result");
 
 
+  if (!result) {
+    return;
+  }
+
+
   let checksHTML = "";
 
 
   data.checks.forEach(function(check) {
 
-    let statusClass = "info";
+    let statusClass =
+      "info";
 
 
     if (check.status === "PASS") {
@@ -860,19 +869,25 @@ function renderScan(data) {
 
       '<div class="check-name">' +
 
-      escapeHTML(check.name) +
+      escapeHTML(
+        check.name || "Security Check"
+      ) +
 
       ' — <span class="' +
       statusClass +
       '">' +
 
-      escapeHTML(check.status) +
+      escapeHTML(
+        check.status || "INFO"
+      ) +
 
       '</span></div>' +
 
       '<div class="message">' +
 
-      escapeHTML(check.message || "") +
+      escapeHTML(
+        check.message || ""
+      ) +
 
       '</div>' +
 
@@ -906,6 +921,13 @@ function renderScan(data) {
       warnings:
         data.checks.filter(
           c => c.status === "WARNING"
+        ).length,
+
+      informational:
+        data.checks.filter(
+          c =>
+            c.status !== "PASS" &&
+            c.status !== "WARNING"
         ).length
 
     };
@@ -920,7 +942,8 @@ function renderScan(data) {
   let priorityHTML = "";
 
 
-  warnings.slice(0, 4)
+  warnings
+    .slice(0, 4)
     .forEach(function(check, index) {
 
       priorityHTML +=
@@ -930,7 +953,9 @@ function renderScan(data) {
         '<strong>Priority ' +
         (index + 1) +
         ': ' +
-        escapeHTML(check.name) +
+        escapeHTML(
+          check.name || "Security Finding"
+        ) +
         '</strong>' +
 
         '<br>' +
@@ -964,18 +989,24 @@ function renderScan(data) {
     '<div>🛡️ Security Score</div>' +
 
     '<div class="score">' +
-    escapeHTML(String(data.securityScore)) +
+    escapeHTML(
+      String(data.securityScore ?? 0)
+    ) +
     '/100' +
     '</div>' +
 
     '<div class="risk">' +
     'Risk Level: ' +
-    escapeHTML(data.riskLevel) +
+    escapeHTML(
+      data.riskLevel || "Unknown"
+    ) +
     '</div>' +
 
     '<div class="scan-id">' +
     'Scan ID: ' +
-    escapeHTML(data.scanId) +
+    escapeHTML(
+      data.scanId || "N/A"
+    ) +
     '</div>' +
 
     '</div>' +
@@ -1018,7 +1049,9 @@ function renderScan(data) {
 
     '<strong>Website:</strong> ' +
 
-    escapeHTML(data.website) +
+    escapeHTML(
+      data.website || "N/A"
+    ) +
 
     '</div>' +
 
@@ -1028,7 +1061,7 @@ function renderScan(data) {
     '<div class="summary-box">' +
 
     '<div class="summary-number">' +
-    summary.totalChecks +
+    (summary.totalChecks || 0) +
     '</div>' +
 
     '<div>Total Checks</div>' +
@@ -1039,7 +1072,7 @@ function renderScan(data) {
     '<div class="summary-box">' +
 
     '<div class="summary-number">' +
-    summary.passed +
+    (summary.passed || 0) +
     '</div>' +
 
     '<div>Passed</div>' +
@@ -1050,7 +1083,7 @@ function renderScan(data) {
     '<div class="summary-box">' +
 
     '<div class="summary-number">' +
-    summary.warnings +
+    (summary.warnings || 0) +
     '</div>' +
 
     '<div>Warnings</div>' +
@@ -1063,21 +1096,21 @@ function renderScan(data) {
     checksHTML +
 
 
-    '<button class="secondary-button" onclick="showMentor()">' +
+    '<button class="secondary-button" type="button" onclick="showMentor()">' +
 
     '🤖 Explain & Fix with Security Mentor' +
 
     '</button>' +
 
 
-    '<button class="secondary-button" onclick="generateReport()">' +
+    '<button class="secondary-button" type="button" onclick="generateReport()">' +
 
     '📄 Generate Professional Security Report' +
 
     '</button>' +
 
 
-    '<button class="secondary-button" onclick="rescanWebsite()">' +
+    '<button class="secondary-button" type="button" onclick="rescanWebsite()">' +
 
     '🔄 Re-scan This Website' +
 
@@ -1101,7 +1134,7 @@ function showMentor() {
     document.getElementById("mentorArea");
 
 
-  if (!latestScan) {
+  if (!area || !latestScan) {
     return;
   }
 
@@ -1146,7 +1179,7 @@ function showMentor() {
 
   warnings.forEach(function(check, index) {
 
-    let explanation =
+    const explanation =
       getMentorExplanation(
         check.name
       );
@@ -1159,7 +1192,9 @@ function showMentor() {
       '<strong>' +
       (index + 1) +
       '. ' +
-      escapeHTML(check.name) +
+      escapeHTML(
+        check.name || "Security Finding"
+      ) +
       '</strong>' +
 
       '<br><br>' +
@@ -1203,7 +1238,7 @@ function showMentor() {
     '<p class="message">' +
 
     'Apply the defensive recommendations, then use ' +
-    '“Re-scan This Website” to check whether the security posture has improved.' +
+    '"Re-scan This Website" to check whether the security posture has improved.' +
 
     '</p>' +
 
@@ -1219,7 +1254,8 @@ function showMentor() {
     '</div>';
 
 
-  area.innerHTML = html;
+  area.innerHTML =
+    html;
 
 }
 
@@ -1291,7 +1327,7 @@ function getMentorExplanation(name) {
       "This security setting helps strengthen the website's defensive posture.",
 
     why:
-      "Missing security controls can reduce the protection available to users.",
+      "Missing security controls can reduce the protection available to users."
 
   };
 
@@ -1308,6 +1344,11 @@ async function generateReport() {
     document.getElementById("reportArea");
 
 
+  if (!reportArea) {
+    return;
+  }
+
+
   if (!latestScan) {
 
     reportArea.innerHTML =
@@ -1324,168 +1365,6 @@ async function generateReport() {
     '📄 Generating professional report...' +
     '</div>';
 
-
-  try {
-
-    const response =
-      await fetch("/api/report", {
-
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify({
-
-          website:
-            latestScan.website,
-
-          securityScore:
-            latestScan.securityScore,
-
-          riskLevel:
-            latestScan.riskLevel,
-
-          checks:
-            latestScan.checks
-
-        })
-
-      });
-
-
-    const data =
-      await response.json();
-
-
-    if (!response.ok) {
-
-      reportArea.innerHTML =
-        '<div class="error">⚠️ ' +
-        escapeHTML(
-          data.error ||
-          "Report generation failed."
-        ) +
-        '</div>';
-
-      return;
-    }
-
-
-    const report =
-      data.report;
-
-
-    let findingsHTML = "";
-
-
-    if (
-      !report.findings ||
-      report.findings.length === 0
-    ) {
-
-      findingsHTML =
-        "<li>No warning findings were detected.</li>";
-
-    } else {
-
-      report.findings.forEach(function(item) {
-
-        findingsHTML +=
-
-          "<li><strong>" +
-
-          escapeHTML(item.title) +
-
-          ":</strong> " +
-
-          escapeHTML(item.fix) +
-
-          "</li>";
-
-      });
-
-    }
-
-
-    let recommendationsHTML = "";
-
-
-    report.recommendations.forEach(function(item) {
-
-      recommendationsHTML +=
-
-        "<li>" +
-        escapeHTML(item) +
-        "</li>";
-
-    });
-
-
-    reportArea.innerHTML =
-
-      '<div class="report" id="printableReport">' +
-
-      '<h3>📄 Sentinel AI Professional Security Report</h3>' +
-
-      '<p><strong>Website:</strong> ' +
-
-      escapeHTML(report.website) +
-
-      '</p>' +
-
-      '<p><strong>Security Score:</strong> ' +
-
-      escapeHTML(String(report.securityScore)) +
-
-      '/100</p>' +
-
-      '<p><strong>Risk Level:</strong> ' +
-
-      escapeHTML(report.riskLevel) +
-
-      '</p>' +
-
-      '<p class="scan-id"><strong>Scan ID:</strong> ' +
-
-      escapeHTML(
-        latestScan.scanId || "N/A"
-      ) +
-
-      '</p>' +
-
-
-      '<h3>Summary</h3>' +
-
-      '<p>' +
-
-      report.summary.passed +
-
-      ' passed · ' +
-/* =========================
-   REPORT
-========================= */
-
-async function generateReport() {
-
-  const reportArea =
-    document.getElementById("reportArea");
-
-  if (!latestScan) {
-
-    reportArea.innerHTML =
-      '<div class="error">' +
-      '⚠️ Run a security scan first.' +
-      '</div>';
-
-    return;
-  }
-
-  reportArea.innerHTML =
-    '<div class="report">' +
-    '📄 Generating professional report...' +
-    '</div>';
 
   try {
 
@@ -1519,8 +1398,10 @@ async function generateReport() {
 
       });
 
+
     const data =
       await response.json();
+
 
     if (!response.ok) {
 
@@ -1535,8 +1416,10 @@ async function generateReport() {
       return;
     }
 
+
     const report =
       data.report;
+
 
     if (!report) {
 
@@ -1548,13 +1431,18 @@ async function generateReport() {
       return;
     }
 
+
     const summary =
       report.executiveSummary || {};
+
 
     const findings =
       report.priorityFindings || [];
 
-    let findingsHTML = "";
+
+    let findingsHTML =
+      "";
+
 
     if (!findings.length) {
 
@@ -1566,35 +1454,49 @@ async function generateReport() {
       findings.forEach(function(item) {
 
         findingsHTML +=
+
           "<li><strong>" +
+
           escapeHTML(
-            item.title || "Security Finding"
+            item.title ||
+            "Security Finding"
           ) +
+
           ":</strong> " +
+
           escapeHTML(
             item.fix ||
             item.message ||
             "Review this security finding."
           ) +
+
           "</li>";
 
       });
 
     }
 
+
     const recommendations =
       report.recommendations || [];
 
-    let recommendationsHTML = "";
+
+    let recommendationsHTML =
+      "";
+
 
     recommendations.forEach(function(item) {
 
       recommendationsHTML +=
+
         "<li>" +
+
         escapeHTML(item) +
+
         "</li>";
 
     });
+
 
     reportArea.innerHTML =
 
@@ -1603,66 +1505,93 @@ async function generateReport() {
       '<h3>📄 Sentinel AI Professional Security Report</h3>' +
 
       '<p><strong>Website:</strong> ' +
-      escapeHTML(report.website || latestScan.website) +
+
+      escapeHTML(
+        report.website ||
+        latestScan.website
+      ) +
+
       '</p>' +
 
       '<p><strong>Security Score:</strong> ' +
+
       escapeHTML(
         String(
           report.securityScore ??
-          latestScan.securityScore
+          latestScan.securityScore ??
+          0
         )
       ) +
+
       '/100</p>' +
 
       '<p><strong>Risk Level:</strong> ' +
+
       escapeHTML(
         report.riskLevel ||
-        latestScan.riskLevel
+        latestScan.riskLevel ||
+        "Unknown"
       ) +
+
       '</p>' +
 
       '<p class="scan-id"><strong>Scan ID:</strong> ' +
+
       escapeHTML(
         report.scanId ||
         latestScan.scanId ||
         "N/A"
       ) +
+
       '</p>' +
 
       '<h3>Summary</h3>' +
 
       '<p>' +
+
       (summary.passed || 0) +
+
       ' passed · ' +
+
       (summary.warnings || 0) +
+
       ' warnings · ' +
+
       (summary.informational || 0) +
+
       ' informational</p>' +
 
       '<h3>Findings & Fixes</h3>' +
 
       '<ul>' +
+
       findingsHTML +
+
       '</ul>' +
 
       '<h3>Recommendations</h3>' +
 
       '<ul>' +
+
       recommendationsHTML +
+
       '</ul>' +
 
       '<p class="message">' +
+
       escapeHTML(
         report.disclaimer ||
         "Sentinel AI provides automated security-awareness guidance and defensive recommendations."
       ) +
+
       '</p>' +
 
       '</div>' +
 
-      '<button class="secondary-button" onclick="downloadReport()">' +
+      '<button class="secondary-button" type="button" onclick="downloadReport()">' +
+
       '⬇️ Download Report' +
+
       '</button>';
 
   } catch (error) {
@@ -1671,6 +1600,7 @@ async function generateReport() {
       "Report generation error:",
       error
     );
+
 
     reportArea.innerHTML =
       '<div class="error">' +
@@ -1697,13 +1627,6 @@ function downloadReport() {
   if (!report) {
     return;
   }
-
-
-  const website =
-    latestScan &&
-    latestScan.website
-      ? latestScan.website
-      : "website";
 
 
   const content = `
@@ -1783,7 +1706,8 @@ ${report.innerHTML}
     document.createElement("a");
 
 
-  link.href = url;
+  link.href =
+    url;
 
 
   link.download =
@@ -1815,22 +1739,38 @@ function rescanWebsite() {
   }
 
 
-  document.getElementById("website").value =
-    latestScan.website;
+  const website =
+    document.getElementById("website");
+
+
+  const scanner =
+    document.getElementById("scanner");
+
+
+  if (website) {
+
+    website.value =
+      latestScan.website;
+
+  }
 
 
   runCheck();
 
 
-  window.scrollTo({
+  if (scanner) {
 
-    top:
-      document.getElementById("scanner").offsetTop - 70,
+    window.scrollTo({
 
-    behavior:
-      "smooth"
+      top:
+        scanner.offsetTop - 70,
 
-  });
+      behavior:
+        "smooth"
+
+    });
+
+  }
 
 }
 
@@ -1844,16 +1784,20 @@ function createScanId() {
   const time =
     Date.now().toString(36);
 
+
   const random =
     Math.random()
       .toString(36)
       .substring(2, 7);
 
+
   return (
+
     "SA-" +
     time +
     "-" +
     random
+
   ).toUpperCase();
 
 }
@@ -1865,9 +1809,11 @@ function saveScanHistory(scan) {
 
     const history =
       JSON.parse(
+
         localStorage.getItem(
           "sentinelAIHistory"
         ) || "[]"
+
       );
 
 
@@ -1928,13 +1874,20 @@ function renderHistory() {
     );
 
 
+  if (!container) {
+    return;
+  }
+
+
   try {
 
     const history =
       JSON.parse(
+
         localStorage.getItem(
           "sentinelAIHistory"
         ) || "[]"
+
       );
 
 
@@ -1949,7 +1902,8 @@ function renderHistory() {
     }
 
 
-    container.innerHTML = "";
+    container.innerHTML =
+      "";
 
 
     history.forEach(function(item) {
@@ -1970,36 +1924,53 @@ function renderHistory() {
       div.innerHTML =
 
         '<strong>' +
-        escapeHTML(item.website) +
+
+        escapeHTML(
+          item.website
+        ) +
+
         '</strong>' +
 
         '<br>' +
 
         '<span class="history-score">' +
+
         escapeHTML(
-          String(item.securityScore)
+          String(
+            item.securityScore
+          )
         ) +
+
         '/100' +
+
         '</span>' +
 
         ' · ' +
 
-        escapeHTML(item.riskLevel) +
+        escapeHTML(
+          item.riskLevel
+        ) +
 
         '<br>' +
 
         '<span class="scan-id">' +
 
-        escapeHTML(item.scanId) +
+        escapeHTML(
+          item.scanId
+        ) +
 
         ' · ' +
 
-        escapeHTML(date) +
+        escapeHTML(
+          date
+        ) +
 
         '</span>';
 
 
-      container.appendChild(div);
+      container.appendChild(
+        div
+      );
 
     });
 
@@ -2017,9 +1988,19 @@ function renderHistory() {
 
 function clearHistory() {
 
-  localStorage.removeItem(
-    "sentinelAIHistory"
-  );
+  try {
+
+    localStorage.removeItem(
+      "sentinelAIHistory"
+    );
+
+  } catch (error) {
+
+    console.log(
+      "Unable to clear history."
+    );
+
+  }
 
 
   renderHistory();
@@ -2036,10 +2017,12 @@ function escapeHTML(value) {
   const div =
     document.createElement("div");
 
+
   div.textContent =
     value == null
       ? ""
       : String(value);
+
 
   return div.innerHTML;
 
@@ -2050,7 +2033,14 @@ function escapeHTML(value) {
    START
 ========================= */
 
-renderHistory();
+document.addEventListener(
+  "DOMContentLoaded",
+  function() {
+
+    renderHistory();
+
+  }
+);
 
 </script>
 
