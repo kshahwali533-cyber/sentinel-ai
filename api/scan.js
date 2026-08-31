@@ -6,7 +6,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { website } = req.body || {};
+    const body = req.body || {};
+    const website =
+      typeof body.website === "string"
+        ? body.website.trim()
+        : "";
 
     if (!website) {
       return res.status(400).json({
@@ -17,7 +21,12 @@ export default async function handler(req, res) {
     let target;
 
     try {
-      target = new URL(website);
+      target = new URL(
+        website.startsWith("http://") ||
+        website.startsWith("https://")
+          ? website
+          : `https://${website}`
+      );
     } catch {
       return res.status(400).json({
         error: "Invalid website URL."
@@ -30,22 +39,87 @@ export default async function handler(req, res) {
       });
     }
 
-    const response = await fetch(target.href, {
-      method: "GET",
-      redirect: "follow",
-      headers: {
-        "User-Agent": "Sentinel-AI-Security-Scanner/1.0"
+    /*
+     * Prevent requests to localhost/private network targets.
+     * Sentinel AI is intended for public websites.
+     */
+    const hostname = target.hostname.toLowerCase();
+
+    const blockedHosts = [
+      "localhost",
+      "127.0.0.1",
+      "0.0.0.0",
+      "::1"
+    ];
+
+    if (
+      blockedHosts.includes(hostname) ||
+      hostname.endsWith(".local")
+    ) {
+      return res.status(400).json({
+        error: "Private or local websites cannot be scanned."
+      });
+    }
+
+    const controller = new AbortController();
+
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, 15000);
+
+    let response;
+
+    try {
+      response = await fetch(target.href, {
+        method: "GET",
+        redirect: "follow",
+        signal: controller.signal,
+        headers: {
+          "User-Agent":
+            "Sentinel-AI-Security-Scanner/2.0",
+          "Accept":
+            "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8"
+        }
+      });
+    } catch (error) {
+      clearTimeout(timeout);
+
+      if (error && error.name === "AbortError") {
+        return res.status(504).json({
+          error:
+            "The website took too long to respond. Please try again."
+        });
       }
-    });
+
+      return res.status(502).json({
+        error:
+          "Sentinel AI could not connect to the target website. The website may be unavailable or may be blocking automated requests."
+      });
+    }
+
+    clearTimeout(timeout);
 
     const headers = response.headers;
 
-    const finalURL = response.url || target.href;
-    const finalTarget = new URL(finalURL);
+    const finalURL =
+      response.url || target.href;
+
+    let finalTarget;
+
+    try {
+      finalTarget = new URL(finalURL);
+    } catch {
+      finalTarget = target;
+    }
 
     const checks = [];
 
-    function addCheck(name, status, message, fix = "") {
+    function addCheck(
+      name,
+      status,
+      message,
+      fix = ""
+    ) {
       checks.push({
         name,
         status,
@@ -77,11 +151,15 @@ export default async function handler(req, res) {
        HSTS
     ========================= */
 
-    const hsts = headers.get("strict-transport-security");
+    const hsts =
+      headers.get("strict-transport-security");
 
     if (hsts) {
-      const match = hsts.match(/max-age\s*=\s*(\d+)/i);
-      const maxAge = match ? Number(match[1]) : 0;
+      const match =
+        hsts.match(/max-age\s*=\s*(\d+)/i);
+
+      const maxAge =
+        match ? Number(match[1]) : 0;
 
       if (maxAge >= 31536000) {
         addCheck(
@@ -110,7 +188,8 @@ export default async function handler(req, res) {
        CONTENT SECURITY POLICY
     ========================= */
 
-    const csp = headers.get("content-security-policy");
+    const csp =
+      headers.get("content-security-policy");
 
     if (!csp) {
       addCheck(
@@ -144,10 +223,12 @@ export default async function handler(req, res) {
        CLICKJACKING
     ========================= */
 
-    const xFrame = headers.get("x-frame-options");
+    const xFrame =
+      headers.get("x-frame-options");
 
     const frameAncestors =
-      csp && /frame-ancestors/i.test(csp);
+      csp &&
+      /frame-ancestors/i.test(csp);
 
     if (xFrame || frameAncestors) {
       addCheck(
@@ -173,7 +254,9 @@ export default async function handler(req, res) {
 
     if (
       xContentType &&
-      xContentType.toLowerCase().includes("nosniff")
+      xContentType
+        .toLowerCase()
+        .includes("nosniff")
     ) {
       addCheck(
         "X-Content-Type-Options",
@@ -238,7 +321,9 @@ export default async function handler(req, res) {
     ========================= */
 
     const cors =
-      headers.get("access-control-allow-origin");
+      headers.get(
+        "access-control-allow-origin"
+      );
 
     if (cors) {
       addCheck(
@@ -280,8 +365,22 @@ export default async function handler(req, res) {
        COOKIE SECURITY
     ========================= */
 
-    const setCookie =
-      headers.get("set-cookie");
+    let setCookie = "";
+
+    try {
+      if (
+        typeof headers.getSetCookie === "function"
+      ) {
+        setCookie =
+          headers.getSetCookie().join("\n");
+      } else {
+        setCookie =
+          headers.get("set-cookie") || "";
+      }
+    } catch {
+      setCookie =
+        headers.get("set-cookie") || "";
+    }
 
     if (!setCookie) {
       addCheck(
@@ -352,7 +451,9 @@ export default async function handler(req, res) {
     ========================= */
 
     const coop =
-      headers.get("cross-origin-opener-policy");
+      headers.get(
+        "cross-origin-opener-policy"
+      );
 
     if (coop) {
       addCheck(
@@ -370,7 +471,9 @@ export default async function handler(req, res) {
     }
 
     const corp =
-      headers.get("cross-origin-resource-policy");
+      headers.get(
+        "cross-origin-resource-policy"
+      );
 
     if (corp) {
       addCheck(
@@ -388,7 +491,9 @@ export default async function handler(req, res) {
     }
 
     const coep =
-      headers.get("cross-origin-embedder-policy");
+      headers.get(
+        "cross-origin-embedder-policy"
+      );
 
     if (coep) {
       addCheck(
@@ -409,7 +514,10 @@ export default async function handler(req, res) {
        HTTP STATUS
     ========================= */
 
-    if (response.status >= 200 && response.status < 400) {
+    if (
+      response.status >= 200 &&
+      response.status < 400
+    ) {
       addCheck(
         "HTTP Response Status",
         "PASS",
@@ -428,7 +536,9 @@ export default async function handler(req, res) {
        FINAL DESTINATION
     ========================= */
 
-    if (finalTarget.protocol === "https:") {
+    if (
+      finalTarget.protocol === "https:"
+    ) {
       addCheck(
         "Secure Final Destination",
         "PASS",
@@ -451,7 +561,9 @@ export default async function handler(req, res) {
       headers.get("content-type") || "";
 
     if (
-      contentType.toLowerCase().includes("text/html")
+      contentType
+        .toLowerCase()
+        .includes("text/html")
     ) {
       addCheck(
         "Content-Type",
@@ -488,14 +600,26 @@ export default async function handler(req, res) {
       const securityTxtURL =
         `${finalTarget.origin}/.well-known/security.txt`;
 
+      const securityController =
+        new AbortController();
+
+      const securityTimeout =
+        setTimeout(() => {
+          securityController.abort();
+        }, 7000);
+
       const securityResponse =
         await fetch(securityTxtURL, {
           method: "GET",
           redirect: "follow",
+          signal: securityController.signal,
           headers: {
-            "User-Agent": "Sentinel-AI-Security-Scanner/1.0"
+            "User-Agent":
+              "Sentinel-AI-Security-Scanner/2.0"
           }
         });
+
+      clearTimeout(securityTimeout);
 
       if (
         securityResponse.ok &&
@@ -531,14 +655,26 @@ export default async function handler(req, res) {
       const robotsURL =
         `${finalTarget.origin}/robots.txt`;
 
+      const robotsController =
+        new AbortController();
+
+      const robotsTimeout =
+        setTimeout(() => {
+          robotsController.abort();
+        }, 7000);
+
       const robotsResponse =
         await fetch(robotsURL, {
           method: "GET",
           redirect: "follow",
+          signal: robotsController.signal,
           headers: {
-            "User-Agent": "Sentinel-AI-Security-Scanner/1.0"
+            "User-Agent":
+              "Sentinel-AI-Security-Scanner/2.0"
           }
         });
+
+      clearTimeout(robotsTimeout);
 
       if (
         robotsResponse.ok &&
@@ -568,7 +704,8 @@ export default async function handler(req, res) {
        SCORE
     ========================= */
 
-    const totalChecks = checks.length;
+    const totalChecks =
+      checks.length;
 
     const passed =
       checks.filter(
@@ -585,27 +722,28 @@ export default async function handler(req, res) {
         check => check.status === "INFO"
       ).length;
 
-    /*
-      Score model:
-      PASS = full credit
-      INFO = small deduction
-      WARNING = larger deduction
+    let securityScore = 0;
 
-      Informational findings do not make a website
-      High Risk by themselves.
-    */
-
-    let securityScore =
-      Math.round(
-        ((passed + informational * 0.75) /
-          totalChecks) *
-          100
-      );
+    if (totalChecks > 0) {
+      securityScore =
+        Math.round(
+          (
+            (
+              passed +
+              informational * 0.75
+            ) /
+            totalChecks
+          ) * 100
+        );
+    }
 
     securityScore =
       Math.max(
         0,
-        Math.min(100, securityScore)
+        Math.min(
+          100,
+          securityScore
+        )
       );
 
     let riskLevel = "Low";
@@ -636,7 +774,10 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error("Sentinel AI scan error:", error);
+    console.error(
+      "Sentinel AI scan error:",
+      error
+    );
 
     return res.status(500).json({
       error:
