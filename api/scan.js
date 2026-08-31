@@ -54,6 +54,17 @@ export default async function handler(req, res) {
     });
   }
 
+  const checks = [];
+
+  function addCheck(name, status, message, fix = "") {
+    checks.push({
+      name,
+      status,
+      message,
+      fix
+    });
+  }
+
   try {
     const response = await fetch(target.href, {
       method: "GET",
@@ -64,30 +75,22 @@ export default async function handler(req, res) {
     });
 
     const headers = response.headers;
-    const checks = [];
 
-    function addCheck(name, status, message, fix = "") {
-      checks.push({
-        name,
-        status,
-        message,
-        fix
-      });
-    }
-
-    function getHeader(name) {
-      return headers.get(name);
-    }
-
+    // --------------------------------------------------
     // 1. HTTPS
+    // --------------------------------------------------
+
     addCheck(
       "HTTPS",
       "PASS",
       "The website uses HTTPS."
     );
 
+    // --------------------------------------------------
     // 2. HSTS
-    const hsts = getHeader("strict-transport-security");
+    // --------------------------------------------------
+
+    const hsts = headers.get("strict-transport-security");
 
     if (hsts) {
       const maxAgeMatch = hsts.match(/max-age\s*=\s*(\d+)/i);
@@ -103,7 +106,7 @@ export default async function handler(req, res) {
         addCheck(
           "HSTS",
           "INFO",
-          "HSTS was detected, but its max-age value may be shorter than recommended.",
+          "HSTS was detected, but its max-age value is shorter than the recommended baseline.",
           "Review the HSTS max-age value and consider at least 31536000 seconds."
         );
       }
@@ -116,15 +119,30 @@ export default async function handler(req, res) {
       );
     }
 
+    // --------------------------------------------------
     // 3. Content Security Policy
-    const csp = getHeader("content-security-policy");
+    // --------------------------------------------------
+
+    const csp = headers.get("content-security-policy");
 
     if (csp) {
-      addCheck(
-        "Content Security Policy",
-        "PASS",
-        "A Content-Security-Policy header was detected."
-      );
+      const hasUnsafeInline = /'unsafe-inline'/i.test(csp);
+      const hasUnsafeEval = /'unsafe-eval'/i.test(csp);
+
+      if (hasUnsafeInline || hasUnsafeEval) {
+        addCheck(
+          "Content Security Policy",
+          "INFO",
+          "A Content-Security-Policy header was detected, but it contains potentially weaker directives.",
+          "Review unsafe-inline and unsafe-eval usage and restrict trusted sources where possible."
+        );
+      } else {
+        addCheck(
+          "Content Security Policy",
+          "PASS",
+          "A Content-Security-Policy header was detected."
+        );
+      }
     } else {
       addCheck(
         "Content Security Policy",
@@ -134,12 +152,14 @@ export default async function handler(req, res) {
       );
     }
 
+    // --------------------------------------------------
     // 4. Clickjacking Protection
-    const xFrame = getHeader("x-frame-options");
+    // --------------------------------------------------
+
+    const xFrame = headers.get("x-frame-options");
 
     const hasFrameAncestors =
-      typeof csp === "string" &&
-      /frame-ancestors\s+/i.test(csp);
+      csp && /frame-ancestors\s+/i.test(csp);
 
     if (xFrame || hasFrameAncestors) {
       addCheck(
@@ -156,8 +176,11 @@ export default async function handler(req, res) {
       );
     }
 
+    // --------------------------------------------------
     // 5. X-Content-Type-Options
-    const noSniff = getHeader("x-content-type-options");
+    // --------------------------------------------------
+
+    const noSniff = headers.get("x-content-type-options");
 
     if (
       noSniff &&
@@ -177,22 +200,25 @@ export default async function handler(req, res) {
       );
     }
 
-    // 6. Referrer-Policy
-    const referrerPolicy = getHeader("referrer-policy");
+    // --------------------------------------------------
+    // 6. Referrer Policy
+    // --------------------------------------------------
+
+    const referrerPolicy =
+      headers.get("referrer-policy");
 
     if (referrerPolicy) {
       const policy = referrerPolicy.toLowerCase();
 
-      const restrictivePolicies = [
+      const strongPolicies = [
         "no-referrer",
-        "same-origin",
         "strict-origin",
         "strict-origin-when-cross-origin"
       ];
 
       if (
-        restrictivePolicies.some(
-          value => policy.includes(value)
+        strongPolicies.some(value =>
+          policy.includes(value)
         )
       ) {
         addCheck(
@@ -217,9 +243,12 @@ export default async function handler(req, res) {
       );
     }
 
-    // 7. Permissions-Policy
+    // --------------------------------------------------
+    // 7. Permissions Policy
+    // --------------------------------------------------
+
     const permissionsPolicy =
-      getHeader("permissions-policy");
+      headers.get("permissions-policy");
 
     if (permissionsPolicy) {
       addCheck(
@@ -236,12 +265,15 @@ export default async function handler(req, res) {
       );
     }
 
+    // --------------------------------------------------
     // 8. CORS
+    // --------------------------------------------------
+
     const cors =
-      getHeader("access-control-allow-origin");
+      headers.get("access-control-allow-origin");
 
     const allowCredentials =
-      getHeader("access-control-allow-credentials");
+      headers.get("access-control-allow-credentials");
 
     if (cors === "*") {
       if (
@@ -252,7 +284,7 @@ export default async function handler(req, res) {
           "CORS Policy",
           "WARNING",
           "Wildcard CORS was detected together with credential support.",
-          "Review CORS configuration carefully and restrict allowed origins."
+          "Restrict allowed origins and review credential handling."
         );
       } else {
         addCheck(
@@ -276,8 +308,11 @@ export default async function handler(req, res) {
       );
     }
 
+    // --------------------------------------------------
     // 9. Server Information Exposure
-    const server = getHeader("server");
+    // --------------------------------------------------
+
+    const server = headers.get("server");
 
     if (server) {
       const versionPattern =
@@ -306,8 +341,12 @@ export default async function handler(req, res) {
       );
     }
 
+    // --------------------------------------------------
     // 10. Cookie Security
-    const setCookie = getHeader("set-cookie");
+    // --------------------------------------------------
+
+    const setCookie =
+      headers.get("set-cookie");
 
     if (!setCookie) {
       addCheck(
@@ -318,26 +357,26 @@ export default async function handler(req, res) {
     } else {
       const cookie = setCookie.toLowerCase();
 
-      const secure =
-        cookie.includes("secure");
+      const hasSecure =
+        /;\s*secure\b/i.test(cookie);
 
-      const httpOnly =
-        cookie.includes("httponly");
+      const hasHttpOnly =
+        /;\s*httponly\b/i.test(cookie);
 
-      const sameSite =
-        cookie.includes("samesite=");
+      const hasSameSite =
+        /;\s*samesite=/i.test(cookie);
 
       const missing = [];
 
-      if (!secure) missing.push("Secure");
-      if (!httpOnly) missing.push("HttpOnly");
-      if (!sameSite) missing.push("SameSite");
+      if (!hasSecure) missing.push("Secure");
+      if (!hasHttpOnly) missing.push("HttpOnly");
+      if (!hasSameSite) missing.push("SameSite");
 
       if (missing.length === 0) {
         addCheck(
           "Cookie Security",
           "PASS",
-          "Recommended Secure, HttpOnly and SameSite cookie attributes were detected."
+          "Recommended Secure, HttpOnly and SameSite attributes were detected."
         );
       } else {
         addCheck(
@@ -351,9 +390,12 @@ export default async function handler(req, res) {
       }
     }
 
+    // --------------------------------------------------
     // 11. Cache-Control
+    // --------------------------------------------------
+
     const cacheControl =
-      getHeader("cache-control");
+      headers.get("cache-control");
 
     if (cacheControl) {
       addCheck(
@@ -370,9 +412,12 @@ export default async function handler(req, res) {
       );
     }
 
-    // 12. Cross-Origin-Opener-Policy
+    // --------------------------------------------------
+    // 12. COOP
+    // --------------------------------------------------
+
     const coop =
-      getHeader("cross-origin-opener-policy");
+      headers.get("cross-origin-opener-policy");
 
     if (coop) {
       addCheck(
@@ -389,9 +434,12 @@ export default async function handler(req, res) {
       );
     }
 
-    // 13. Cross-Origin-Resource-Policy
+    // --------------------------------------------------
+    // 13. CORP
+    // --------------------------------------------------
+
     const corp =
-      getHeader("cross-origin-resource-policy");
+      headers.get("cross-origin-resource-policy");
 
     if (corp) {
       addCheck(
@@ -408,9 +456,12 @@ export default async function handler(req, res) {
       );
     }
 
-    // 14. Cross-Origin-Embedder-Policy
+    // --------------------------------------------------
+    // 14. COEP
+    // --------------------------------------------------
+
     const coep =
-      getHeader("cross-origin-embedder-policy");
+      headers.get("cross-origin-embedder-policy");
 
     if (coep) {
       addCheck(
@@ -427,7 +478,10 @@ export default async function handler(req, res) {
       );
     }
 
+    // --------------------------------------------------
     // 15. HTTP Response Status
+    // --------------------------------------------------
+
     if (response.status >= 200 && response.status < 400) {
       addCheck(
         "HTTP Response Status",
@@ -443,7 +497,10 @@ export default async function handler(req, res) {
       );
     }
 
+    // --------------------------------------------------
     // 16. Secure Final Destination
+    // --------------------------------------------------
+
     try {
       const finalUrl =
         new URL(response.url);
@@ -470,9 +527,12 @@ export default async function handler(req, res) {
       );
     }
 
+    // --------------------------------------------------
     // 17. Content-Type
+    // --------------------------------------------------
+
     const contentType =
-      getHeader("content-type");
+      headers.get("content-type");
 
     if (
       contentType &&
@@ -500,7 +560,10 @@ export default async function handler(req, res) {
       );
     }
 
+    // --------------------------------------------------
     // 18. Hostname Configuration
+    // --------------------------------------------------
+
     if (hostname.includes(".")) {
       addCheck(
         "Hostname Configuration",
@@ -515,7 +578,10 @@ export default async function handler(req, res) {
       );
     }
 
+    // --------------------------------------------------
     // 19. Security.txt
+    // --------------------------------------------------
+
     let securityTxtStatus = "INFO";
 
     let securityTxtMessage =
@@ -544,7 +610,7 @@ export default async function handler(req, res) {
           }
         );
 
-      const contentType =
+      const securityTxtContentType =
         securityTxtResponse.headers.get(
           "content-type"
         ) || "";
@@ -562,7 +628,7 @@ export default async function handler(req, res) {
 
         securityTxtFix = "";
       } else if (
-        contentType
+        securityTxtContentType
           .toLowerCase()
           .includes("text/plain")
       ) {
@@ -574,7 +640,7 @@ export default async function handler(req, res) {
         securityTxtFix = "";
       }
     } catch {
-      // Keep INFO result.
+      // Keep informational result.
     }
 
     addCheck(
@@ -584,7 +650,10 @@ export default async function handler(req, res) {
       securityTxtFix
     );
 
+    // --------------------------------------------------
     // 20. Robots.txt
+    // --------------------------------------------------
+
     let robotsStatus = "INFO";
 
     let robotsMessage =
@@ -619,7 +688,7 @@ export default async function handler(req, res) {
           "A robots.txt resource was detected.";
       }
     } catch {
-      // Keep INFO result.
+      // Keep informational result.
     }
 
     addCheck(
@@ -629,9 +698,9 @@ export default async function handler(req, res) {
       robotsFix
     );
 
-    // ---------------------------------------------
+    // --------------------------------------------------
     // SCORE ENGINE
-    // ---------------------------------------------
+    // --------------------------------------------------
 
     const severityWeights = {
       PASS: 1,
@@ -648,28 +717,30 @@ export default async function handler(req, res) {
 
     let securityScore =
       Math.round(
-        (weightedTotal / checks.length) *
-          100
+        (weightedTotal / checks.length) * 100
       );
 
     const warningCount =
       checks.filter(
-        check =>
-          check.status === "WARNING"
+        check => check.status === "WARNING"
       ).length;
 
-    securityScore = Math.max(
-      0,
-      Math.min(
-        100,
-        securityScore -
-          warningCount * 3
-      )
-    );
+    securityScore =
+      securityScore -
+      warningCount * 3;
 
-    // ---------------------------------------------
+    securityScore =
+      Math.max(
+        0,
+        Math.min(
+          100,
+          securityScore
+        )
+      );
+
+    // --------------------------------------------------
     // RISK LEVEL
-    // ---------------------------------------------
+    // --------------------------------------------------
 
     let riskLevel = "Low";
 
@@ -685,31 +756,28 @@ export default async function handler(req, res) {
       riskLevel = "Critical";
     }
 
-    // ---------------------------------------------
+    // --------------------------------------------------
     // SUMMARY
-    // ---------------------------------------------
+    // --------------------------------------------------
 
     const passed =
       checks.filter(
-        check =>
-          check.status === "PASS"
+        check => check.status === "PASS"
       ).length;
 
     const warnings =
       checks.filter(
-        check =>
-          check.status === "WARNING"
+        check => check.status === "WARNING"
       ).length;
 
     const informational =
       checks.filter(
-        check =>
-          check.status === "INFO"
+        check => check.status === "INFO"
       ).length;
 
-    // ---------------------------------------------
+    // --------------------------------------------------
     // PRIORITY FIXES
-    // ---------------------------------------------
+    // --------------------------------------------------
 
     const priorityFixes =
       checks
@@ -718,18 +786,33 @@ export default async function handler(req, res) {
             check.status === "WARNING" &&
             check.fix
         )
-        .slice(0, 5)
-        .map(
-          (check, index) => ({
-            priority: index + 1,
-            title: check.name,
-            fix: check.fix
-          })
-        );
+        .sort((a, b) => {
+          const priority = {
+            "HSTS": 1,
+            "Content Security Policy": 2,
+            "Clickjacking Protection": 3,
+            "X-Content-Type-Options": 4,
+            "CORS Policy": 5,
+            "Cookie Security": 6,
+            "Server Information Exposure": 7,
+            "HTTP Response Status": 8
+          };
 
-    // ---------------------------------------------
+          return (
+            (priority[a.name] || 99) -
+            (priority[b.name] || 99)
+          );
+        })
+        .slice(0, 5)
+        .map((check, index) => ({
+          priority: index + 1,
+          title: check.name,
+          fix: check.fix
+        }));
+
+    // --------------------------------------------------
     // SCAN ID
-    // ---------------------------------------------
+    // --------------------------------------------------
 
     const scanId =
       "SA-" +
@@ -742,9 +825,9 @@ export default async function handler(req, res) {
         .substring(2, 7)
         .toUpperCase();
 
-    // ---------------------------------------------
+    // --------------------------------------------------
     // FINAL RESPONSE
-    // ---------------------------------------------
+    // --------------------------------------------------
 
     return res.status(200).json({
       success: true,
