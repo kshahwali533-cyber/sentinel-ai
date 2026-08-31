@@ -65,6 +65,14 @@ export default async function handler(req, res) {
     });
   }
 
+  function getHeader(headers, name) {
+    return headers.get(name);
+  }
+
+  function hasHeader(headers, name) {
+    return Boolean(headers.get(name));
+  }
+
   try {
     const response = await fetch(target.href, {
       method: "GET",
@@ -76,25 +84,31 @@ export default async function handler(req, res) {
 
     const headers = response.headers;
 
-    // --------------------------------------------------
-    // 1. HTTPS
-    // --------------------------------------------------
-
+    /*
+     * 1. HTTPS
+     */
     addCheck(
       "HTTPS",
       "PASS",
       "The website uses HTTPS."
     );
 
-    // --------------------------------------------------
-    // 2. HSTS
-    // --------------------------------------------------
-
-    const hsts = headers.get("strict-transport-security");
+    /*
+     * 2. HSTS
+     */
+    const hsts = getHeader(
+      headers,
+      "strict-transport-security"
+    );
 
     if (hsts) {
-      const maxAgeMatch = hsts.match(/max-age\s*=\s*(\d+)/i);
-      const maxAge = maxAgeMatch ? Number(maxAgeMatch[1]) : 0;
+      const maxAgeMatch =
+        hsts.match(/max-age\s*=\s*(\d+)/i);
+
+      const maxAge =
+        maxAgeMatch
+          ? Number(maxAgeMatch[1])
+          : 0;
 
       if (maxAge >= 31536000) {
         addCheck(
@@ -102,12 +116,19 @@ export default async function handler(req, res) {
           "PASS",
           "HSTS is enabled with a strong max-age value."
         );
+      } else if (maxAge > 0) {
+        addCheck(
+          "HSTS",
+          "INFO",
+          "HSTS is enabled, but the max-age value is shorter than the recommended one-year baseline.",
+          "Consider using max-age=31536000 or longer after confirming the domain is ready for HSTS."
+        );
       } else {
         addCheck(
           "HSTS",
           "INFO",
-          "HSTS was detected, but its max-age value is shorter than the recommended baseline.",
-          "Review the HSTS max-age value and consider at least 31536000 seconds."
+          "An HSTS header was detected, but its max-age directive could not be confirmed.",
+          "Review the Strict-Transport-Security configuration."
         );
       }
     } else {
@@ -119,22 +140,43 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 3. Content Security Policy
-    // --------------------------------------------------
-
-    const csp = headers.get("content-security-policy");
+    /*
+     * 3. Content Security Policy
+     */
+    const csp = getHeader(
+      headers,
+      "content-security-policy"
+    );
 
     if (csp) {
-      const hasUnsafeInline = /'unsafe-inline'/i.test(csp);
-      const hasUnsafeEval = /'unsafe-eval'/i.test(csp);
+      const normalizedCsp =
+        csp.toLowerCase();
 
-      if (hasUnsafeInline || hasUnsafeEval) {
+      const hasUnsafeInline =
+        normalizedCsp.includes("'unsafe-inline'");
+
+      const hasUnsafeEval =
+        normalizedCsp.includes("'unsafe-eval'");
+
+      if (
+        hasUnsafeInline &&
+        hasUnsafeEval
+      ) {
         addCheck(
           "Content Security Policy",
           "INFO",
-          "A Content-Security-Policy header was detected, but it contains potentially weaker directives.",
-          "Review unsafe-inline and unsafe-eval usage and restrict trusted sources where possible."
+          "A CSP header was detected, but it includes both unsafe-inline and unsafe-eval directives.",
+          "Review the CSP and remove unsafe directives where possible."
+        );
+      } else if (
+        hasUnsafeInline ||
+        hasUnsafeEval
+      ) {
+        addCheck(
+          "Content Security Policy",
+          "INFO",
+          "A CSP header was detected with a potentially weaker directive.",
+          "Review unsafe-inline or unsafe-eval usage and restrict trusted sources where possible."
         );
       } else {
         addCheck(
@@ -152,14 +194,20 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 4. Clickjacking Protection
-    // --------------------------------------------------
-
-    const xFrame = headers.get("x-frame-options");
+    /*
+     * 4. Clickjacking Protection
+     */
+    const xFrame =
+      getHeader(
+        headers,
+        "x-frame-options"
+      );
 
     const hasFrameAncestors =
-      csp && /frame-ancestors\s+/i.test(csp);
+      Boolean(
+        csp &&
+        /frame-ancestors\s+/i.test(csp)
+      );
 
     if (xFrame || hasFrameAncestors) {
       addCheck(
@@ -176,15 +224,20 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 5. X-Content-Type-Options
-    // --------------------------------------------------
-
-    const noSniff = headers.get("x-content-type-options");
+    /*
+     * 5. X-Content-Type-Options
+     */
+    const noSniff =
+      getHeader(
+        headers,
+        "x-content-type-options"
+      );
 
     if (
       noSniff &&
-      noSniff.toLowerCase().includes("nosniff")
+      noSniff
+        .toLowerCase()
+        .includes("nosniff")
     ) {
       addCheck(
         "X-Content-Type-Options",
@@ -200,27 +253,26 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 6. Referrer Policy
-    // --------------------------------------------------
-
+    /*
+     * 6. Referrer Policy
+     */
     const referrerPolicy =
-      headers.get("referrer-policy");
+      getHeader(
+        headers,
+        "referrer-policy"
+      );
 
     if (referrerPolicy) {
-      const policy = referrerPolicy.toLowerCase();
+      const policy =
+        referrerPolicy.toLowerCase();
 
-      const strongPolicies = [
-        "no-referrer",
-        "strict-origin",
-        "strict-origin-when-cross-origin"
-      ];
+      const restrictive =
+        policy.includes("no-referrer") ||
+        policy.includes("strict-origin") ||
+        policy.includes("same-origin") ||
+        policy.includes("origin-when-cross-origin");
 
-      if (
-        strongPolicies.some(value =>
-          policy.includes(value)
-        )
-      ) {
+      if (restrictive) {
         addCheck(
           "Referrer-Policy",
           "PASS",
@@ -231,7 +283,7 @@ export default async function handler(req, res) {
           "Referrer-Policy",
           "INFO",
           "A Referrer-Policy header was detected.",
-          "Review the policy and consider a restrictive value."
+          "Review the policy and consider a privacy-preserving value such as strict-origin-when-cross-origin."
         );
       }
     } else {
@@ -243,12 +295,14 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 7. Permissions Policy
-    // --------------------------------------------------
-
+    /*
+     * 7. Permissions Policy
+     */
     const permissionsPolicy =
-      headers.get("permissions-policy");
+      getHeader(
+        headers,
+        "permissions-policy"
+      );
 
     if (permissionsPolicy) {
       addCheck(
@@ -265,26 +319,32 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 8. CORS
-    // --------------------------------------------------
-
+    /*
+     * 8. CORS
+     */
     const cors =
-      headers.get("access-control-allow-origin");
+      getHeader(
+        headers,
+        "access-control-allow-origin"
+      );
 
     const allowCredentials =
-      headers.get("access-control-allow-credentials");
+      getHeader(
+        headers,
+        "access-control-allow-credentials"
+      );
 
     if (cors === "*") {
       if (
         allowCredentials &&
-        allowCredentials.toLowerCase() === "true"
+        allowCredentials
+          .toLowerCase() === "true"
       ) {
         addCheck(
           "CORS Policy",
           "WARNING",
           "Wildcard CORS was detected together with credential support.",
-          "Restrict allowed origins and review credential handling."
+          "Review CORS configuration carefully and restrict allowed origins."
         );
       } else {
         addCheck(
@@ -308,11 +368,14 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 9. Server Information Exposure
-    // --------------------------------------------------
-
-    const server = headers.get("server");
+    /*
+     * 9. Server Information Exposure
+     */
+    const server =
+      getHeader(
+        headers,
+        "server"
+      );
 
     if (server) {
       const versionPattern =
@@ -341,12 +404,21 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 10. Cookie Security
-    // --------------------------------------------------
-
+    /*
+     * 10. Cookie Security
+     *
+     * A single response may contain multiple Set-Cookie
+     * values. Headers.get() can combine or expose them
+     * differently depending on the runtime.
+     *
+     * We therefore avoid declaring a cookie vulnerability
+     * merely because one attribute is not visible.
+     */
     const setCookie =
-      headers.get("set-cookie");
+      getHeader(
+        headers,
+        "set-cookie"
+      );
 
     if (!setCookie) {
       addCheck(
@@ -355,47 +427,62 @@ export default async function handler(req, res) {
         "No Set-Cookie header was detected."
       );
     } else {
-      const cookie = setCookie.toLowerCase();
+      const cookieText =
+        setCookie.toLowerCase();
 
       const hasSecure =
-        /;\s*secure\b/i.test(cookie);
+        /(?:^|[;,]\s*)secure(?:[;,]|$)/i.test(
+          cookieText
+        );
 
       const hasHttpOnly =
-        /;\s*httponly\b/i.test(cookie);
+        /(?:^|[;,]\s*)httponly(?:[;,]|$)/i.test(
+          cookieText
+        );
 
       const hasSameSite =
-        /;\s*samesite=/i.test(cookie);
+        /(?:^|[;,]\s*)samesite\s*=/i.test(
+          cookieText
+        );
 
       const missing = [];
 
-      if (!hasSecure) missing.push("Secure");
-      if (!hasHttpOnly) missing.push("HttpOnly");
-      if (!hasSameSite) missing.push("SameSite");
+      if (!hasSecure) {
+        missing.push("Secure");
+      }
+
+      if (!hasHttpOnly) {
+        missing.push("HttpOnly");
+      }
+
+      if (!hasSameSite) {
+        missing.push("SameSite");
+      }
 
       if (missing.length === 0) {
         addCheck(
           "Cookie Security",
           "PASS",
-          "Recommended Secure, HttpOnly and SameSite attributes were detected."
+          "Secure, HttpOnly and SameSite attributes were detected in the observable cookie response."
         );
       } else {
         addCheck(
           "Cookie Security",
-          "WARNING",
-          "Some recommended cookie security attributes were not detected: " +
-            missing.join(", ") +
-            ".",
-          "Review cookies and use appropriate Secure, HttpOnly and SameSite attributes."
+          "INFO",
+          `Cookies were detected, but the scanner could not confirm all recommended attributes: ${missing.join(", ")}.`,
+          "Review authentication and session cookies and apply Secure, HttpOnly and an appropriate SameSite policy where applicable."
         );
       }
     }
 
-    // --------------------------------------------------
-    // 11. Cache-Control
-    // --------------------------------------------------
-
+    /*
+     * 11. Cache-Control
+     */
     const cacheControl =
-      headers.get("cache-control");
+      getHeader(
+        headers,
+        "cache-control"
+      );
 
     if (cacheControl) {
       addCheck(
@@ -412,12 +499,14 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 12. COOP
-    // --------------------------------------------------
-
+    /*
+     * 12. COOP
+     */
     const coop =
-      headers.get("cross-origin-opener-policy");
+      getHeader(
+        headers,
+        "cross-origin-opener-policy"
+      );
 
     if (coop) {
       addCheck(
@@ -434,12 +523,14 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 13. CORP
-    // --------------------------------------------------
-
+    /*
+     * 13. CORP
+     */
     const corp =
-      headers.get("cross-origin-resource-policy");
+      getHeader(
+        headers,
+        "cross-origin-resource-policy"
+      );
 
     if (corp) {
       addCheck(
@@ -456,12 +547,14 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 14. COEP
-    // --------------------------------------------------
-
+    /*
+     * 14. COEP
+     */
     const coep =
-      headers.get("cross-origin-embedder-policy");
+      getHeader(
+        headers,
+        "cross-origin-embedder-policy"
+      );
 
     if (coep) {
       addCheck(
@@ -478,11 +571,16 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 15. HTTP Response Status
-    // --------------------------------------------------
-
-    if (response.status >= 200 && response.status < 400) {
+    /*
+     * 15. HTTP Response Status
+     *
+     * This is an availability observation,
+     * not automatically a security vulnerability.
+     */
+    if (
+      response.status >= 200 &&
+      response.status < 400
+    ) {
       addCheck(
         "HTTP Response Status",
         "PASS",
@@ -491,21 +589,22 @@ export default async function handler(req, res) {
     } else {
       addCheck(
         "HTTP Response Status",
-        "WARNING",
+        "INFO",
         `The website returned HTTP status ${response.status}.`,
-        "Review the HTTP response and redirect configuration."
+        "Review availability, server health and redirect configuration if this status is unexpected."
       );
     }
 
-    // --------------------------------------------------
-    // 16. Secure Final Destination
-    // --------------------------------------------------
-
+    /*
+     * 16. Secure Final Destination
+     */
     try {
       const finalUrl =
         new URL(response.url);
 
-      if (finalUrl.protocol === "https:") {
+      if (
+        finalUrl.protocol === "https:"
+      ) {
         addCheck(
           "Secure Final Destination",
           "PASS",
@@ -527,16 +626,20 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 17. Content-Type
-    // --------------------------------------------------
-
+    /*
+     * 17. Content-Type
+     */
     const contentType =
-      headers.get("content-type");
+      getHeader(
+        headers,
+        "content-type"
+      );
 
     if (
       contentType &&
-      contentType.toLowerCase().includes("text/html")
+      contentType
+        .toLowerCase()
+        .includes("text/html")
     ) {
       addCheck(
         "Content-Type",
@@ -547,9 +650,7 @@ export default async function handler(req, res) {
       addCheck(
         "Content-Type",
         "INFO",
-        "The response Content-Type is " +
-          contentType +
-          "."
+        `The response Content-Type is ${contentType}.`
       );
     } else {
       addCheck(
@@ -560,10 +661,9 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 18. Hostname Configuration
-    // --------------------------------------------------
-
+    /*
+     * 18. Hostname
+     */
     if (hostname.includes(".")) {
       addCheck(
         "Hostname Configuration",
@@ -578,10 +678,9 @@ export default async function handler(req, res) {
       );
     }
 
-    // --------------------------------------------------
-    // 19. Security.txt
-    // --------------------------------------------------
-
+    /*
+     * 19. security.txt
+     */
     let securityTxtStatus = "INFO";
 
     let securityTxtMessage =
@@ -611,9 +710,9 @@ export default async function handler(req, res) {
         );
 
       const securityTxtContentType =
-        securityTxtResponse.headers.get(
-          "content-type"
-        ) || "";
+        securityTxtResponse
+          .headers
+          .get("content-type") || "";
 
       if (
         securityTxtResponse.ok &&
@@ -650,10 +749,9 @@ export default async function handler(req, res) {
       securityTxtFix
     );
 
-    // --------------------------------------------------
-    // 20. Robots.txt
-    // --------------------------------------------------
-
+    /*
+     * 20. robots.txt
+     */
     let robotsStatus = "INFO";
 
     let robotsMessage =
@@ -698,36 +796,50 @@ export default async function handler(req, res) {
       robotsFix
     );
 
-    // --------------------------------------------------
-    // SCORE ENGINE
-    // --------------------------------------------------
-
+    /*
+     * SCORE ENGINE
+     *
+     * PASS = 100% contribution
+     * INFO = 85% contribution
+     * WARNING = 40% contribution
+     *
+     * Informational observations should not
+     * punish a website like real security failures.
+     */
     const severityWeights = {
       PASS: 1,
-      INFO: 0.8,
-      WARNING: 0.35
+      INFO: 0.85,
+      WARNING: 0.4
     };
 
     let weightedTotal = 0;
 
     for (const check of checks) {
       weightedTotal +=
-        severityWeights[check.status] ?? 0.5;
+        severityWeights[check.status] ??
+        0.85;
     }
 
     let securityScore =
       Math.round(
-        (weightedTotal / checks.length) * 100
+        (weightedTotal / checks.length) *
+          100
       );
 
     const warningCount =
       checks.filter(
-        check => check.status === "WARNING"
+        check =>
+          check.status === "WARNING"
       ).length;
 
+    /*
+     * Small penalty for actual warnings.
+     * Informational findings do not receive
+     * an additional penalty.
+     */
     securityScore =
       securityScore -
-      warningCount * 3;
+      warningCount * 2;
 
     securityScore =
       Math.max(
@@ -738,10 +850,9 @@ export default async function handler(req, res) {
         )
       );
 
-    // --------------------------------------------------
-    // RISK LEVEL
-    // --------------------------------------------------
-
+    /*
+     * Risk level
+     */
     let riskLevel = "Low";
 
     if (securityScore < 80) {
@@ -756,29 +867,30 @@ export default async function handler(req, res) {
       riskLevel = "Critical";
     }
 
-    // --------------------------------------------------
-    // SUMMARY
-    // --------------------------------------------------
-
+    /*
+     * Summary
+     */
     const passed =
       checks.filter(
-        check => check.status === "PASS"
+        check =>
+          check.status === "PASS"
       ).length;
 
     const warnings =
       checks.filter(
-        check => check.status === "WARNING"
+        check =>
+          check.status === "WARNING"
       ).length;
 
     const informational =
       checks.filter(
-        check => check.status === "INFO"
+        check =>
+          check.status === "INFO"
       ).length;
 
-    // --------------------------------------------------
-    // PRIORITY FIXES
-    // --------------------------------------------------
-
+    /*
+     * Priority fixes
+     */
     const priorityFixes =
       checks
         .filter(
@@ -786,34 +898,18 @@ export default async function handler(req, res) {
             check.status === "WARNING" &&
             check.fix
         )
-        .sort((a, b) => {
-          const priority = {
-            "HSTS": 1,
-            "Content Security Policy": 2,
-            "Clickjacking Protection": 3,
-            "X-Content-Type-Options": 4,
-            "CORS Policy": 5,
-            "Cookie Security": 6,
-            "Server Information Exposure": 7,
-            "HTTP Response Status": 8
-          };
-
-          return (
-            (priority[a.name] || 99) -
-            (priority[b.name] || 99)
-          );
-        })
         .slice(0, 5)
-        .map((check, index) => ({
-          priority: index + 1,
-          title: check.name,
-          fix: check.fix
-        }));
+        .map(
+          (check, index) => ({
+            priority: index + 1,
+            title: check.name,
+            fix: check.fix
+          })
+        );
 
-    // --------------------------------------------------
-    // SCAN ID
-    // --------------------------------------------------
-
+    /*
+     * Scan ID
+     */
     const scanId =
       "SA-" +
       Date.now()
@@ -825,10 +921,9 @@ export default async function handler(req, res) {
         .substring(2, 7)
         .toUpperCase();
 
-    // --------------------------------------------------
-    // FINAL RESPONSE
-    // --------------------------------------------------
-
+    /*
+     * Final response
+     */
     return res.status(200).json({
       success: true,
 
