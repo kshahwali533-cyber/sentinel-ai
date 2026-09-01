@@ -7,10 +7,15 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body || {};
+
+    // Accept BOTH "url" and "website"
+    // This fixes the frontend/backend mismatch.
     const website =
-      typeof body.website === "string"
-        ? body.website.trim()
-        : "";
+      typeof body.url === "string"
+        ? body.url.trim()
+        : typeof body.website === "string"
+          ? body.website.trim()
+          : "";
 
     if (!website) {
       return res.status(400).json({
@@ -40,8 +45,8 @@ export default async function handler(req, res) {
     }
 
     /*
-     * Prevent requests to localhost/private network targets.
      * Sentinel AI is intended for public websites.
+     * Block obvious local/private targets.
      */
     const hostname = target.hostname.toLowerCase();
 
@@ -76,7 +81,7 @@ export default async function handler(req, res) {
         signal: controller.signal,
         headers: {
           "User-Agent":
-            "Sentinel-AI-Security-Scanner/2.0",
+            "Sentinel-AI-Security-Scanner/2.1",
           "Accept":
             "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8"
         }
@@ -114,12 +119,7 @@ export default async function handler(req, res) {
 
     const checks = [];
 
-    function addCheck(
-      name,
-      status,
-      message,
-      fix = ""
-    ) {
+    function addCheck(name, status, message, fix = "") {
       checks.push({
         name,
         status,
@@ -321,15 +321,14 @@ export default async function handler(req, res) {
     ========================= */
 
     const cors =
-      headers.get(
-        "access-control-allow-origin"
-      );
+      headers.get("access-control-allow-origin");
 
     if (cors) {
       addCheck(
         "CORS Policy",
-        "PASS",
-        "CORS policy was exposed by the response."
+        "INFO",
+        `CORS response policy detected: ${cors}.`,
+        "Review Access-Control-Allow-Origin and related CORS settings to ensure only intended origins are allowed."
       );
     } else {
       addCheck(
@@ -365,48 +364,66 @@ export default async function handler(req, res) {
        COOKIE SECURITY
     ========================= */
 
-    let setCookie = "";
+    let setCookies = [];
 
     try {
       if (
         typeof headers.getSetCookie === "function"
       ) {
-        setCookie =
-          headers.getSetCookie().join("\n");
+        setCookies =
+          headers.getSetCookie();
       } else {
-        setCookie =
-          headers.get("set-cookie") || "";
+        const cookie =
+          headers.get("set-cookie");
+
+        if (cookie) {
+          setCookies = [cookie];
+        }
       }
     } catch {
-      setCookie =
-        headers.get("set-cookie") || "";
+      const cookie =
+        headers.get("set-cookie");
+
+      if (cookie) {
+        setCookies = [cookie];
+      }
     }
 
-    if (!setCookie) {
+    if (!setCookies.length) {
       addCheck(
         "Cookie Security",
         "INFO",
         "No Set-Cookie header was detected."
       );
     } else {
-      const cookieText =
-        setCookie.toLowerCase();
+      let cookieWarnings = [];
 
-      const missing = [];
+      setCookies.forEach((cookie) => {
+        const cookieText =
+          String(cookie).toLowerCase();
 
-      if (!cookieText.includes("secure")) {
-        missing.push("Secure");
-      }
+        const missing = [];
 
-      if (!cookieText.includes("httponly")) {
-        missing.push("HttpOnly");
-      }
+        if (!/\bsecure\b/.test(cookieText)) {
+          missing.push("Secure");
+        }
 
-      if (!cookieText.includes("samesite")) {
-        missing.push("SameSite");
-      }
+        if (!/\bhttponly\b/.test(cookieText)) {
+          missing.push("HttpOnly");
+        }
 
-      if (missing.length === 0) {
+        if (!/samesite\s*=/.test(cookieText)) {
+          missing.push("SameSite");
+        }
+
+        if (missing.length) {
+          cookieWarnings.push(
+            missing.join(", ")
+          );
+        }
+      });
+
+      if (!cookieWarnings.length) {
         addCheck(
           "Cookie Security",
           "PASS",
@@ -416,9 +433,7 @@ export default async function handler(req, res) {
         addCheck(
           "Cookie Security",
           "WARNING",
-          "Some recommended cookie security attributes were not detected: " +
-            missing.join(", ") +
-            ".",
+          "Some cookies may be missing recommended security attributes.",
           "Review cookies and use appropriate Secure, HttpOnly and SameSite attributes."
         );
       }
@@ -615,7 +630,7 @@ export default async function handler(req, res) {
           signal: securityController.signal,
           headers: {
             "User-Agent":
-              "Sentinel-AI-Security-Scanner/2.0"
+              "Sentinel-AI-Security-Scanner/2.1"
           }
         });
 
@@ -670,7 +685,7 @@ export default async function handler(req, res) {
           signal: robotsController.signal,
           headers: {
             "User-Agent":
-              "Sentinel-AI-Security-Scanner/2.0"
+              "Sentinel-AI-Security-Scanner/2.1"
           }
         });
 
@@ -760,12 +775,35 @@ export default async function handler(req, res) {
       riskLevel = "Medium";
     }
 
+    /*
+     * Keep BOTH score names.
+     * This makes the backend compatible with the current frontend.
+     */
+    const scanId =
+      "SA-" +
+      Date.now().toString(36) +
+      "-" +
+      Math.random()
+        .toString(36)
+        .substring(2, 7);
+
     return res.status(200).json({
       website: finalURL,
-      securityScore,
+
+      // Current frontend expects "score"
+      score: securityScore,
+
+      // Keep the clearer API name too
+      securityScore: securityScore,
+
       riskLevel,
+
+      scanId: scanId.toUpperCase(),
+
       checks,
+
       summary: {
+        total: totalChecks,
         totalChecks,
         passed,
         warnings,
