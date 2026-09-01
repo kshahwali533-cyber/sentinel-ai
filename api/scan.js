@@ -7,15 +7,12 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body || {};
-
-    // Accept BOTH "url" and "website"
-    // This fixes the frontend/backend mismatch.
     const website =
       typeof body.url === "string"
         ? body.url.trim()
         : typeof body.website === "string"
-          ? body.website.trim()
-          : "";
+        ? body.website.trim()
+        : "";
 
     if (!website) {
       return res.status(400).json({
@@ -23,15 +20,16 @@ export default async function handler(req, res) {
       });
     }
 
+    const normalizedUrl =
+      website.startsWith("http://") ||
+      website.startsWith("https://")
+        ? website
+        : `https://${website}`;
+
     let target;
 
     try {
-      target = new URL(
-        website.startsWith("http://") ||
-        website.startsWith("https://")
-          ? website
-          : `https://${website}`
-      );
+      target = new URL(normalizedUrl);
     } catch {
       return res.status(400).json({
         error: "Invalid website URL."
@@ -44,10 +42,6 @@ export default async function handler(req, res) {
       });
     }
 
-    /*
-     * Sentinel AI is intended for public websites.
-     * Block obvious local/private targets.
-     */
     const hostname = target.hostname.toLowerCase();
 
     const blockedHosts = [
@@ -81,7 +75,7 @@ export default async function handler(req, res) {
         signal: controller.signal,
         headers: {
           "User-Agent":
-            "Sentinel-AI-Security-Scanner/2.1",
+            "Sentinel-AI-Security-Scanner/3.0",
           "Accept":
             "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8"
         }
@@ -89,7 +83,7 @@ export default async function handler(req, res) {
     } catch (error) {
       clearTimeout(timeout);
 
-      if (error && error.name === "AbortError") {
+      if (error?.name === "AbortError") {
         return res.status(504).json({
           error:
             "The website took too long to respond. Please try again."
@@ -98,16 +92,14 @@ export default async function handler(req, res) {
 
       return res.status(502).json({
         error:
-          "Sentinel AI could not connect to the target website. The website may be unavailable or may be blocking automated requests."
+          "Sentinel AI could not connect to the target website."
       });
     }
 
     clearTimeout(timeout);
 
     const headers = response.headers;
-
-    const finalURL =
-      response.url || target.href;
+    const finalURL = response.url || target.href;
 
     let finalTarget;
 
@@ -128,10 +120,7 @@ export default async function handler(req, res) {
       });
     }
 
-    /* =========================
-       HTTPS
-    ========================= */
-
+    // HTTPS
     if (finalTarget.protocol === "https:") {
       addCheck(
         "HTTPS",
@@ -147,10 +136,7 @@ export default async function handler(req, res) {
       );
     }
 
-    /* =========================
-       HSTS
-    ========================= */
-
+    // HSTS
     const hsts =
       headers.get("strict-transport-security");
 
@@ -171,8 +157,8 @@ export default async function handler(req, res) {
         addCheck(
           "HSTS",
           "INFO",
-          "HSTS was detected, but its max-age value is shorter than the recommended baseline.",
-          "Review the HSTS max-age value and consider at least 31536000 seconds."
+          "HSTS was detected but the max-age is below the recommended baseline.",
+          "Consider using a max-age of at least 31536000 seconds."
         );
       }
     } else {
@@ -180,14 +166,11 @@ export default async function handler(req, res) {
         "HSTS",
         "WARNING",
         "HSTS header was not detected.",
-        "Enable Strict-Transport-Security with an appropriate max-age value."
+        "Enable Strict-Transport-Security with an appropriate max-age."
       );
     }
 
-    /* =========================
-       CONTENT SECURITY POLICY
-    ========================= */
-
+    // CSP
     const csp =
       headers.get("content-security-policy");
 
@@ -198,37 +181,30 @@ export default async function handler(req, res) {
         "Content-Security-Policy was not detected.",
         "Add a carefully configured Content-Security-Policy header."
       );
+    } else if (
+      csp.includes("'unsafe-inline'") ||
+      csp.includes("'unsafe-eval'")
+    ) {
+      addCheck(
+        "Content Security Policy",
+        "INFO",
+        "A Content-Security-Policy was detected with potentially weaker directives.",
+        "Review unsafe-inline and unsafe-eval usage."
+      );
     } else {
-      const weakCSP =
-        csp.includes("'unsafe-inline'") ||
-        csp.includes("'unsafe-eval'");
-
-      if (weakCSP) {
-        addCheck(
-          "Content Security Policy",
-          "INFO",
-          "A Content-Security-Policy header was detected, but it contains potentially weaker directives.",
-          "Review unsafe-inline and unsafe-eval usage and restrict trusted sources where possible."
-        );
-      } else {
-        addCheck(
-          "Content Security Policy",
-          "PASS",
-          "A Content-Security-Policy header was detected."
-        );
-      }
+      addCheck(
+        "Content Security Policy",
+        "PASS",
+        "A Content-Security-Policy header was detected."
+      );
     }
 
-    /* =========================
-       CLICKJACKING
-    ========================= */
-
+    // Clickjacking
     const xFrame =
       headers.get("x-frame-options");
 
     const frameAncestors =
-      csp &&
-      /frame-ancestors/i.test(csp);
+      csp && /frame-ancestors/i.test(csp);
 
     if (xFrame || frameAncestors) {
       addCheck(
@@ -241,22 +217,17 @@ export default async function handler(req, res) {
         "Clickjacking Protection",
         "WARNING",
         "No clear clickjacking protection was detected.",
-        "Add X-Frame-Options or a CSP frame-ancestors directive."
+        "Add X-Frame-Options or CSP frame-ancestors."
       );
     }
 
-    /* =========================
-       X CONTENT TYPE OPTIONS
-    ========================= */
-
+    // X-Content-Type-Options
     const xContentType =
       headers.get("x-content-type-options");
 
     if (
       xContentType &&
-      xContentType
-        .toLowerCase()
-        .includes("nosniff")
+      xContentType.toLowerCase().includes("nosniff")
     ) {
       addCheck(
         "X-Content-Type-Options",
@@ -272,10 +243,7 @@ export default async function handler(req, res) {
       );
     }
 
-    /* =========================
-       REFERRER POLICY
-    ========================= */
-
+    // Referrer Policy
     const referrerPolicy =
       headers.get("referrer-policy");
 
@@ -289,15 +257,12 @@ export default async function handler(req, res) {
       addCheck(
         "Referrer-Policy",
         "INFO",
-        "Referrer-Policy header was not detected.",
+        "Referrer-Policy was not detected.",
         "Consider using a restrictive Referrer-Policy."
       );
     }
 
-    /* =========================
-       PERMISSIONS POLICY
-    ========================= */
-
+    // Permissions Policy
     const permissionsPolicy =
       headers.get("permissions-policy");
 
@@ -311,15 +276,12 @@ export default async function handler(req, res) {
       addCheck(
         "Permissions-Policy",
         "INFO",
-        "Permissions-Policy header was not detected.",
-        "Consider adding Permissions-Policy to control browser features."
+        "Permissions-Policy was not detected.",
+        "Consider adding Permissions-Policy."
       );
     }
 
-    /* =========================
-       CORS
-    ========================= */
-
+    // CORS
     const cors =
       headers.get("access-control-allow-origin");
 
@@ -327,8 +289,7 @@ export default async function handler(req, res) {
       addCheck(
         "CORS Policy",
         "INFO",
-        `CORS response policy detected: ${cors}.`,
-        "Review Access-Control-Allow-Origin and related CORS settings to ensure only intended origins are allowed."
+        `CORS policy detected: ${cors}.`
       );
     } else {
       addCheck(
@@ -338,10 +299,7 @@ export default async function handler(req, res) {
       );
     }
 
-    /* =========================
-       SERVER INFORMATION
-    ========================= */
-
+    // Server
     const server =
       headers.get("server");
 
@@ -360,18 +318,12 @@ export default async function handler(req, res) {
       );
     }
 
-    /* =========================
-       COOKIE SECURITY
-    ========================= */
-
+    // Cookies
     let setCookies = [];
 
     try {
-      if (
-        typeof headers.getSetCookie === "function"
-      ) {
-        setCookies =
-          headers.getSetCookie();
+      if (typeof headers.getSetCookie === "function") {
+        setCookies = headers.getSetCookie();
       } else {
         const cookie =
           headers.get("set-cookie");
@@ -381,12 +333,7 @@ export default async function handler(req, res) {
         }
       }
     } catch {
-      const cookie =
-        headers.get("set-cookie");
-
-      if (cookie) {
-        setCookies = [cookie];
-      }
+      setCookies = [];
     }
 
     if (!setCookies.length) {
@@ -396,53 +343,38 @@ export default async function handler(req, res) {
         "No Set-Cookie header was detected."
       );
     } else {
-      let cookieWarnings = [];
+      let insecureCookie = false;
 
-      setCookies.forEach((cookie) => {
-        const cookieText =
-          String(cookie).toLowerCase();
+      for (const cookie of setCookies) {
+        const text = cookie.toLowerCase();
 
-        const missing = [];
-
-        if (!/\bsecure\b/.test(cookieText)) {
-          missing.push("Secure");
+        if (
+          !text.includes("secure") ||
+          !text.includes("httponly") ||
+          !text.includes("samesite")
+        ) {
+          insecureCookie = true;
+          break;
         }
+      }
 
-        if (!/\bhttponly\b/.test(cookieText)) {
-          missing.push("HttpOnly");
-        }
-
-        if (!/samesite\s*=/.test(cookieText)) {
-          missing.push("SameSite");
-        }
-
-        if (missing.length) {
-          cookieWarnings.push(
-            missing.join(", ")
-          );
-        }
-      });
-
-      if (!cookieWarnings.length) {
+      if (insecureCookie) {
+        addCheck(
+          "Cookie Security",
+          "WARNING",
+          "One or more cookies may be missing recommended security attributes.",
+          "Review cookies and use appropriate Secure, HttpOnly and SameSite attributes."
+        );
+      } else {
         addCheck(
           "Cookie Security",
           "PASS",
           "Detected cookies include the recommended security attributes."
         );
-      } else {
-        addCheck(
-          "Cookie Security",
-          "WARNING",
-          "Some cookies may be missing recommended security attributes.",
-          "Review cookies and use appropriate Secure, HttpOnly and SameSite attributes."
-        );
       }
     }
 
-    /* =========================
-       CACHE CONTROL
-    ========================= */
-
+    // Cache-Control
     const cacheControl =
       headers.get("cache-control");
 
@@ -456,19 +388,14 @@ export default async function handler(req, res) {
       addCheck(
         "Cache-Control",
         "INFO",
-        "Cache-Control header was not detected.",
-        "Consider an appropriate caching policy for your application."
+        "Cache-Control was not detected.",
+        "Consider an appropriate caching policy."
       );
     }
 
-    /* =========================
-       CROSS ORIGIN POLICIES
-    ========================= */
-
+    // COOP
     const coop =
-      headers.get(
-        "cross-origin-opener-policy"
-      );
+      headers.get("cross-origin-opener-policy");
 
     if (coop) {
       addCheck(
@@ -481,14 +408,13 @@ export default async function handler(req, res) {
         "Cross-Origin-Opener-Policy",
         "INFO",
         "Cross-Origin-Opener-Policy was not detected.",
-        "Consider COOP where appropriate for stronger browser isolation."
+        "Consider COOP where appropriate."
       );
     }
 
+    // CORP
     const corp =
-      headers.get(
-        "cross-origin-resource-policy"
-      );
+      headers.get("cross-origin-resource-policy");
 
     if (corp) {
       addCheck(
@@ -501,14 +427,13 @@ export default async function handler(req, res) {
         "Cross-Origin-Resource-Policy",
         "INFO",
         "Cross-Origin-Resource-Policy was not detected.",
-        "Consider CORP where appropriate for cross-origin resource protection."
+        "Consider CORP where appropriate."
       );
     }
 
+    // COEP
     const coep =
-      headers.get(
-        "cross-origin-embedder-policy"
-      );
+      headers.get("cross-origin-embedder-policy");
 
     if (coep) {
       addCheck(
@@ -521,14 +446,11 @@ export default async function handler(req, res) {
         "Cross-Origin-Embedder-Policy",
         "INFO",
         "Cross-Origin-Embedder-Policy was not detected.",
-        "Consider COEP when your application requires stronger cross-origin isolation."
+        "Consider COEP where appropriate."
       );
     }
 
-    /* =========================
-       HTTP STATUS
-    ========================= */
-
+    // HTTP status
     if (
       response.status >= 200 &&
       response.status < 400
@@ -543,17 +465,12 @@ export default async function handler(req, res) {
         "HTTP Response Status",
         "WARNING",
         `The website returned HTTP status ${response.status}.`,
-        "Review the HTTP response status and server configuration."
+        "Review the HTTP response and server configuration."
       );
     }
 
-    /* =========================
-       FINAL DESTINATION
-    ========================= */
-
-    if (
-      finalTarget.protocol === "https:"
-    ) {
+    // Final destination
+    if (finalTarget.protocol === "https:") {
       addCheck(
         "Secure Final Destination",
         "PASS",
@@ -568,17 +485,12 @@ export default async function handler(req, res) {
       );
     }
 
-    /* =========================
-       CONTENT TYPE
-    ========================= */
-
+    // Content type
     const contentType =
       headers.get("content-type") || "";
 
     if (
-      contentType
-        .toLowerCase()
-        .includes("text/html")
+      contentType.toLowerCase().includes("text/html")
     ) {
       addCheck(
         "Content-Type",
@@ -589,48 +501,38 @@ export default async function handler(req, res) {
       addCheck(
         "Content-Type",
         "INFO",
-        "The response Content-Type is " +
-          (contentType || "not specified") +
-          "."
+        `The response Content-Type is ${
+          contentType || "not specified"
+        }.`
       );
     }
 
-    /* =========================
-       HOSTNAME
-    ========================= */
+    // Hostname
+    addCheck(
+      "Hostname Configuration",
+      "PASS",
+      `Public hostname detected: ${finalTarget.hostname}.`
+    );
 
-    if (finalTarget.hostname) {
-      addCheck(
-        "Hostname Configuration",
-        "PASS",
-        "A public hostname was provided for the security check."
-      );
-    }
-
-    /* =========================
-       SECURITY.TXT
-    ========================= */
-
+    // Security.txt
     try {
-      const securityTxtURL =
+      const securityURL =
         `${finalTarget.origin}/.well-known/security.txt`;
 
       const securityController =
         new AbortController();
 
       const securityTimeout =
-        setTimeout(() => {
-          securityController.abort();
-        }, 7000);
+        setTimeout(() => securityController.abort(), 5000);
 
       const securityResponse =
-        await fetch(securityTxtURL, {
+        await fetch(securityURL, {
           method: "GET",
           redirect: "follow",
           signal: securityController.signal,
           headers: {
             "User-Agent":
-              "Sentinel-AI-Security-Scanner/2.1"
+              "Sentinel-AI-Security-Scanner/3.0"
           }
         });
 
@@ -643,14 +545,14 @@ export default async function handler(req, res) {
         addCheck(
           "Security.txt",
           "PASS",
-          "A /.well-known/security.txt resource was detected."
+          "A security.txt resource was detected."
         );
       } else {
         addCheck(
           "Security.txt",
           "INFO",
           "Security.txt could not be confirmed.",
-          "Consider publishing /.well-known/security.txt with security contact information."
+          "Consider publishing /.well-known/security.txt."
         );
       }
     } catch {
@@ -658,14 +560,11 @@ export default async function handler(req, res) {
         "Security.txt",
         "INFO",
         "Security.txt could not be confirmed.",
-        "Consider publishing /.well-known/security.txt with security contact information."
+        "Consider publishing /.well-known/security.txt."
       );
     }
 
-    /* =========================
-       ROBOTS.TXT
-    ========================= */
-
+    // Robots.txt
     try {
       const robotsURL =
         `${finalTarget.origin}/robots.txt`;
@@ -674,9 +573,7 @@ export default async function handler(req, res) {
         new AbortController();
 
       const robotsTimeout =
-        setTimeout(() => {
-          robotsController.abort();
-        }, 7000);
+        setTimeout(() => robotsController.abort(), 5000);
 
       const robotsResponse =
         await fetch(robotsURL, {
@@ -685,7 +582,7 @@ export default async function handler(req, res) {
           signal: robotsController.signal,
           headers: {
             "User-Agent":
-              "Sentinel-AI-Security-Scanner/2.1"
+              "Sentinel-AI-Security-Scanner/3.0"
           }
         });
 
@@ -715,70 +612,51 @@ export default async function handler(req, res) {
       );
     }
 
-    /* =========================
-       SCORE
-    ========================= */
-
-    const totalChecks =
-      checks.length;
+    // SCORE
+    const totalChecks = checks.length;
 
     const passed =
       checks.filter(
-        check => check.status === "PASS"
+        c => c.status === "PASS"
       ).length;
 
     const warnings =
       checks.filter(
-        check => check.status === "WARNING"
+        c => c.status === "WARNING"
       ).length;
 
     const informational =
       checks.filter(
-        check => check.status === "INFO"
+        c => c.status === "INFO"
       ).length;
 
-    let securityScore = 0;
+    let score = 0;
 
     if (totalChecks > 0) {
-      securityScore =
-        Math.round(
+      score = Math.round(
+        (
           (
-            (
-              passed +
-              informational * 0.75
-            ) /
-            totalChecks
-          ) * 100
-        );
+            passed +
+            informational * 0.75
+          ) /
+          totalChecks
+        ) * 100
+      );
     }
 
-    securityScore =
-      Math.max(
-        0,
-        Math.min(
-          100,
-          securityScore
-        )
-      );
+    score = Math.max(
+      0,
+      Math.min(100, score)
+    );
 
     let riskLevel = "Low";
 
-    if (
-      securityScore < 50 ||
-      warnings >= 5
-    ) {
+    if (score < 50 || warnings >= 5) {
       riskLevel = "High";
-    } else if (
-      securityScore < 75 ||
-      warnings >= 2
-    ) {
+    } else if (score < 75 || warnings >= 2) {
       riskLevel = "Medium";
     }
 
-    /*
-     * Keep BOTH score names.
-     * This makes the backend compatible with the current frontend.
-     */
     const scanId =
       "SA-" +
       Date.now().toString(36) +
@@ -789,25 +667,24 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       website: finalURL,
+      finalUrl: finalURL,
 
-      // Current frontend expects "score"
-      score: securityScore,
+      // Frontend compatibility
+      score: score,
+      securityScore: score,
 
-      // Keep the clearer API name too
-      securityScore: securityScore,
+      riskLevel: riskLevel,
 
-      riskLevel,
+      scanId: scanId,
 
-      scanId: scanId.toUpperCase(),
-
-      checks,
+      checks: checks,
 
       summary: {
         total: totalChecks,
-        totalChecks,
-        passed,
-        warnings,
-        informational
+        totalChecks: totalChecks,
+        passed: passed,
+        warnings: warnings,
+        informational: informational
       }
     });
 
@@ -819,7 +696,7 @@ export default async function handler(req, res) {
 
     return res.status(500).json({
       error:
-        "Unable to scan the website. The target may be unavailable or may have blocked the request."
+        "Unable to scan the website. Please try again."
     });
   }
 }
