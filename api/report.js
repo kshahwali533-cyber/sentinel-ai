@@ -1,19 +1,24 @@
 async function generateProfessionalReport(button) {
+
   if (!latestScan) {
     alert("Please run a security scan first.");
     return;
   }
 
-  const originalText = button.textContent;
-  button.disabled = true;
-  button.textContent = "Generating Report...";
+  if (button) {
+    button.disabled = true;
+    button.textContent = "📄 Generating Report...";
+  }
 
   try {
+
     const response = await fetch("/api/report", {
       method: "POST",
+
       headers: {
         "Content-Type": "application/json"
       },
+
       body: JSON.stringify({
         website:
           latestScan.website ||
@@ -21,8 +26,8 @@ async function generateProfessionalReport(button) {
           "",
 
         securityScore: Number(
-          latestScan.securityScore ??
           latestScan.score ??
+          latestScan.securityScore ??
           0
         ),
 
@@ -50,7 +55,7 @@ async function generateProfessionalReport(button) {
       );
     }
 
-    if (!data.report) {
+    if (!data?.report) {
       throw new Error(
         "Report data was not returned."
       );
@@ -58,18 +63,7 @@ async function generateProfessionalReport(button) {
 
     const report = data.report;
 
-    const reportWindow = window.open(
-      "",
-      "_blank"
-    );
-
-    if (!reportWindow) {
-      throw new Error(
-        "Please allow pop-ups for Sentinel AI."
-      );
-    }
-
-    const safe = value =>
+    const escape = (value) =>
       escapeHTML(
         value === null ||
         value === undefined
@@ -77,261 +71,412 @@ async function generateProfessionalReport(button) {
           : String(value)
       );
 
-    const findingsHTML =
+    const priorityFindings =
       Array.isArray(report.priorityFindings)
-        ? report.priorityFindings.map(
-            finding => `
-              <div class="report-card">
-                <h3>
-                  Priority ${safe(finding.priority)}:
-                  ${safe(finding.title)}
-                </h3>
+        ? report.priorityFindings
+        : [];
 
-                <p>
-                  <strong>Status:</strong>
-                  ${safe(finding.status)}
-                </p>
+    const recommendations =
+      Array.isArray(report.recommendations)
+        ? report.recommendations
+        : [];
 
-                <p>
-                  ${safe(finding.message)}
-                </p>
+    const nextSteps =
+      Array.isArray(report.nextSteps)
+        ? report.nextSteps
+        : [];
 
-                <p>
-                  <strong>Recommended Fix:</strong>
-                  ${safe(finding.fix)}
-                </p>
-              </div>
-            `
-          ).join("")
-        : "";
+    const findingsHTML =
+      priorityFindings.map((item) => `
+        <div class="report-card">
+
+          <h3>
+            Priority ${escape(item.priority)}:
+            ${escape(item.title)}
+          </h3>
+
+          <p>
+            <strong>Status:</strong>
+            ${escape(item.status)}
+          </p>
+
+          <p>
+            ${escape(item.message)}
+          </p>
+
+          <p>
+            <strong>Recommended Fix:</strong><br>
+            ${escape(item.fix)}
+          </p>
+
+        </div>
+      `).join("");
 
     const recommendationsHTML =
-      Array.isArray(report.recommendations)
-        ? report.recommendations.map(
-            item => `
-              <li>${safe(item)}</li>
-            `
-          ).join("")
-        : "";
+      recommendations.map((item) => `
+        <li>${escape(item)}</li>
+      `).join("");
 
     const nextStepsHTML =
-      Array.isArray(report.nextSteps)
-        ? report.nextSteps.map(
-            item => `
-              <li>${safe(item)}</li>
-            `
-          ).join("")
-        : "";
+      nextSteps.map((item) => `
+        <li>${escape(item)}</li>
+      `).join("");
+
+    const reportWindow =
+      window.open("", "_blank");
+
+    if (!reportWindow) {
+      throw new Error(
+        "Please allow pop-ups for Sentinel AI."
+      );
+    }
 
     reportWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
+<!DOCTYPE html>
+<html lang="en">
 
-        <title>
-          Sentinel AI Security Report
-        </title>
+<head>
 
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 20px;
-            line-height: 1.6;
-            color: #172033;
-            background: #f7f9fc;
-          }
+<meta charset="UTF-8">
 
-          h1 {
-            margin-bottom: 5px;
-          }
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-          h2 {
-            margin-top: 30px;
-          }
+<title>
+Sentinel AI Security Report
+</title>
 
-          .header {
-            background: white;
-            padding: 25px;
-            border-radius: 14px;
-            margin-bottom: 20px;
-          }
+<style>
 
-          .score {
-            font-size: 38px;
-            font-weight: bold;
-          }
+body {
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
 
-          .meta {
-            color: #596579;
-          }
+  max-width: 900px;
 
-          .report-card {
-            background: white;
-            padding: 18px;
-            margin: 12px 0;
-            border-radius: 12px;
-            border: 1px solid #e2e7ef;
-          }
+  margin: 0 auto;
 
-          li {
-            margin-bottom: 8px;
-          }
+  padding: 30px;
 
-          .print-button {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 16px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-          }
+  line-height: 1.6;
 
-          @media print {
-            .print-button {
-              display: none;
-            }
+  color: #172033;
 
-            body {
-              background: white;
-              margin: 0;
-            }
-          }
-        </style>
-      </head>
+  background: #f5f7fb;
+}
 
-      <body>
+.header {
+  background: white;
 
-        <button
-          class="print-button"
-          onclick="window.print()"
-        >
-          📄 Print / Save PDF
-        </button>
+  padding: 30px;
 
-        <div class="header">
+  border-radius: 16px;
 
-          <h1>🛡️ Sentinel AI</h1>
+  margin-bottom: 25px;
 
-          <p>
-            Professional Security-Awareness Report
-          </p>
+  box-shadow:
+    0 4px 20px rgba(0,0,0,0.06);
+}
 
-          <p class="meta">
-            Website:
-            <strong>${safe(report.website)}</strong>
-          </p>
+.logo {
+  font-size: 28px;
 
-          <p class="meta">
-            Scan ID:
-            ${safe(report.scanId || "N/A")}
-          </p>
+  font-weight: bold;
+}
 
-          <p class="meta">
-            Generated:
-            ${safe(report.generatedAt)}
-          </p>
+.score {
+  font-size: 46px;
 
-          <div class="score">
-            ${safe(report.securityScore)}/100
-          </div>
+  font-weight: bold;
 
-          <p>
-            Risk Level:
-            <strong>
-              ${safe(report.riskLevel)}
-            </strong>
-          </p>
+  margin-top: 15px;
+}
 
-        </div>
+.meta {
+  color: #667085;
+}
 
-        <h2>📊 Executive Summary</h2>
+.section {
+  margin-top: 25px;
+}
 
-        <div class="report-card">
+.report-card {
+  background: white;
 
-          <p>
-            <strong>Total Checks:</strong>
-            ${safe(report.executiveSummary?.totalChecks)}
-          </p>
+  padding: 20px;
 
-          <p>
-            <strong>Passed:</strong>
-            ${safe(report.executiveSummary?.passed)}
-          </p>
+  margin: 12px 0;
 
-          <p>
-            <strong>Warnings:</strong>
-            ${safe(report.executiveSummary?.warnings)}
-          </p>
+  border-radius: 12px;
 
-          <p>
-            <strong>Informational:</strong>
-            ${safe(report.executiveSummary?.informational)}
-          </p>
+  border: 1px solid #e3e7ee;
+}
 
-          <p>
-            <strong>Priority Issues:</strong>
-            ${safe(report.executiveSummary?.priorityIssues)}
-          </p>
+.report-card h3 {
+  margin-top: 0;
+}
 
-        </div>
+li {
+  margin-bottom: 10px;
+}
 
-        <h2>🎯 Priority Findings</h2>
+.print-button {
+  position: fixed;
 
-        ${findingsHTML || `
-          <div class="report-card">
-            No WARNING findings were reported.
-          </div>
-        `}
+  top: 20px;
 
-        <h2>🚀 Recommendations</h2>
+  right: 20px;
 
-        <div class="report-card">
-          <ul>
-            ${recommendationsHTML}
-          </ul>
-        </div>
+  padding: 11px 18px;
 
-        <h2>📋 Next Steps</h2>
+  border: none;
 
-        <div class="report-card">
-          <ol>
-            ${nextStepsHTML}
-          </ol>
-        </div>
+  border-radius: 9px;
 
-        <h2>⚠️ Limitations</h2>
+  cursor: pointer;
 
-        <div class="report-card">
-          <p>
-            This report checks publicly observable
-            HTTPS and security configuration signals.
-          </p>
+  font-weight: bold;
 
-          <p>
-            It does not perform exploitation or
-            unauthorized penetration testing.
-          </p>
+  background: #172033;
 
-          <p>
-            A complete professional security assessment
-            may require additional application,
-            infrastructure and manual testing.
-          </p>
-        </div>
+  color: white;
+}
 
-        <h2>🛡️ Disclaimer</h2>
+.footer {
+  margin-top: 35px;
 
-        <div class="report-card">
-          ${safe(report.disclaimer)}
-        </div>
+  padding-top: 20px;
 
-      </body>
-      </html>
+  border-top: 1px solid #ddd;
+
+  color: #667085;
+
+  font-size: 14px;
+}
+
+@media print {
+
+  body {
+    background: white;
+
+    padding: 0;
+  }
+
+  .print-button {
+    display: none;
+  }
+
+  .header,
+  .report-card {
+    box-shadow: none;
+  }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<button
+  class="print-button"
+  onclick="window.print()">
+
+  📄 Print / Save PDF
+
+</button>
+
+<div class="header">
+
+  <div class="logo">
+    🛡️ Sentinel AI
+  </div>
+
+  <h1>
+    Professional Security-Awareness Report
+  </h1>
+
+  <p class="meta">
+    Website:
+    <strong>
+      ${escape(report.website)}
+    </strong>
+  </p>
+
+  <p class="meta">
+    Scan ID:
+    ${escape(report.scanId || "N/A")}
+  </p>
+
+  <p class="meta">
+    Generated:
+    ${escape(report.generatedAt)}
+  </p>
+
+  <div class="score">
+    ${escape(report.securityScore)}/100
+  </div>
+
+  <p>
+    Risk Level:
+    <strong>
+      ${escape(report.riskLevel)}
+    </strong>
+  </p>
+
+</div>
+
+<div class="section">
+
+  <h2>
+    📊 Executive Summary
+  </h2>
+
+  <div class="report-card">
+
+    <p>
+      <strong>Total Checks:</strong>
+      ${escape(
+        report.executiveSummary?.totalChecks
+      )}
+    </p>
+
+    <p>
+      <strong>Passed:</strong>
+      ${escape(
+        report.executiveSummary?.passed
+      )}
+    </p>
+
+    <p>
+      <strong>Warnings:</strong>
+      ${escape(
+        report.executiveSummary?.warnings
+      )}
+    </p>
+
+    <p>
+      <strong>Informational:</strong>
+      ${escape(
+        report.executiveSummary?.informational
+      )}
+    </p>
+
+    <p>
+      <strong>Priority Issues:</strong>
+      ${escape(
+        report.executiveSummary?.priorityIssues
+      )}
+    </p>
+
+  </div>
+
+</div>
+
+<div class="section">
+
+  <h2>
+    🎯 Priority Findings
+  </h2>
+
+  ${
+    findingsHTML ||
+    `
+    <div class="report-card">
+      No WARNING findings were reported.
+    </div>
+    `
+  }
+
+</div>
+
+<div class="section">
+
+  <h2>
+    🚀 Recommendations
+  </h2>
+
+  <div class="report-card">
+
+    <ul>
+      ${recommendationsHTML}
+    </ul>
+
+  </div>
+
+</div>
+
+<div class="section">
+
+  <h2>
+    📋 Next Steps
+  </h2>
+
+  <div class="report-card">
+
+    <ol>
+      ${nextStepsHTML}
+    </ol>
+
+  </div>
+
+</div>
+
+<div class="section">
+
+  <h2>
+    ⚠️ Limitations
+  </h2>
+
+  <div class="report-card">
+
+    <p>
+      This report checks publicly observable
+      HTTPS and security configuration signals.
+    </p>
+
+    <p>
+      It does not perform exploitation or
+      unauthorized penetration testing.
+    </p>
+
+    <p>
+      A complete professional security assessment
+      may require additional application,
+      infrastructure and manual testing.
+    </p>
+
+  </div>
+
+</div>
+
+<div class="section">
+
+  <h2>
+    🛡️ Disclaimer
+  </h2>
+
+  <div class="report-card">
+
+    ${escape(report.disclaimer)}
+
+  </div>
+
+</div>
+
+<div class="footer">
+
+  Sentinel AI · AI Cybersecurity Scanner &
+  Security Education Platform
+
+</div>
+
+</body>
+
+</html>
     `);
 
     reportWindow.document.close();
@@ -339,17 +484,26 @@ async function generateProfessionalReport(button) {
   } catch (error) {
 
     console.error(
-      "Professional Report Error:",
+      "Report Error:",
       error
     );
 
     alert(
-      error?.message ||
-      "Professional Security Report could not be generated."
+      "❌ " +
+      (
+        error?.message ||
+        "Unable to generate the report right now."
+      )
     );
 
   } finally {
-    button.disabled = false;
-    button.textContent = originalText;
+
+    if (button) {
+
+      button.disabled = false;
+
+      button.textContent =
+        "📄 Generate Professional Security Report";
+    }
   }
 }
