@@ -1734,43 +1734,420 @@ async function generateProfessionalReport(button) {
 
 
       link.click();
+async function generateProfessionalReport(button) {
 
+  if (!latestScan) {
+    alert("Please run a security scan first.");
+    return;
+  }
 
-      link.remove();
+  // Open window immediately so mobile browsers do not block it
+  const reportWindow = window.open("", "_blank");
 
+  if (!reportWindow) {
+    alert("Please allow pop-ups for Sentinel AI.");
+    return;
+  }
 
-      URL.revokeObjectURL(
-        url
+  if (button) {
+    button.disabled = true;
+    button.textContent = "📄 Generating Report...";
+  }
+
+  reportWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Sentinel AI Security Report</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          background: #07111f;
+          color: #ffffff;
+          padding: 25px;
+          line-height: 1.6;
+          max-width: 900px;
+          margin: auto;
+        }
+
+        .box {
+          background: #0b1d31;
+          border: 1px solid #24415e;
+          border-radius: 14px;
+          padding: 20px;
+          margin: 15px 0;
+        }
+
+        h1, h2, h3 {
+          color: #38bdf8;
+        }
+
+        .score {
+          font-size: 50px;
+          font-weight: bold;
+          color: #38bdf8;
+        }
+
+        .warning {
+          border-left: 4px solid #facc15;
+        }
+
+        .pass {
+          border-left: 4px solid #4ade80;
+        }
+
+        button {
+          width: 100%;
+          padding: 14px;
+          border: none;
+          border-radius: 8px;
+          background: #38bdf8;
+          color: #06111f;
+          font-weight: bold;
+          font-size: 16px;
+          margin-bottom: 20px;
+        }
+
+        li {
+          margin: 8px 0;
+        }
+
+        .small {
+          color: #9fb0c2;
+          font-size: 13px;
+        }
+
+        @media print {
+          button {
+            display: none;
+          }
+
+          body {
+            background: white;
+            color: black;
+          }
+
+          .box {
+            background: white;
+            color: black;
+            border: 1px solid #ccc;
+          }
+
+          h1, h2, h3 {
+            color: black;
+          }
+        }
+      </style>
+    </head>
+
+    <body>
+
+      <button onclick="window.print()">
+        📄 Print / Save as PDF
+      </button>
+
+      <h1>🛡️ Sentinel AI</h1>
+
+      <div class="box">
+        <h2>Professional Security-Awareness Report</h2>
+
+        <p>
+          <strong>Website:</strong>
+          ${escapeHTML(
+            latestScan.website ||
+            latestScan.finalUrl ||
+            ""
+          )}
+        </p>
+
+        <p>
+          <strong>Scan ID:</strong>
+          ${escapeHTML(
+            latestScan.scanId || "N/A"
+          )}
+        </p>
+
+        <p>
+          <strong>Generated:</strong>
+          ${escapeHTML(
+            new Date().toLocaleString()
+          )}
+        </p>
+
+        <div class="score">
+          ${escapeHTML(
+            Number(
+              latestScan.score ??
+              latestScan.securityScore ??
+              0
+            )
+          )}/100
+        </div>
+
+        <p>
+          <strong>Risk Level:</strong>
+          ${escapeHTML(
+            latestScan.riskLevel || "Unknown"
+          )}
+        </p>
+      </div>
+
+      <div class="box">
+
+        <h2>📊 Executive Summary</h2>
+
+        <p>
+          <strong>Total Checks:</strong>
+          ${
+            Array.isArray(latestScan.checks)
+              ? latestScan.checks.length
+              : 0
+          }
+        </p>
+
+        <p>
+          <strong>Passed:</strong>
+          ${
+            Array.isArray(latestScan.checks)
+              ? latestScan.checks.filter(
+                  c => c.status === "PASS"
+                ).length
+              : 0
+          }
+        </p>
+
+        <p>
+          <strong>Warnings:</strong>
+          ${
+            Array.isArray(latestScan.checks)
+              ? latestScan.checks.filter(
+                  c => c.status === "WARNING"
+                ).length
+              : 0
+          }
+        </p>
+
+        <p>
+          <strong>Informational:</strong>
+          ${
+            Array.isArray(latestScan.checks)
+              ? latestScan.checks.filter(
+                  c => c.status === "INFO"
+                ).length
+              : 0
+          }
+        </p>
+
+      </div>
+
+      <div class="box">
+
+        <h2>🎯 Security Findings</h2>
+
+        ${
+          Array.isArray(latestScan.checks)
+            ? latestScan.checks.map(check => {
+
+                const status =
+                  check.status || "INFO";
+
+                const className =
+                  status === "WARNING"
+                    ? "warning"
+                    : status === "PASS"
+                    ? "pass"
+                    : "";
+
+                return `
+                  <div class="box ${className}">
+
+                    <h3>
+                      ${escapeHTML(
+                        check.name ||
+                        "Security Check"
+                      )}
+                    </h3>
+
+                    <p>
+                      <strong>Status:</strong>
+                      ${escapeHTML(status)}
+                    </p>
+
+                    <p>
+                      ${escapeHTML(
+                        check.message || ""
+                      )}
+                    </p>
+
+                    ${
+                      check.fix
+                        ? `
+                          <p>
+                            <strong>
+                              🔧 Recommended Fix:
+                            </strong>
+                            <br>
+                            ${escapeHTML(check.fix)}
+                          </p>
+                        `
+                        : ""
+                    }
+
+                  </div>
+                `;
+
+              }).join("")
+            : "<p>No security checks available.</p>"
+        }
+
+      </div>
+
+      <div class="box">
+
+        <h2>🚀 Recommended Action Plan</h2>
+
+        <ol>
+
+          <li>
+            Review all WARNING findings.
+          </li>
+
+          <li>
+            Apply the recommended defensive fixes.
+          </li>
+
+          <li>
+            Re-scan the website after making changes.
+          </li>
+
+          <li>
+            Compare the new security score.
+          </li>
+
+          <li>
+            Continue monitoring the security configuration.
+          </li>
+
+        </ol>
+
+      </div>
+
+      <div class="box">
+
+        <h2>⚠️ Limitations</h2>
+
+        <p>
+          Sentinel AI checks publicly observable HTTPS
+          and security configuration signals.
+        </p>
+
+        <p>
+          It does not perform exploitation or
+          unauthorized penetration testing.
+        </p>
+
+        <p>
+          A complete professional security assessment
+          may require additional application,
+          infrastructure and manual testing.
+        </p>
+
+      </div>
+
+      <div class="box">
+
+        <h2>🛡️ Disclaimer</h2>
+
+        <p>
+          Sentinel AI provides automated
+          security-awareness checks and defensive
+          guidance. This report is not a complete
+          penetration test, vulnerability assessment
+          or professional security audit.
+        </p>
+
+      </div>
+
+      <p class="small">
+        Sentinel AI · AI Cybersecurity Scanner &
+        Security Education Platform
+      </p>
+
+    </body>
+    </html>
+  `);
+
+  reportWindow.document.close();
+
+  /*
+   * Call the backend too, so the professional
+   * report API remains connected and validated.
+   */
+  try {
+
+    const response = await fetch("/api/report", {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+
+        website:
+          latestScan.website ||
+          latestScan.finalUrl ||
+          "",
+
+        securityScore:
+          Number(
+            latestScan.score ??
+            latestScan.securityScore ??
+            0
+          ),
+
+        riskLevel:
+          latestScan.riskLevel ||
+          "Unknown",
+
+        checks:
+          Array.isArray(latestScan.checks)
+            ? latestScan.checks
+            : [],
+
+        scanId:
+          latestScan.scanId ||
+          ""
+
+      })
+
+    });
+
+    if (!response.ok) {
+      console.error(
+        "Report API returned an error."
       );
-
     }
-
 
   } catch (error) {
 
     console.error(
-      "Report Error:",
+      "Report API Error:",
       error
-    );
-
-
-    alert(
-      "❌ Unable to generate the report right now."
     );
 
   } finally {
 
     if (button) {
-
       button.disabled = false;
-
       button.textContent =
         "📄 Generate Professional Security Report";
-
     }
 
   }
-
 }
 
 
