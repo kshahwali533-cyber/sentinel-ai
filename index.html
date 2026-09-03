@@ -1301,74 +1301,86 @@ function getMentorExplanation(name) {
     "Cross-Origin-Resource-Policy": {
       meaning:
         "Cross-Origin-Resource-Policy controls which other origins can load certain resources from the website.",
-      why:
-        "It can reduce unwanted cross-origin access to website resources."
-    },
+async function getMentorExplanation(name, severity = "Unknown", website = "") {
 
-    "Cross-Origin-Embedder-Policy": {
-      meaning:
-        "Cross-Origin-Embedder-Policy controls which cross-origin resources a page is allowed to load.",
-      why:
-        "When required by an application, COEP can provide stronger cross-origin isolation."
-    },
+  try {
+    const response = await fetch("/api/assistant", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        finding: name,
+        severity: severity,
+        website: website
+      })
+    });
 
-    "HTTPS": {
-      meaning:
-        "HTTPS encrypts communication between the visitor's browser and the website.",
-      why:
-        "Encryption helps protect information while travelling between the browser and server."
-    },
+    const data = await response.json();
 
-    "Secure Final Destination": {
-      meaning:
-        "This check confirms that the final website destination uses HTTPS.",
-      why:
-        "Keeping the final destination on HTTPS helps protect the connection."
-    },
-
-    "Content-Type": {
-      meaning:
-        "The Content-Type header tells the browser what type of content the server is returning.",
-      why:
-        "Correct content types help browsers interpret responses safely and consistently."
-    },
-
-    "Hostname Configuration": {
-      meaning:
-        "This check confirms that a public hostname was supplied for the security assessment.",
-      why:
-        "A valid hostname allows the scanner to identify and assess the intended website."
-    },
-
-    "Security.txt": {
-      meaning:
-        "security.txt provides a standard location where security researchers can find information about reporting security issues.",
-      why:
-        "It can make responsible vulnerability reporting easier."
-    },
-
-    "Robots.txt": {
-      meaning:
-        "robots.txt provides instructions to search engine crawlers about which areas of a website they may or may not crawl.",
-      why:
-        "It communicates crawling preferences, although it is not a security control."
+    if (!response.ok) {
+      throw new Error(data?.error || "AI Assistant request failed.");
     }
 
-  };
+    if (data?.assistant) {
+      return {
+        meaning:
+          data.assistant.explanation ||
+          "The AI Security Mentor could not generate an explanation.",
 
+        why:
+          data.assistant.why_it_matters ||
+          "This security finding should be reviewed and addressed.",
 
-  return explanations[name] || {
+        action:
+          data.assistant.defensive_action ||
+          "Review the affected security configuration.",
 
-    meaning:
-      "This security setting helps strengthen the website's defensive posture.",
+        steps:
+          Array.isArray(data.assistant.steps)
+            ? data.assistant.steps
+            : [],
 
-    why:
-      "Missing or weak security controls can reduce the protection available to users."
+        verification:
+          data.assistant.verification ||
+          "Run the Sentinel AI scan again to verify the fix.",
 
-  };
+        aiPowered: true
+      };
+    }
 
+    throw new Error("Invalid AI response.");
+
+  } catch (error) {
+
+    console.error("Sentinel AI Mentor Error:", error);
+
+    return {
+      meaning:
+        "The AI Security Mentor is temporarily unavailable.",
+
+      why:
+        "The security finding should still be reviewed and corrected.",
+
+      action:
+        "Review the affected security configuration and apply an appropriate defensive fix.",
+
+      steps: [
+        "Identify the affected security setting.",
+        "Review the website or server configuration.",
+        "Apply the appropriate defensive configuration.",
+        "Run the Sentinel AI scan again."
+      ],
+
+      verification:
+        "Run another Sentinel AI scan and confirm that the finding has been resolved.",
+
+      aiPowered: false
+    };
+  }
 }
 
+  
 
 /* =========================
    REPORT
