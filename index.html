@@ -18,6 +18,9 @@
 
   <script defer src="/_vercel/insights/script.js"></script>
 
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
 
     * {
@@ -160,7 +163,8 @@
     .mentor,
     .report,
     .history,
-    .mission {
+    .mission,
+    .auth-box {
       background: #0b1d31;
       border: 1px solid #24415e;
       border-radius: 16px;
@@ -170,7 +174,8 @@
     .card h3,
     .health h3,
     .mentor h3,
-    .report h3 {
+    .report h3,
+    .auth-box h3 {
       color: #38bdf8;
       margin-bottom: 10px;
     }
@@ -406,6 +411,14 @@
       color: #fecaca;
     }
 
+    .success {
+      padding: 15px;
+      border-radius: 10px;
+      background: #0b3020;
+      border: 1px solid #166534;
+      color: #bbf7d0;
+    }
+
     .history-item {
       padding: 14px;
       margin: 10px 0;
@@ -422,6 +435,17 @@
     .empty-history {
       color: #8295aa;
       font-size: 14px;
+    }
+
+    .auth-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .auth-user {
+      color: #cbd5e1;
+      margin-bottom: 12px;
     }
 
     footer {
@@ -455,6 +479,10 @@
         padding: 20px;
       }
 
+      .auth-actions {
+        grid-template-columns: 1fr;
+      }
+
     }
 
   </style>
@@ -477,6 +505,86 @@
   </nav>
 
 </header>
+
+
+<!-- =========================
+     ACCOUNT
+========================= -->
+
+<section id="auth">
+
+  <div class="auth-box">
+
+    <h3>
+      🔐 Sentinel AI Account
+    </h3>
+
+    <p class="message">
+      Create an account to securely save your scan history
+      across your sessions.
+    </p>
+
+    <div id="authStatus" class="notice">
+      Checking account status...
+    </div>
+
+    <div id="authForm">
+
+      <input
+        id="authEmail"
+        type="email"
+        placeholder="Email address"
+        autocomplete="email"
+      >
+
+      <input
+        id="authPassword"
+        type="password"
+        placeholder="Password"
+        autocomplete="current-password"
+      >
+
+      <div class="auth-actions">
+
+        <button
+          type="button"
+          onclick="signUpUser()"
+        >
+          Create Account
+        </button>
+
+        <button
+          class="secondary-button"
+          type="button"
+          onclick="signInUser()"
+        >
+          Log In
+        </button>
+
+      </div>
+
+    </div>
+
+    <div id="loggedInArea" style="display:none;">
+
+      <div class="auth-user">
+        Logged in as:
+        <strong id="loggedInEmail"></strong>
+      </div>
+
+      <button
+        class="secondary-button"
+        type="button"
+        onclick="signOutUser()"
+      >
+        Log Out
+      </button>
+
+    </div>
+
+  </div>
+
+</section>
 
 
 <main>
@@ -622,6 +730,10 @@
       📊 Your Recent Scans
     </h3>
 
+    <div id="historyStatus" class="message">
+      Local history is available on this device.
+    </div>
+
     <div id="historyList"></div>
 
     <button
@@ -629,7 +741,7 @@
       type="button"
       onclick="clearScanHistory()"
     >
-      🗑️ Clear Local History
+      🗑️ Clear My Scan History
     </button>
 
   </div>
@@ -669,6 +781,25 @@
 "use strict";
 
 
+/* =========================
+   SUPABASE CONFIGURATION
+========================= */
+
+const SUPABASE_URL =
+  "https://vceqmqwszvisvxxbgbfs.supabase.co";
+
+
+const SUPABASE_PUBLISHABLE_KEY =
+  "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
+
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+
+
 let latestScan = null;
 
 
@@ -684,6 +815,796 @@ function escapeHTML(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+
+}
+
+
+/* =========================
+   AUTH UI
+========================= */
+
+async function updateAuthUI() {
+
+  const authStatus =
+    document.getElementById("authStatus");
+
+  const authForm =
+    document.getElementById("authForm");
+
+  const loggedInArea =
+    document.getElementById("loggedInArea");
+
+  const loggedInEmail =
+    document.getElementById("loggedInEmail");
+
+  const historyStatus =
+    document.getElementById("historyStatus");
+
+
+  if (!authStatus) {
+    return;
+  }
+
+
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.auth.getUser();
+
+
+    if (error) {
+      throw error;
+    }
+
+
+    const user =
+      data?.user;
+
+
+    if (user) {
+
+      authStatus.className =
+        "success";
+
+      authStatus.innerHTML =
+        "✅ Your Sentinel AI account is active. " +
+        "Your scan history can be saved securely.";
+
+
+      if (authForm) {
+        authForm.style.display = "none";
+      }
+
+
+      if (loggedInArea) {
+        loggedInArea.style.display = "block";
+      }
+
+
+      if (loggedInEmail) {
+        loggedInEmail.textContent =
+          user.email || "Account user";
+      }
+
+
+      if (historyStatus) {
+
+        historyStatus.textContent =
+          "☁️ Cloud history is active for your account.";
+
+      }
+
+
+      await loadSupabaseHistory();
+
+
+    } else {
+
+      authStatus.className =
+        "notice";
+
+      authStatus.innerHTML =
+        "🔐 Log in or create an account to securely " +
+        "save scan history in the cloud.";
+
+
+      if (authForm) {
+        authForm.style.display = "block";
+      }
+
+
+      if (loggedInArea) {
+        loggedInArea.style.display = "none";
+      }
+
+
+      if (historyStatus) {
+
+        historyStatus.textContent =
+          "📱 Local history is active. Log in to enable cloud history.";
+
+      }
+
+    }
+
+
+  } catch (error) {
+
+    console.error(
+      "Auth UI Error:",
+      error
+    );
+
+
+    authStatus.className =
+      "error";
+
+    authStatus.textContent =
+      "Unable to check account status right now.";
+
+
+  }
+
+}
+
+
+/* =========================
+   CREATE ACCOUNT
+========================= */
+
+async function signUpUser() {
+
+  const emailInput =
+    document.getElementById("authEmail");
+
+  const passwordInput =
+    document.getElementById("authPassword");
+
+  const authStatus =
+    document.getElementById("authStatus");
+
+
+  if (!emailInput || !passwordInput) {
+    return;
+  }
+
+
+  const email =
+    emailInput.value.trim();
+
+  const password =
+    passwordInput.value;
+
+
+  if (!email || !password) {
+
+    authStatus.className =
+      "error";
+
+    authStatus.textContent =
+      "⚠️ Please enter your email and password.";
+
+    return;
+
+  }
+
+
+  if (password.length < 6) {
+
+    authStatus.className =
+      "error";
+
+    authStatus.textContent =
+      "⚠️ Password must be at least 6 characters.";
+
+    return;
+
+  }
+
+
+  authStatus.className =
+    "notice";
+
+  authStatus.textContent =
+    "🔐 Creating your Sentinel AI account...";
+
+
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.auth.signUp({
+        email,
+        password
+      });
+
+
+    if (error) {
+      throw error;
+    }
+
+
+    if (data?.session) {
+
+      authStatus.className =
+        "success";
+
+      authStatus.textContent =
+        "✅ Account created and logged in successfully.";
+
+    } else {
+
+      authStatus.className =
+        "success";
+
+      authStatus.textContent =
+        "✅ Account created. Please check your email to confirm your account, then log in.";
+
+    }
+
+
+    passwordInput.value = "";
+
+
+    await updateAuthUI();
+
+
+  } catch (error) {
+
+    console.error(
+      "Signup Error:",
+      error
+    );
+
+
+    authStatus.className =
+      "error";
+
+    authStatus.textContent =
+      "❌ " +
+      (
+        error?.message ||
+        "Unable to create account."
+      );
+
+  }
+
+}
+
+
+/* =========================
+   LOGIN
+========================= */
+
+async function signInUser() {
+
+  const emailInput =
+    document.getElementById("authEmail");
+
+  const passwordInput =
+    document.getElementById("authPassword");
+
+  const authStatus =
+    document.getElementById("authStatus");
+
+
+  const email =
+    emailInput?.value.trim();
+
+  const password =
+    passwordInput?.value;
+
+
+  if (!email || !password) {
+
+    authStatus.className =
+      "error";
+
+    authStatus.textContent =
+      "⚠️ Please enter your email and password.";
+
+    return;
+
+  }
+
+
+  authStatus.className =
+    "notice";
+
+  authStatus.textContent =
+    "🔐 Logging you in...";
+
+
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+
+    if (error) {
+      throw error;
+    }
+
+
+    authStatus.className =
+      "success";
+
+    authStatus.textContent =
+      "✅ Login successful. Welcome to Sentinel AI.";
+
+
+    passwordInput.value = "";
+
+
+    await updateAuthUI();
+
+
+  } catch (error) {
+
+    console.error(
+      "Login Error:",
+      error
+    );
+
+
+    authStatus.className =
+      "error";
+
+    authStatus.textContent =
+      "❌ " +
+      (
+        error?.message ||
+        "Unable to log in."
+      );
+
+  }
+
+}
+
+
+/* =========================
+   LOGOUT
+========================= */
+
+async function signOutUser() {
+
+  const authStatus =
+    document.getElementById("authStatus");
+
+
+  try {
+
+    const {
+      error
+    } =
+      await supabaseClient.auth.signOut();
+
+
+    if (error) {
+      throw error;
+    }
+
+
+    authStatus.className =
+      "success";
+
+    authStatus.textContent =
+      "✅ You have been logged out.";
+
+
+    await updateAuthUI();
+
+
+  } catch (error) {
+
+    console.error(
+      "Logout Error:",
+      error
+    );
+
+
+    authStatus.className =
+      "error";
+
+    authStatus.textContent =
+      "❌ Unable to log out right now.";
+
+  }
+
+}
+
+
+/* =========================
+   SAVE SCAN TO SUPABASE
+========================= */
+
+async function saveScanToSupabase(scan) {
+
+  try {
+
+    const {
+      data,
+      error: userError
+    } =
+      await supabaseClient.auth.getUser();
+
+
+    if (userError) {
+      throw userError;
+    }
+
+
+    const user =
+      data?.user;
+
+
+    if (!user) {
+
+      console.log(
+        "Cloud history skipped: user is not logged in."
+      );
+
+      return;
+
+    }
+
+
+    const website =
+      scan.website ||
+      scan.finalUrl ||
+      "";
+
+
+    const securityScore =
+      Number(
+        scan.score ??
+        scan.securityScore ??
+        0
+      );
+
+
+    const riskLevel =
+      scan.riskLevel ||
+      "Unknown";
+
+
+    const scanId =
+      scan.scanId ||
+      "N/A";
+
+
+    const checks =
+      Array.isArray(scan.checks)
+        ? scan.checks
+        : [];
+
+
+    const {
+      error
+    } =
+      await supabaseClient
+        .from("scan_history")
+        .insert({
+
+          user_id:
+            user.id,
+
+          website,
+
+          security_score:
+            securityScore,
+
+          risk_level:
+            riskLevel,
+
+          scan_id:
+            scanId,
+
+          checks
+
+        });
+
+
+    if (error) {
+      throw error;
+    }
+
+
+    console.log(
+      "Scan saved to Supabase."
+    );
+
+
+    await loadSupabaseHistory();
+
+
+  } catch (error) {
+
+    console.error(
+      "Supabase Save Error:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================
+   LOAD CLOUD HISTORY
+========================= */
+
+async function loadSupabaseHistory() {
+
+  const list =
+    document.getElementById(
+      "historyList"
+    );
+
+
+  const historyStatus =
+    document.getElementById(
+      "historyStatus"
+    );
+
+
+  if (!list) {
+    return;
+  }
+
+
+  try {
+
+    const {
+      data: userData,
+      error: userError
+    } =
+      await supabaseClient.auth.getUser();
+
+
+    if (userError) {
+      throw userError;
+    }
+
+
+    const user =
+      userData?.user;
+
+
+    if (!user) {
+      return;
+    }
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from("scan_history")
+        .select(
+          "id,user_id,website,security_score,risk_level,scan_id,checks,created_at"
+        )
+        .eq(
+          "user_id",
+          user.id
+        )
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        )
+        .limit(10);
+
+
+    if (error) {
+      throw error;
+    }
+
+
+    if (!data || !data.length) {
+
+      renderScanHistory();
+
+
+      if (historyStatus) {
+
+        historyStatus.textContent =
+          "☁️ No cloud scans yet. Run your first security check.";
+
+      }
+
+
+      return;
+
+    }
+
+
+    list.innerHTML =
+      data
+        .map(
+          item => `
+
+            <div class="history-item">
+
+              <strong>
+                ${escapeHTML(
+                  item.website
+                )}
+              </strong>
+
+              <div class="history-score">
+
+                Score:
+                ${escapeHTML(
+                  item.security_score
+                )}/100
+
+                ·
+
+                ${escapeHTML(
+                  item.risk_level
+                )}
+
+              </div>
+
+              <div class="message">
+
+                ${escapeHTML(
+                  new Date(
+                    item.created_at
+                  ).toLocaleString()
+                )}
+
+                · Scan ID:
+
+                ${escapeHTML(
+                  item.scan_id
+                )}
+
+                · ☁️ Cloud
+
+              </div>
+
+            </div>
+
+          `
+        )
+        .join("");
+
+
+    if (historyStatus) {
+
+      historyStatus.textContent =
+        "☁️ Showing your latest cloud scans.";
+
+    }
+
+
+  } catch (error) {
+
+    console.error(
+      "Supabase History Error:",
+      error
+    );
+
+
+    renderScanHistory();
+
+
+    if (historyStatus) {
+
+      historyStatus.textContent =
+        "📱 Showing local history. Cloud history could not be loaded.";
+
+    }
+
+  }
+
+}
+
+
+/* =========================
+   CLEAR CLOUD HISTORY
+========================= */
+
+async function clearSupabaseHistory() {
+
+  try {
+
+    const {
+      data: userData,
+      error: userError
+    } =
+      await supabaseClient.auth.getUser();
+
+
+    if (userError) {
+      throw userError;
+    }
+
+
+    const user =
+      userData?.user;
+
+
+    if (!user) {
+
+      localStorage.removeItem(
+        "sentinelScanHistory"
+      );
+
+      renderScanHistory();
+
+      return;
+
+    }
+
+
+    const {
+      error
+    } =
+      await supabaseClient
+        .from("scan_history")
+        .delete()
+        .eq(
+          "user_id",
+          user.id
+        );
+
+
+    if (error) {
+      throw error;
+    }
+
+
+    localStorage.removeItem(
+      "sentinelScanHistory"
+    );
+
+
+    renderScanHistory();
+
+
+    const historyStatus =
+      document.getElementById(
+        "historyStatus"
+      );
+
+
+    if (historyStatus) {
+
+      historyStatus.textContent =
+        "🗑️ Your cloud and local scan history has been cleared.";
+
+    }
+
+
+  } catch (error) {
+
+    console.error(
+      "Clear History Error:",
+      error
+    );
+
+
+    alert(
+      "Unable to clear cloud history right now."
+    );
+
+  }
 
 }
 
@@ -729,7 +1650,11 @@ async function runSecurityScan() {
 
 
   if (!/^https?:\/\//i.test(website)) {
-    website = "https://" + website;
+
+    website =
+      "https://" +
+      website;
+
   }
 
 
@@ -738,12 +1663,18 @@ async function runSecurityScan() {
     const parsed =
       new URL(website);
 
+
     if (
       parsed.protocol !== "http:" &&
       parsed.protocol !== "https:"
     ) {
-      throw new Error("Invalid protocol.");
+
+      throw new Error(
+        "Invalid protocol."
+      );
+
     }
+
 
   } catch {
 
@@ -754,6 +1685,7 @@ async function runSecurityScan() {
     `;
 
     return;
+
   }
 
 
@@ -829,12 +1761,14 @@ async function runSecurityScan() {
 
 
     latestScan = {
+
       ...data,
 
       website:
         data.website ||
         data.finalUrl ||
         website
+
     };
 
 
@@ -1150,9 +2084,7 @@ function displayScanResults(data) {
         <div class="summary-box">
 
           <div class="summary-number">
-
             ${checks.length}
-
           </div>
 
           Total Checks
@@ -1163,9 +2095,7 @@ function displayScanResults(data) {
         <div class="summary-box">
 
           <div class="summary-number">
-
             ${passed}
-
           </div>
 
           Passed
@@ -1176,9 +2106,7 @@ function displayScanResults(data) {
         <div class="summary-box">
 
           <div class="summary-number">
-
             ${warnings}
-
           </div>
 
           Warnings
@@ -1379,12 +2307,10 @@ async function askSecurityMentor(index) {
       <br><br>
 
       <strong>
-
         ${escapeHTML(
           finding.name ||
           "Security Finding"
         )}
-
       </strong>
 
       <br><br>
@@ -1497,9 +2423,7 @@ async function askSecurityMentor(index) {
                   `
 
                     <li>
-
                       ${escapeHTML(step)}
-
                     </li>
 
                   `
@@ -1512,11 +2436,9 @@ async function askSecurityMentor(index) {
         : `
 
           <p>
-
             Review the affected security
             configuration and apply an
             appropriate defensive fix.
-
           </p>
 
         `;
@@ -1531,13 +2453,11 @@ async function askSecurityMentor(index) {
         </strong>
 
         <p>
-
           ${escapeHTML(
             assistant.title ||
             finding.name ||
             "Security Finding"
           )}
-
         </p>
 
       </div>
@@ -1550,12 +2470,10 @@ async function askSecurityMentor(index) {
         </strong>
 
         <p>
-
           ${escapeHTML(
             assistant.explanation ||
             "No explanation was returned."
           )}
-
         </p>
 
       </div>
@@ -1568,12 +2486,10 @@ async function askSecurityMentor(index) {
         </strong>
 
         <p>
-
           ${escapeHTML(
             assistant.why_it_matters ||
             "This finding should be reviewed as part of the website's defensive security configuration."
           )}
-
         </p>
 
       </div>
@@ -1586,12 +2502,10 @@ async function askSecurityMentor(index) {
         </strong>
 
         <p>
-
           ${escapeHTML(
             assistant.defensive_action ||
             "Review the affected security configuration."
           )}
-
         </p>
 
       </div>
@@ -1615,12 +2529,10 @@ async function askSecurityMentor(index) {
         </strong>
 
         <p>
-
           ${escapeHTML(
             assistant.verification ||
             "Run the Sentinel AI scan again to verify the fix."
           )}
-
         </p>
 
       </div>
@@ -1684,12 +2596,6 @@ async function generateProfessionalReport(button) {
   }
 
 
-  /*
-   * Open the report window immediately.
-   * This helps prevent mobile browsers
-   * from blocking the popup.
-   */
-
   const reportWindow =
     window.open(
       "",
@@ -1716,6 +2622,14 @@ async function generateProfessionalReport(button) {
       "📄 Generating Report...";
 
   }
+
+
+  const reportChecks =
+    Array.isArray(
+      latestScan.checks
+    )
+      ? latestScan.checks
+      : [];
 
 
   reportWindow.document.write(`
@@ -1765,7 +2679,6 @@ async function generateProfessionalReport(button) {
 
         }
 
-
         .header,
         .box,
         .finding {
@@ -1787,7 +2700,6 @@ async function generateProfessionalReport(button) {
 
         }
 
-
         h1,
         h2,
         h3 {
@@ -1796,7 +2708,6 @@ async function generateProfessionalReport(button) {
             #38bdf8;
 
         }
-
 
         .score {
 
@@ -1811,14 +2722,12 @@ async function generateProfessionalReport(button) {
 
         }
 
-
         .finding {
 
           border-left:
             4px solid #facc15;
 
         }
-
 
         .print-button {
 
@@ -1851,7 +2760,6 @@ async function generateProfessionalReport(button) {
 
         }
 
-
         .small {
 
           color:
@@ -1861,7 +2769,6 @@ async function generateProfessionalReport(button) {
             13px;
 
         }
-
 
         @media print {
 
@@ -1875,14 +2782,12 @@ async function generateProfessionalReport(button) {
 
           }
 
-
           .print-button {
 
             display:
               none;
 
           }
-
 
           .header,
           .box,
@@ -1899,7 +2804,6 @@ async function generateProfessionalReport(button) {
 
           }
 
-
           h1,
           h2,
           h3 {
@@ -1915,17 +2819,13 @@ async function generateProfessionalReport(button) {
 
     </head>
 
-
     <body>
-
 
       <button
         class="print-button"
         onclick="window.print()"
       >
-
         📄 Print / Save as PDF
-
       </button>
 
 
@@ -1940,47 +2840,28 @@ async function generateProfessionalReport(button) {
         </h2>
 
         <p>
-
-          <strong>
-            Website:
-          </strong>
-
+          <strong>Website:</strong>
           ${escapeHTML(
             latestScan.website ||
             latestScan.finalUrl ||
             ""
           )}
-
         </p>
 
-
         <p>
-
-          <strong>
-            Scan ID:
-          </strong>
-
+          <strong>Scan ID:</strong>
           ${escapeHTML(
             latestScan.scanId ||
             "N/A"
           )}
-
         </p>
-
 
         <p>
-
-          <strong>
-            Generated:
-          </strong>
-
+          <strong>Generated:</strong>
           ${escapeHTML(
-            new Date()
-              .toLocaleString()
+            new Date().toLocaleString()
           )}
-
         </p>
-
 
         <div class="score">
 
@@ -1994,18 +2875,12 @@ async function generateProfessionalReport(button) {
 
         </div>
 
-
         <p>
-
-          <strong>
-            Risk Level:
-          </strong>
-
+          <strong>Risk Level:</strong>
           ${escapeHTML(
             latestScan.riskLevel ||
             "Unknown"
           )}
-
         </p>
 
       </div>
@@ -2017,79 +2892,36 @@ async function generateProfessionalReport(button) {
           📊 Executive Summary
         </h2>
 
-
         <p>
-
-          <strong>
-            Total Checks:
-          </strong>
-
-          ${Array.isArray(
-            latestScan.checks
-          )
-            ? latestScan.checks.length
-            : 0}
-
+          <strong>Total Checks:</strong>
+          ${reportChecks.length}
         </p>
 
-
         <p>
-
-          <strong>
-            Passed:
-          </strong>
-
+          <strong>Passed:</strong>
           ${
-            Array.isArray(
-              latestScan.checks
-            )
-              ? latestScan.checks.filter(
-                  c =>
-                    c.status === "PASS"
-                ).length
-              : 0
+            reportChecks.filter(
+              c => c.status === "PASS"
+            ).length
           }
-
         </p>
 
-
         <p>
-
-          <strong>
-            Warnings:
-          </strong>
-
+          <strong>Warnings:</strong>
           ${
-            Array.isArray(
-              latestScan.checks
-            )
-              ? latestScan.checks.filter(
-                  c =>
-                    c.status === "WARNING"
-                ).length
-              : 0
+            reportChecks.filter(
+              c => c.status === "WARNING"
+            ).length
           }
-
         </p>
 
-
         <p>
-
-          <strong>
-            Informational:
-          </strong>
-
+          <strong>Informational:</strong>
           ${
-            Array.isArray(
-              latestScan.checks
-            )
-              ? latestScan.checks.filter(
-                  c =>
-                    c.status === "INFO"
-                ).length
-              : 0
+            reportChecks.filter(
+              c => c.status === "INFO"
+            ).length
           }
-
         </p>
 
       </div>
@@ -2101,87 +2933,62 @@ async function generateProfessionalReport(button) {
           🎯 Security Findings
         </h2>
 
-
         ${
-          Array.isArray(
-            latestScan.checks
-          )
+          reportChecks
+            .map(
+              check => `
 
-            ? latestScan.checks
-                .map(
-                  check => `
+                <div class="finding">
 
-                    <div class="finding">
+                  <h3>
+                    ${escapeHTML(
+                      check.name ||
+                      "Security Check"
+                    )}
+                  </h3>
 
-                      <h3>
+                  <p>
+                    <strong>Status:</strong>
+                    ${escapeHTML(
+                      check.status ||
+                      "INFO"
+                    )}
+                  </p>
 
-                        ${escapeHTML(
-                          check.name ||
-                          "Security Check"
-                        )}
+                  <p>
+                    ${escapeHTML(
+                      check.message ||
+                      ""
+                    )}
+                  </p>
 
-                      </h3>
+                  ${
+                    check.fix
+                      ? `
 
+                        <p>
 
-                      <p>
+                          <strong>
+                            🔧 Recommended Fix:
+                          </strong>
 
-                        <strong>
-                          Status:
-                        </strong>
+                          <br>
 
-                        ${escapeHTML(
-                          check.status ||
-                          "INFO"
-                        )}
+                          ${escapeHTML(
+                            check.fix
+                          )}
 
-                      </p>
+                        </p>
 
+                      `
+                      : ""
+                  }
 
-                      <p>
+                </div>
 
-                        ${escapeHTML(
-                          check.message ||
-                          ""
-                        )}
-
-                      </p>
-
-
-                      ${
-                        check.fix
-                          ? `
-
-                            <p>
-
-                              <strong>
-                                🔧 Recommended Fix:
-                              </strong>
-
-                              <br>
-
-                              ${escapeHTML(
-                                check.fix
-                              )}
-
-                            </p>
-
-                          `
-                          : ""
-                      }
-
-                    </div>
-
-                  `
-                )
-                .join("")
-
-            : `
-
-              <p>
-                No security checks available.
-              </p>
-
-            `
+              `
+            )
+            .join("")
         }
 
       </div>
@@ -2192,7 +2999,6 @@ async function generateProfessionalReport(button) {
         <h2>
           🚀 Recommended Action Plan
         </h2>
-
 
         <ol>
 
@@ -2227,29 +3033,20 @@ async function generateProfessionalReport(button) {
           ⚠️ Limitations
         </h2>
 
-
         <p>
-
           Sentinel AI checks publicly observable
           HTTPS and security configuration signals.
-
         </p>
 
-
         <p>
-
           It does not perform exploitation or
           unauthorized penetration testing.
-
         </p>
 
-
         <p>
-
           A complete professional security assessment
           may require additional application,
           infrastructure and manual testing.
-
         </p>
 
       </div>
@@ -2261,15 +3058,12 @@ async function generateProfessionalReport(button) {
           🛡️ Disclaimer
         </h2>
 
-
         <p>
-
           Sentinel AI provides automated
           security-awareness checks and defensive
           guidance. This report is not a complete
           penetration test, vulnerability assessment
           or professional security audit.
-
         </p>
 
       </div>
@@ -2282,7 +3076,6 @@ async function generateProfessionalReport(button) {
 
       </p>
 
-
     </body>
 
     </html>
@@ -2292,11 +3085,6 @@ async function generateProfessionalReport(button) {
 
   reportWindow.document.close();
 
-
-  /*
-   * Also validate the report through
-   * the Sentinel AI backend.
-   */
 
   try {
 
@@ -2331,11 +3119,7 @@ async function generateProfessionalReport(button) {
               "Unknown",
 
             checks:
-              Array.isArray(
-                latestScan.checks
-              )
-                ? latestScan.checks
-                : [],
+              reportChecks,
 
             scanId:
               latestScan.scanId ||
@@ -2380,7 +3164,7 @@ async function generateProfessionalReport(button) {
 
 
 /* =========================
-   SCAN HISTORY
+   LOCAL + CLOUD SCAN HISTORY
 ========================= */
 
 function saveScanHistory(scan) {
@@ -2440,6 +3224,12 @@ function saveScanHistory(scan) {
     renderScanHistory();
 
 
+    /* Save to cloud if logged in */
+    saveScanToSupabase(
+      scan
+    );
+
+
   } catch (error) {
 
     console.error(
@@ -2453,7 +3243,7 @@ function saveScanHistory(scan) {
 
 
 /* =========================
-   RENDER HISTORY
+   RENDER LOCAL HISTORY
 ========================= */
 
 function renderScanHistory() {
@@ -2485,7 +3275,7 @@ function renderScanHistory() {
 
         <div class="empty-history">
 
-          No scans saved yet.
+          No local scans saved yet.
           Run your first security check above.
 
         </div>
@@ -2505,13 +3295,10 @@ function renderScanHistory() {
             <div class="history-item">
 
               <strong>
-
                 ${escapeHTML(
                   item.website
                 )}
-
               </strong>
-
 
               <div class="history-score">
 
@@ -2528,7 +3315,6 @@ function renderScanHistory() {
 
               </div>
 
-
               <div class="message">
 
                 ${escapeHTML(
@@ -2540,6 +3326,8 @@ function renderScanHistory() {
                 ${escapeHTML(
                   item.scanId
                 )}
+
+                · 📱 Local
 
               </div>
 
@@ -2568,16 +3356,23 @@ function renderScanHistory() {
 
 
 /* =========================
-   CLEAR HISTORY
+   CLEAR LOCAL + CLOUD HISTORY
 ========================= */
 
-function clearScanHistory() {
+async function clearScanHistory() {
 
-  localStorage.removeItem(
-    "sentinelScanHistory"
-  );
+  const confirmed =
+    confirm(
+      "Clear your Sentinel AI scan history?"
+    );
 
-  renderScanHistory();
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  await clearSupabaseHistory();
 
 }
 
@@ -2588,9 +3383,20 @@ function clearScanHistory() {
 
 document.addEventListener(
   "DOMContentLoaded",
-  function() {
+  async function() {
 
     renderScanHistory();
+
+    await updateAuthUI();
+
+
+    supabaseClient.auth.onAuthStateChange(
+      async function() {
+
+        await updateAuthUI();
+
+      }
+    );
 
   }
 );
