@@ -1232,46 +1232,66 @@ async function signOutUser() {
   const authStatus =
     document.getElementById("authStatus");
 
-
   try {
 
-    const {
-      error
-    } =
-      await supabaseClient.auth.signOut();
+    if (authStatus) {
+      authStatus.className = "notice";
+      authStatus.textContent =
+        "🔐 Logging you out...";
+    }
 
+    const { error } =
+      await supabaseClient.auth.signOut();
 
     if (error) {
       throw error;
     }
 
+    const authForm =
+      document.getElementById("authForm");
 
-    authStatus.className =
-      "success";
+    const loggedInArea =
+      document.getElementById("loggedInArea");
 
-    authStatus.textContent =
-      "✅ You have been logged out.";
+    const loggedInEmail =
+      document.getElementById("loggedInEmail");
 
+    const historyStatus =
+      document.getElementById("historyStatus");
 
-    await updateAuthUI();
+    if (authForm) {
+      authForm.style.display = "block";
+    }
 
+    if (loggedInArea) {
+      loggedInArea.style.display = "none";
+    }
+
+    if (loggedInEmail) {
+      loggedInEmail.textContent = "";
+    }
+
+    if (historyStatus) {
+      historyStatus.textContent =
+        "📱 Local history is active. Log in to enable cloud history.";
+    }
+
+    if (authStatus) {
+      authStatus.className = "success";
+      authStatus.textContent =
+        "✅ You have been logged out successfully.";
+    }
 
   } catch (error) {
 
-    console.error(
-      "Logout Error:",
-      error
-    );
+    console.error("Logout Error:", error);
 
-
-    authStatus.className =
-      "error";
-
-    authStatus.textContent =
-      "❌ Unable to log out right now.";
-
+    if (authStatus) {
+      authStatus.className = "error";
+      authStatus.textContent =
+        "❌ Unable to log out right now.";
+    }
   }
-
 }
 
 
