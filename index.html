@@ -919,36 +919,85 @@ async function updateAuthUI() {
 
       if (loggedInArea) {
         loggedInArea.style.display = "none";
+async function updateAuthUI() {
+
+  const authStatus = document.getElementById("authStatus");
+  const authForm = document.getElementById("authForm");
+  const loggedInArea = document.getElementById("loggedInArea");
+  const loggedInEmail = document.getElementById("loggedInEmail");
+  const historyStatus = document.getElementById("historyStatus");
+
+  if (!authStatus) return;
+
+  try {
+
+    const {
+      data: { session }
+    } = await supabaseClient.auth.getSession();
+
+    const user = session?.user;
+
+    if (user) {
+
+      authStatus.className = "success";
+
+      authStatus.textContent =
+        "✅ Your Sentinel AI account is active. Your scan history can be saved securely.";
+
+      if (authForm) {
+        authForm.style.display = "none";
       }
 
+      if (loggedInArea) {
+        loggedInArea.style.display = "block";
+      }
+
+      if (loggedInEmail) {
+        loggedInEmail.textContent =
+          user.email || "Account user";
+      }
 
       if (historyStatus) {
-
         historyStatus.textContent =
-          "📱 Local history is active. Log in to enable cloud history.";
-
+          "☁️ Cloud history is active for your account.";
       }
 
-    }
+      await loadSupabaseHistory();
 
+    } else {
+
+      authStatus.className = "notice";
+
+      authStatus.textContent =
+        "🔐 Log in or create an account to securely save scan history in the cloud.";
+
+      if (authForm) {
+        authForm.style.display = "block";
+      }
+
+      if (loggedInArea) {
+        loggedInArea.style.display = "none";
+      }
+
+      if (loggedInEmail) {
+        loggedInEmail.textContent = "";
+      }
+
+      if (historyStatus) {
+        historyStatus.textContent =
+          "📱 Local history is active. Log in to enable cloud history.";
+      }
+    }
 
   } catch (error) {
 
-    console.error(
-      "Auth UI Error:",
-      error
-    );
+    console.error("Auth UI Error:", error);
 
-
-    authStatus.className =
-      "error";
+    authStatus.className = "error";
 
     authStatus.textContent =
-      "Unable to check account status right now.";
-
-
+      "❌ Unable to check account status right now.";
   }
-
 }
 
 
