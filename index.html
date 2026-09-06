@@ -820,127 +820,37 @@ function escapeHTML(value) {
 }
 
 
+
+
 /* =========================
    AUTH UI
 ========================= */
 
 async function updateAuthUI() {
-
-  const authStatus =
-    document.getElementById("authStatus");
-
-  const authForm =
-    document.getElementById("authForm");
-
-  const loggedInArea =
-    document.getElementById("loggedInArea");
-
-  const loggedInEmail =
-    document.getElementById("loggedInEmail");
-
-  const historyStatus =
-    document.getElementById("historyStatus");
-
-
-  if (!authStatus) {
-    return;
-  }
-
-
-  try {
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient.auth.getUser();
-
-
-    if (error) {
-      throw error;
-    }
-
-
-    const user =
-      data?.user;
-
-
-    if (user) {
-
-      authStatus.className =
-        "success";
-
-      authStatus.innerHTML =
-        "✅ Your Sentinel AI account is active. " +
-        "Your scan history can be saved securely.";
-
-
-      if (authForm) {
-        authForm.style.display = "none";
-      }
-
-
-      if (loggedInArea) {
-        loggedInArea.style.display = "block";
-      }
-
-
-      if (loggedInEmail) {
-        loggedInEmail.textContent =
-          user.email || "Account user";
-      }
-
-
-      if (historyStatus) {
-
-        historyStatus.textContent =
-          "☁️ Cloud history is active for your account.";
-
-      }
-
-
-      await loadSupabaseHistory();
-
-
-    } else {
-
-      authStatus.className =
-        "notice";
-
-      authStatus.innerHTML =
-        "🔐 Log in or create an account to securely " +
-        "save scan history in the cloud.";
-
-
-      if (authForm) {
-        authForm.style.display = "block";
-      }
-
-
-      if (loggedInArea) {
-        loggedInArea.style.display = "none";
-async function updateAuthUI() {
-
   const authStatus = document.getElementById("authStatus");
   const authForm = document.getElementById("authForm");
   const loggedInArea = document.getElementById("loggedInArea");
   const loggedInEmail = document.getElementById("loggedInEmail");
   const historyStatus = document.getElementById("historyStatus");
 
-  if (!authStatus) return;
+  if (!authStatus) {
+    return;
+  }
 
   try {
-
     const {
-      data: { session }
+      data: { session },
+      error
     } = await supabaseClient.auth.getSession();
+
+    if (error) {
+      throw error;
+    }
 
     const user = session?.user;
 
     if (user) {
-
       authStatus.className = "success";
-
       authStatus.textContent =
         "✅ Your Sentinel AI account is active. Your scan history can be saved securely.";
 
@@ -953,8 +863,7 @@ async function updateAuthUI() {
       }
 
       if (loggedInEmail) {
-        loggedInEmail.textContent =
-          user.email || "Account user";
+        loggedInEmail.textContent = user.email || "Account user";
       }
 
       if (historyStatus) {
@@ -965,9 +874,7 @@ async function updateAuthUI() {
       await loadSupabaseHistory();
 
     } else {
-
       authStatus.className = "notice";
-
       authStatus.textContent =
         "🔐 Log in or create an account to securely save scan history in the cloud.";
 
@@ -990,16 +897,13 @@ async function updateAuthUI() {
     }
 
   } catch (error) {
-
     console.error("Auth UI Error:", error);
 
     authStatus.className = "error";
-
     authStatus.textContent =
       "❌ Unable to check account status right now.";
   }
 }
-
 
 
 /* =========================
@@ -1007,60 +911,38 @@ async function updateAuthUI() {
 ========================= */
 
 async function signUpUser() {
-
-  const emailInput =
-    document.getElementById("authEmail");
-
-  const passwordInput =
-    document.getElementById("authPassword");
-
-  const authStatus =
-    document.getElementById("authStatus");
+  const emailInput = document.getElementById("authEmail");
+  const passwordInput = document.getElementById("authPassword");
+  const authStatus = document.getElementById("authStatus");
 
   if (!emailInput || !passwordInput || !authStatus) {
+    console.error("Signup: Required elements not found.");
     return;
   }
 
-  const email =
-    emailInput.value.trim();
-
-  const password =
-    passwordInput.value;
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
 
   if (!email || !password) {
-
-    authStatus.className =
-      "error";
-
+    authStatus.className = "error";
     authStatus.textContent =
       "⚠️ Please enter your email and password.";
-
     return;
   }
 
   if (password.length < 6) {
-
-    authStatus.className =
-      "error";
-
+    authStatus.className = "error";
     authStatus.textContent =
       "⚠️ Password must be at least 6 characters.";
-
     return;
   }
 
-  authStatus.className =
-    "notice";
-
+  authStatus.className = "notice";
   authStatus.textContent =
     "🔐 Creating your Sentinel AI account...";
 
   try {
-
-    const {
-      data,
-      error
-    } =
+    const { data, error } =
       await supabaseClient.auth.signUp({
         email,
         password
@@ -1071,42 +953,25 @@ async function signUpUser() {
     }
 
     if (data?.session) {
-
-      authStatus.className =
-        "success";
-
+      authStatus.className = "success";
       authStatus.textContent =
         "✅ Account created and logged in successfully.";
-
     } else {
-
-      authStatus.className =
-        "success";
-
+      authStatus.className = "success";
       authStatus.textContent =
         "✅ Account created. Please check your email to confirm your account, then log in.";
     }
 
     passwordInput.value = "";
-
     await updateAuthUI();
 
   } catch (error) {
+    console.error("Signup Error:", error);
 
-    console.error(
-      "Signup Error:",
-      error
-    );
-
-    authStatus.className =
-      "error";
-
+    authStatus.className = "error";
     authStatus.textContent =
       "❌ " +
-      (
-        error?.message ||
-        "Unable to create account."
-      );
+      (error?.message || "Unable to create account.");
   }
 }
 
@@ -1116,49 +981,31 @@ async function signUpUser() {
 ========================= */
 
 async function signInUser() {
-
-  const emailInput =
-    document.getElementById("authEmail");
-
-  const passwordInput =
-    document.getElementById("authPassword");
-
-  const authStatus =
-    document.getElementById("authStatus");
+  const emailInput = document.getElementById("authEmail");
+  const passwordInput = document.getElementById("authPassword");
+  const authStatus = document.getElementById("authStatus");
 
   if (!emailInput || !passwordInput || !authStatus) {
+    console.error("Login: Required elements not found.");
     return;
   }
 
-  const email =
-    emailInput.value.trim();
-
-  const password =
-    passwordInput.value;
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
 
   if (!email || !password) {
-
-    authStatus.className =
-      "error";
-
+    authStatus.className = "error";
     authStatus.textContent =
       "⚠️ Please enter your email and password.";
-
     return;
   }
 
-  authStatus.className =
-    "notice";
-
+  authStatus.className = "notice";
   authStatus.textContent =
     "🔐 Logging you in...";
 
   try {
-
-    const {
-      data,
-      error
-    } =
+    const { data, error } =
       await supabaseClient.auth.signInWithPassword({
         email,
         password
@@ -1168,32 +1015,20 @@ async function signInUser() {
       throw error;
     }
 
-    authStatus.className =
-      "success";
-
+    authStatus.className = "success";
     authStatus.textContent =
       "✅ Login successful. Welcome to Sentinel AI.";
 
     passwordInput.value = "";
-
     await updateAuthUI();
 
   } catch (error) {
+    console.error("Login Error:", error);
 
-    console.error(
-      "Login Error:",
-      error
-    );
-
-    authStatus.className =
-      "error";
-
+    authStatus.className = "error";
     authStatus.textContent =
       "❌ " +
-      (
-        error?.message ||
-        "Unable to log in."
-      );
+      (error?.message || "Unable to log in.");
   }
 }
 
@@ -1203,42 +1038,29 @@ async function signInUser() {
 ========================= */
 
 async function signOutUser() {
-
-  const authStatus =
-    document.getElementById("authStatus");
+  const authStatus = document.getElementById("authStatus");
 
   if (!authStatus) {
+    console.error("Logout: authStatus element not found.");
     return;
   }
 
-  authStatus.className =
-    "notice";
-
+  authStatus.className = "notice";
   authStatus.textContent =
     "🔐 Logging you out...";
 
   try {
-
-    const {
-      error
-    } =
+    const { error } =
       await supabaseClient.auth.signOut();
 
     if (error) {
       throw error;
     }
 
-    const authForm =
-      document.getElementById("authForm");
-
-    const loggedInArea =
-      document.getElementById("loggedInArea");
-
-    const loggedInEmail =
-      document.getElementById("loggedInEmail");
-
-    const historyStatus =
-      document.getElementById("historyStatus");
+    const authForm = document.getElementById("authForm");
+    const loggedInArea = document.getElementById("loggedInArea");
+    const loggedInEmail = document.getElementById("loggedInEmail");
+    const historyStatus = document.getElementById("historyStatus");
 
     if (authForm) {
       authForm.style.display = "block";
@@ -1257,24 +1079,17 @@ async function signOutUser() {
         "📱 Local history is active. Log in to enable cloud history.";
     }
 
-    authStatus.className =
-      "success";
-
+    authStatus.className = "success";
     authStatus.textContent =
       "✅ You have been logged out successfully.";
 
   } catch (error) {
+    console.error("Logout Error:", error);
 
-    console.error(
-      "Logout Error:",
-      error
-    );
-
-    authStatus.className =
-      "error";
-
+    authStatus.className = "error";
     authStatus.textContent =
-      "❌ Unable to log out right now.";
+      "❌ " +
+      (error?.message || "Unable to log out right now.");
   }
 }
 
