@@ -7,6 +7,7 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body || {};
+
     const website =
       typeof body.url === "string"
         ? body.url.trim()
@@ -42,19 +43,45 @@ export default async function handler(req, res) {
       });
     }
 
+    // Reject credentials in URLs such as https://user:pass@example.com
+    if (target.username || target.password) {
+      return res.status(400).json({
+        error: "URLs containing username or password information are not supported."
+      });
+    }
+
     const hostname = target.hostname.toLowerCase();
 
+    // Basic protection against local/private targets.
     const blockedHosts = [
       "localhost",
       "127.0.0.1",
       "0.0.0.0",
-      "::1"
+      "::1",
+      "[::1]"
     ];
 
     if (
       blockedHosts.includes(hostname) ||
-      hostname.endsWith(".local")
+      hostname.endsWith(".local") ||
+      hostname.endsWith(".localhost") ||
+      hostname.endsWith(".internal")
     ) {
+      return res.status(400).json({
+        error: "Private or local websites cannot be scanned."
+      });
+    }
+
+    // Reject obvious private IPv4 targets.
+    const ipv4PrivatePatterns = [
+      /^10\./,
+      /^127\./,
+      /^169\.254\./,
+      /^192\.168\./,
+      /^172\.(1[6-9]|2\d|3[0-1])\./
+    ];
+
+    if (ipv4PrivatePatterns.some(pattern => pattern.test(hostname))) {
       return res.status(400).json({
         error: "Private or local websites cannot be scanned."
       });
@@ -75,7 +102,7 @@ export default async function handler(req, res) {
         signal: controller.signal,
         headers: {
           "User-Agent":
-            "Sentinel-AI-Security-Scanner/3.0",
+            "Sentinel-AI-Security-Scanner/3.1",
           "Accept":
             "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8"
         }
@@ -107,6 +134,33 @@ export default async function handler(req, res) {
       finalTarget = new URL(finalURL);
     } catch {
       finalTarget = target;
+    }
+
+    // Make sure redirects do not finish on an unsupported protocol.
+    if (!["http:", "https:"].includes(finalTarget.protocol)) {
+      return res.status(400).json({
+        error:
+          "The website redirected to an unsupported destination."
+      });
+    }
+
+    // Basic protection for redirected local/private targets.
+    const finalHostname =
+      finalTarget.hostname.toLowerCase();
+
+    if (
+      blockedHosts.includes(finalHostname) ||
+      finalHostname.endsWith(".local") ||
+      finalHostname.endsWith(".localhost") ||
+      finalHostname.endsWith(".internal") ||
+      ipv4PrivatePatterns.some(pattern =>
+        pattern.test(finalHostname)
+      )
+    ) {
+      return res.status(400).json({
+        error:
+          "The website redirected to a private or local destination."
+      });
     }
 
     const checks = [];
@@ -142,7 +196,7 @@ export default async function handler(req, res) {
 
     if (hsts) {
       const match =
-        hsts.match(/max-age\s*=\s*(\d+)/i);
+        hsts.match(/(?:^|;)\s*max-age\s*=\s*(\d+)/i);
 
       const maxAge =
         match ? Number(match[1]) : 0;
@@ -182,8 +236,8 @@ export default async function handler(req, res) {
         "Add a carefully configured Content-Security-Policy header."
       );
     } else if (
-      csp.includes("'unsafe-inline'") ||
-      csp.includes("'unsafe-eval'")
+      /'unsafe-inline'/i.test(csp) ||
+      /'unsafe-eval'/i.test(csp)
     ) {
       addCheck(
         "Content Security Policy",
@@ -227,7 +281,7 @@ export default async function handler(req, res) {
 
     if (
       xContentType &&
-      xContentType.toLowerCase().includes("nosniff")
+      /\bnosniff\b/i.test(xContentType)
     ) {
       addCheck(
         "X-Content-Type-Options",
@@ -299,7 +353,7 @@ export default async function handler(req, res) {
       );
     }
 
-    // Server
+    // Server Information
     const server =
       headers.get("server");
 
@@ -348,11 +402,18 @@ export default async function handler(req, res) {
       for (const cookie of setCookies) {
         const text = cookie.toLowerCase();
 
-        if (
-          !text.includes("secure") ||
-          !text.includes("httponly") ||
-          !text.includes("samesite")
-        ) {
+        // Check cookie attributes as actual attributes,
+        // rather than simple substring matching.
+        const hasSecure =
+          /(?:^|;\s*)secure(?:\s*;|$)/i.test(cookie);
+
+        const hasHttpOnly =
+          /(?:^|;\s*)httponly(?:\s*;|$)/i.test(cookie);
+
+        const hasSameSite =
+          /(?:^|;\s*)samesite\s*=/i.test(cookie);
+
+        if (!hasSecure || !hasHttpOnly || !hasSameSite) {
           insecureCookie = true;
           break;
         }
@@ -450,7 +511,7 @@ export default async function handler(req, res) {
       );
     }
 
-    // HTTP status
+    // HTTP Response Status
     if (
       response.status >= 200 &&
       response.status < 400
@@ -460,12 +521,41 @@ export default async function handler(req, res) {
         "PASS",
         `The website returned HTTP status ${response.status}.`
       );
+    } else if (
+      response.status === 404 ||
+      response.status === 410
+    ) {
+      addCheck(
+        "HTTP Response Status",
+        "INFO",
+        `The website returned HTTP status ${response.status}. This indicates that the requested resource was not found or is no longer available.`,
+        "Verify that the scanned URL points to the intended live resource."
+      );
+    } else if (
+      response.status === 429
+    ) {
+      addCheck(
+        "HTTP Response Status",
+        "INFO",
+        "The website returned HTTP 429, indicating that requests may be temporarily rate limited.",
+        "If expected, no immediate security fix is required. Review rate-limiting behavior if this affects legitimate users."
+      );
+    } else if (
+      response.status >= 400 &&
+      response.status < 500
+    ) {
+      addCheck(
+        "HTTP Response Status",
+        "INFO",
+        `The website returned HTTP status ${response.status}, indicating a client-side request or resource issue.`,
+        "Review the requested URL and confirm that the intended resource is available."
+      );
     } else {
       addCheck(
         "HTTP Response Status",
         "WARNING",
         `The website returned HTTP status ${response.status}.`,
-        "Review the HTTP response and server configuration."
+        "Review the server response and configuration."
       );
     }
 
@@ -523,7 +613,10 @@ export default async function handler(req, res) {
         new AbortController();
 
       const securityTimeout =
-        setTimeout(() => securityController.abort(), 5000);
+        setTimeout(
+          () => securityController.abort(),
+          5000
+        );
 
       const securityResponse =
         await fetch(securityURL, {
@@ -532,7 +625,7 @@ export default async function handler(req, res) {
           signal: securityController.signal,
           headers: {
             "User-Agent":
-              "Sentinel-AI-Security-Scanner/3.0"
+              "Sentinel-AI-Security-Scanner/3.1"
           }
         });
 
@@ -573,7 +666,10 @@ export default async function handler(req, res) {
         new AbortController();
 
       const robotsTimeout =
-        setTimeout(() => robotsController.abort(), 5000);
+        setTimeout(
+          () => robotsController.abort(),
+          5000
+        );
 
       const robotsResponse =
         await fetch(robotsURL, {
@@ -582,7 +678,7 @@ export default async function handler(req, res) {
           signal: robotsController.signal,
           headers: {
             "User-Agent":
-              "Sentinel-AI-Security-Scanner/3.0"
+              "Sentinel-AI-Security-Scanner/3.1"
           }
         });
 
@@ -669,22 +765,21 @@ export default async function handler(req, res) {
       website: finalURL,
       finalUrl: finalURL,
 
-      // Frontend compatibility
       score: score,
       securityScore: score,
 
-      riskLevel: riskLevel,
+      riskLevel,
 
-      scanId: scanId,
+      scanId,
 
-      checks: checks,
+      checks,
 
       summary: {
         total: totalChecks,
-        totalChecks: totalChecks,
-        passed: passed,
-        warnings: warnings,
-        informational: informational
+        totalChecks,
+        passed,
+        warnings,
+        informational
       }
     });
 
