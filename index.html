@@ -1569,7 +1569,7 @@ async function runSecurityScan() {
 
 
   button.disabled = true;
-
+trackEvent("scan_started");
 
   result.innerHTML = `
     <div class="notice">
