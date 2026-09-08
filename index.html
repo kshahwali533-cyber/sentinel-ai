@@ -961,7 +961,9 @@ async function signUpUser() {
     if (error) {
       throw error;
     }
-
+if (data?.user) {
+  trackEvent("account_created");
+}
     if (data?.session) {
       authStatus.className = "success";
       authStatus.textContent =
