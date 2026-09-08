@@ -1492,7 +1492,7 @@ async function clearSupabaseHistory() {
    START SCANNER
 ========================= */
 
-async function runSecurityScan() {
+async function runSecurityScan(isRescan = false) {
 
   const websiteInput =
     document.getElementById("website");
