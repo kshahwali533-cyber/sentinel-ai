@@ -1569,7 +1569,11 @@ async function runSecurityScan(isRescan = false) {
 
 
   button.disabled = true;
-trackEvent("scan_started");
+trackEvent(
+  isRescan
+    ? "rescan_started"
+    : "scan_started"
+);
 
   result.innerHTML = `
     <div class="notice">
