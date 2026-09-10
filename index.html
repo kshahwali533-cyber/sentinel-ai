@@ -537,12 +537,44 @@
         autocomplete="email"
       >
 
-      <input
-        id="authPassword"
-        type="password"
-        placeholder="Password"
-        autocomplete="current-password"
-      >
+      <div style="position:relative;">
+
+  <input
+    id="authPassword"
+    type="password"
+    placeholder="Password"
+    autocomplete="current-password"
+    style="padding-right:55px;"
+  >
+
+  <button
+    type="button"
+    onclick="togglePassword()"
+    style="
+      position:absolute;
+      right:8px;
+      top:12px;
+      width:42px;
+      padding:10px 0;
+      background:transparent;
+      color:#38bdf8;
+      border:none;
+      font-size:20px;
+    "
+    aria-label="Show or hide password"
+  >
+    👁️
+  </button>
+
+</div>
+
+<button
+  type="button"
+  class="secondary-button"
+  onclick="resetPassword()"
+>
+  🔑 Forgot Password?
+</button>
 
       <div class="auth-actions">
 
