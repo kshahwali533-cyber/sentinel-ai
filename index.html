@@ -946,8 +946,58 @@ async function updateAuthUI() {
       "❌ Unable to check account status right now.";
   }
 }
+function togglePassword() {
+  const passwordInput = document.getElementById("authPassword");
 
+  if (!passwordInput) return;
 
+  passwordInput.type =
+    passwordInput.type === "password"
+      ? "text"
+      : "password";
+}
+async function resetPassword() {
+  const emailInput = document.getElementById("authEmail");
+  const authStatus = document.getElementById("authStatus");
+
+  if (!emailInput || !authStatus) return;
+
+  const email = emailInput.value.trim();
+
+  if (!email) {
+    authStatus.className = "error";
+    authStatus.textContent =
+      "⚠️ Please enter your email address first.";
+    return;
+  }
+
+  authStatus.className = "notice";
+  authStatus.textContent =
+    "📧 Sending password reset email...";
+
+  try {
+    const { error } =
+      await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    authStatus.className = "success";
+    authStatus.textContent =
+      "✅ Password reset link sent. Please check your email.";
+
+  } catch (error) {
+    console.error("Password Reset Error:", error);
+
+    authStatus.className = "error";
+    authStatus.textContent =
+      "❌ " +
+      (error?.message || "Unable to send password reset email.");
+  }
+}
 /* =========================
    CREATE ACCOUNT
 ========================= */
