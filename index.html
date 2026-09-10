@@ -596,7 +596,32 @@
       </div>
 
     </div>
+<div id="passwordResetArea" style="display:none;">
 
+  <h4>🔑 Create New Password</h4>
+
+  <input
+    id="newPassword"
+    type="password"
+    placeholder="New password"
+    autocomplete="new-password"
+  >
+
+  <input
+    id="confirmPassword"
+    type="password"
+    placeholder="Confirm new password"
+    autocomplete="new-password"
+  >
+
+  <button
+    type="button"
+    onclick="updatePassword()"
+  >
+    Update Password
+  </button>
+
+</div>
     <div id="loggedInArea" style="display:none;">
 
       <div class="auth-user">
