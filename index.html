@@ -997,6 +997,84 @@ async function resetPassword() {
       "❌ " +
       (error?.message || "Unable to send password reset email.");
   }
+}/* =========================
+   UPDATE PASSWORD
+========================= */
+
+async function updatePassword() {
+  const newPasswordInput = document.getElementById("newPassword");
+  const confirmPasswordInput = document.getElementById("confirmPassword");
+  const authStatus = document.getElementById("authStatus");
+
+  if (!newPasswordInput || !confirmPasswordInput || !authStatus) {
+    console.error("Update Password: Required elements not found.");
+    return;
+  }
+
+  const newPassword = newPasswordInput.value;
+  const confirmPassword = confirmPasswordInput.value;
+
+  if (!newPassword || !confirmPassword) {
+    authStatus.className = "error";
+    authStatus.textContent =
+      "⚠️ Please enter and confirm your new password.";
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    authStatus.className = "error";
+    authStatus.textContent =
+      "⚠️ Password must be at least 6 characters.";
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    authStatus.className = "error";
+    authStatus.textContent =
+      "⚠️ Passwords do not match.";
+    return;
+  }
+
+  authStatus.className = "notice";
+  authStatus.textContent =
+    "🔐 Updating your password...";
+
+  try {
+    const { error } =
+      await supabaseClient.auth.updateUser({
+        password: newPassword
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    authStatus.className = "success";
+    authStatus.textContent =
+      "✅ Password updated successfully. You can now use your new password.";
+
+    newPasswordInput.value = "";
+    confirmPasswordInput.value = "";
+
+    isPasswordRecovery = false;
+
+    const passwordResetArea =
+      document.getElementById("passwordResetArea");
+
+    if (passwordResetArea) {
+      passwordResetArea.style.display = "none";
+    }
+
+    await updateAuthUI();
+
+  } catch (error) {
+    console.error("Update Password Error:", error);
+
+    authStatus.className = "error";
+    authStatus.textContent =
+      "❌ " +
+      (error?.message || "Unable to update password.");
+  }
 }
 /* =========================
    CREATE ACCOUNT
