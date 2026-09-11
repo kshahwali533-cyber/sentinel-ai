@@ -859,7 +859,8 @@ const supabaseClient =
 
 
 let latestScan = null;
-function trackEvent(eventName) {
+let isPasswordRecovery = false;
+  function trackEvent(eventName) {
   try {
     if (typeof window.va === "function") {
       window.va("event", {
