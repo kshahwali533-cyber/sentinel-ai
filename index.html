@@ -921,6 +921,7 @@ async function updateAuthUI() {
     const user = session?.user;
 
     if (user) {
+      console.log("AUTH UI: user detected");
       authStatus.className = "success";
       authStatus.textContent =
         "✅ Your Sentinel AI account is active. Your scan history can be saved securely.";
