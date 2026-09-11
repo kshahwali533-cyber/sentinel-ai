@@ -3462,12 +3462,13 @@ document.addEventListener(
 
 
     supabaseClient.auth.onAuthStateChange(
-      async function() {
+  async function(event) {
 
-        await updateAuthUI();
+    if (event === "PASSWORD_RECOVERY") {
+      isPasswordRecovery = true;
+    }
 
-      }
-    );
+    await updateAuthUI();
 
   }
 );
