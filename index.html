@@ -1038,7 +1038,12 @@ async function resetPassword() {
     authStatus.className = "success";
     authStatus.textContent =
       "✅ Password reset link sent. Please check your email.";
+const otpResetArea =
+  document.getElementById("otpResetArea");
 
+if (otpResetArea) {
+  otpResetArea.style.display = "block";
+}
   } catch (error) {
     console.error("Password Reset Error:", error);
 
