@@ -3534,17 +3534,33 @@ document.addEventListener(
 
     await updateAuthUI();
 
-
     supabaseClient.auth.onAuthStateChange(
-  async function(event) {
+      async function(event) {
 
-    if (event === "PASSWORD_RECOVERY") {
-      isPasswordRecovery = true;
-    }
+        if (event === "PASSWORD_RECOVERY") {
 
-    await updateAuthUI();
-  }
-);
+          isPasswordRecovery = true;
+
+          const passwordResetArea =
+            document.getElementById("passwordResetArea");
+
+          if (passwordResetArea) {
+            passwordResetArea.style.display = "block";
+          }
+
+          const authStatus =
+            document.getElementById("authStatus");
+
+          if (authStatus) {
+            authStatus.className = "success";
+            authStatus.textContent =
+              "🔑 Password recovery verified. Please create a new password.";
+          }
+        }
+
+        await updateAuthUI();
+      }
+    );
 
   }
 );
