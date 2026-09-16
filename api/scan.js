@@ -32,7 +32,11 @@ if (
         error: "Website URL is required."
       });
     }
-
+if (website.length > 2048) {
+  return res.status(400).json({
+    error: "Website URL is too long."
+  });
+}
     const normalizedUrl =
       website.startsWith("http://") ||
       website.startsWith("https://")
