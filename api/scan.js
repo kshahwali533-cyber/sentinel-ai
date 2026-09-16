@@ -326,6 +326,13 @@ if (!hostname) {
       "The website hostname contains invalid characters."
   };
       }
+      if (hostname.includes("..")) {
+  return {
+    safe: false,
+    reason:
+      "The website hostname is invalid."
+  };
+      }
       const blockedHosts = [
         "localhost",
         "localhost.",
