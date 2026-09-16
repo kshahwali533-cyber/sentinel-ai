@@ -25,8 +25,11 @@ if (
       "unknown";
         const RATE_LIMIT = 10;
     const RATE_WINDOW_MS = 60 * 60 * 1000;
-
-    // Rate limiting will be connected to Supabase here.
+    const rateWindowStart =
+      new Date(
+        Math.floor(Date.now() / RATE_WINDOW_MS) *
+          RATE_WINDOW_MS
+      ).toISOString();
     const website =
       typeof body.url === "string"
         ? body.url.trim()
