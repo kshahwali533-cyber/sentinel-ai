@@ -19,7 +19,10 @@ if (
     error: "Invalid request body."
   });
 }
-
+    const clientIP =
+      req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+      req.socket?.remoteAddress ||
+      "unknown";
     const website =
       typeof body.url === "string"
         ? body.url.trim()
