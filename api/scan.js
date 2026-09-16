@@ -317,6 +317,15 @@ if (!hostname) {
       "The website hostname is too long."
   };
       }
+      if (
+  /[\s/\\]/.test(hostname)
+) {
+  return {
+    safe: false,
+    reason:
+      "The website hostname contains invalid characters."
+  };
+      }
       const blockedHosts = [
         "localhost",
         "localhost.",
