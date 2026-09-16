@@ -310,6 +310,13 @@ if (!hostname) {
       "A valid website hostname is required."
   };
 }
+      if (hostname.length > 253) {
+  return {
+    safe: false,
+    reason:
+      "The website hostname is too long."
+  };
+      }
       const blockedHosts = [
         "localhost",
         "localhost.",
