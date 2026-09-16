@@ -303,7 +303,13 @@ if (website.length > 2048) {
 
       const hostname =
         urlObject.hostname.toLowerCase();
-
+if (!hostname) {
+  return {
+    safe: false,
+    reason:
+      "A valid website hostname is required."
+  };
+}
       const blockedHosts = [
         "localhost",
         "localhost.",
