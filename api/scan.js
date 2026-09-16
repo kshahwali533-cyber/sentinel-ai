@@ -595,7 +595,19 @@ if (website.length > 2048) {
 
     const response =
       mainResult.response;
+const contentLength =
+  Number(response.headers.get("content-length") || 0);
 
+const MAX_RESPONSE_SIZE = 5 * 1024 * 1024;
+
+if (
+  contentLength > MAX_RESPONSE_SIZE
+) {
+  return res.status(413).json({
+    error:
+      "The website response is too large to scan safely."
+  });
+}
     const finalTarget =
       mainResult.finalURL;
 
