@@ -105,7 +105,33 @@ if (website.length > 2048) {
           "URLs containing username or password information are not supported."
       });
     }
+if (target.port) {
+  const port = Number(target.port);
 
+  const blockedPorts = [
+    21,
+    22,
+    23,
+    25,
+    110,
+    135,
+    139,
+    143,
+    445,
+    3306,
+    3389,
+    5432,
+    6379,
+    8080,
+    8443
+  ];
+
+  if (blockedPorts.includes(port)) {
+    return res.status(400).json({
+      error: "This port is not supported for security scanning."
+    });
+  }
+}
     /*
      * ---------------------------------------------------------
      * SSRF / PRIVATE IP PROTECTION
