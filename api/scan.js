@@ -1,6 +1,17 @@
 import dns from "node:dns/promises";
 import net from "node:net";
+import { createClient } from "@supabase/supabase-js";
 
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  }
+);
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -30,6 +41,25 @@ if (
         Math.floor(Date.now() / RATE_WINDOW_MS) *
           RATE_WINDOW_MS
       ).toISOString();
+    const { data: rateAllowed, error: rateError } =
+  await supabaseAdmin.rpc("check_scan_rate_limit", {
+    p_ip_address: clientIP,
+    p_window_start: rateWindowStart,
+    p_rate_limit: RATE_LIMIT
+  });
+
+if (rateError) {
+  console.error("Rate limit check failed:", rateError);
+  return res.status(500).json({
+    error: "Unable to process scan request safely."
+  });
+}
+
+if (!rateAllowed) {
+  return res.status(429).json({
+    error: "Scan limit reached. Please try again later."
+  });
+}
     const website =
       typeof body.url === "string"
         ? body.url.trim()
