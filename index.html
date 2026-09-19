@@ -1305,7 +1305,8 @@ async function signInUser() {
     if (error) {
       throw error;
     }
-
+    trackEvent("login_success");
+    
     authStatus.className = "success";
     authStatus.textContent =
       "✅ Login successful. Welcome to Sentinel AI.";
