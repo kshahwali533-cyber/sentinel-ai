@@ -1349,7 +1349,8 @@ async function signOutUser() {
     if (error) {
       throw error;
     }
-
+    trackSentinelEvent("logout_success");
+    
     const authForm = document.getElementById("authForm");
     const loggedInArea = document.getElementById("loggedInArea");
     const loggedInEmail = document.getElementById("loggedInEmail");
