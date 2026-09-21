@@ -1678,6 +1678,8 @@ if (
       riskLevel,
       scanId,
       checks,
+      discoveredSurface,
+       surfaceFindings,
       summary: {
         total: totalChecks,
         totalChecks,
