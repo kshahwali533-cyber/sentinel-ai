@@ -2048,6 +2048,42 @@ function displayScanResults(data) {
         check.status === "INFO"
     ).length;
 
+    /*
+   * ---------------------------------------------------------
+   * ADVANCED VULNERABILITY DISCOVERY — SETUP 4
+   * DISCOVERED ATTACK SURFACE UI
+   * ---------------------------------------------------------
+   */
+
+  let attackSurfaceHTML = "";
+
+  if (
+    discoveredSurface.length > 0 ||
+    surfaceFindings.length > 0
+  ) {
+    attackSurfaceHTML = `
+      <div class="priority">
+
+        <strong>
+          Discovered Attack Surface
+        </strong>
+
+        <br><br>
+
+        ${discoveredSurface.length}
+        public resources discovered.
+
+        ${
+          surfaceFindings.length > 0
+            ? `<br>
+               ${surfaceFindings.length}
+               security-relevant surface indicators detected.`
+            : ""
+        }
+
+      </div>
+    `;
+  }
 
   let priorityHTML = "";
 
