@@ -1356,6 +1356,151 @@ if (
         0,
         discoveryLimit
       );
+
+        /*
+     * ---------------------------------------------------------
+     * ADVANCED VULNERABILITY DISCOVERY — SETUP 2
+     * SECURITY-RELEVANT SURFACE ANALYSIS
+     * ---------------------------------------------------------
+     */
+
+    const surfaceFindings = [];
+
+    function addSurfaceFinding(
+      category,
+      url,
+      indicator,
+      severity = "INFO"
+    ) {
+      surfaceFindings.push({
+        category,
+        url,
+        indicator,
+        severity
+      });
+    }
+
+    /*
+     * Security-relevant public path indicators.
+     * These are discovery signals only.
+     * Sentinel does not attempt to exploit them.
+     */
+    const sensitivePathPatterns = [
+      {
+        pattern: /\/admin(?:\/|$)/i,
+        indicator: "Administrative path detected."
+      },
+      {
+        pattern: /\/administrator(?:\/|$)/i,
+        indicator: "Administrator path detected."
+      },
+      {
+        pattern: /\/login(?:\/|$)/i,
+        indicator: "Login/authentication path detected."
+      },
+      {
+        pattern: /\/signin(?:\/|$)/i,
+        indicator: "Sign-in path detected."
+      },
+      {
+        pattern: /\/dashboard(?:\/|$)/i,
+        indicator: "Dashboard path detected."
+      },
+      {
+        pattern: /\/api(?:\/|$)/i,
+        indicator: "API path detected."
+      },
+      {
+        pattern: /\/graphql(?:\/|$)/i,
+        indicator: "GraphQL endpoint path detected."
+      },
+      {
+        pattern: /\/upload(?:\/|$)/i,
+        indicator: "Upload-related path detected."
+      },
+      {
+        pattern: /\/uploads?(?:\/|$)/i,
+        indicator: "Upload resource path detected."
+      },
+      {
+        pattern: /\/backup(?:\/|$)/i,
+        indicator: "Backup-related path detected."
+      },
+      {
+        pattern: /\/debug(?:\/|$)/i,
+        indicator: "Debug-related path detected."
+      },
+      {
+        pattern: /\/internal(?:\/|$)/i,
+        indicator: "Internal-looking path detected."
+      }
+    ];
+
+    for (
+      const resource of discoveredSurface
+    ) {
+      for (
+        const entry of sensitivePathPatterns
+      ) {
+        if (
+          entry.pattern.test(resource.url)
+        ) {
+          addSurfaceFinding(
+            "Sensitive Surface",
+            resource.url,
+            entry.indicator,
+            "INFO"
+          );
+        }
+      }
+    }
+
+    /*
+     * Detect potentially interesting query parameters.
+     * Parameters are identified only; values are never modified.
+     */
+    const interestingParameters = [
+      "id",
+      "user",
+      "userid",
+      "account",
+      "file",
+      "path",
+      "url",
+      "redirect",
+      "next",
+      "return",
+      "callback",
+      "token"
+    ];
+
+    for (
+      const resource of discoveredSurface
+    ) {
+      try {
+        const resourceURL =
+          new URL(resource.url);
+
+        for (
+          const parameter of interestingParameters
+        ) {
+          if (
+            resourceURL.searchParams.has(
+              parameter
+            )
+          ) {
+            addSurfaceFinding(
+              "Interesting Parameter",
+              resource.url,
+              `Parameter "${parameter}" detected.`,
+              "INFO"
+            );
+          }
+        }
+      } catch {
+        // Ignore malformed discovered resources.
+      }
+    }
     
     /*
      * ---------------------------------------------------------
