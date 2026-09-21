@@ -1998,6 +1998,22 @@ function displayScanResults(data) {
       ? data.checks
       : [];
 
+    /*
+   * ---------------------------------------------------------
+   * ADVANCED VULNERABILITY DISCOVERY — SETUP 4
+   * DISCOVERED ATTACK SURFACE
+   * ---------------------------------------------------------
+   */
+
+  const discoveredSurface =
+    Array.isArray(data.discoveredSurface)
+      ? data.discoveredSurface
+      : [];
+
+  const surfaceFindings =
+    Array.isArray(data.surfaceFindings)
+      ? data.surfaceFindings
+      : [];
 
   const score =
     Number(
