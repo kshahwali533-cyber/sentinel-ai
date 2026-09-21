@@ -1196,7 +1196,167 @@ if (
       "PASS",
       `Public hostname detected: ${finalTarget.hostname}.`
     );
+    /*
+     * ---------------------------------------------------------
+     * ADVANCED VULNERABILITY DISCOVERY — SETUP 1
+     * PUBLIC SURFACE DISCOVERY
+     * ---------------------------------------------------------
+     */
 
+    const discoveredResources = [];
+
+    function addDiscoveredResource(
+      url,
+      type = "resource",
+      source = "scanner"
+    ) {
+      try {
+        const resourceURL =
+          new URL(url);
+
+        if (
+          resourceURL.origin !==
+          finalTarget.origin
+        ) {
+          return;
+        }
+
+        const exists =
+          discoveredResources.some(
+            item =>
+              item.url === resourceURL.href
+          );
+
+        if (!exists) {
+          discoveredResources.push({
+            url: resourceURL.href,
+            type,
+            source
+          });
+        }
+      } catch {
+        // Ignore invalid discovered URLs.
+      }
+    }
+
+    /*
+     * Always include the final scanned page.
+     */
+    addDiscoveredResource(
+      finalTarget.href,
+      "page",
+      "scan-target"
+    );
+
+    /*
+     * Discover common public security resources.
+     */
+    addDiscoveredResource(
+      new URL(
+        "/robots.txt",
+        finalTarget.origin
+      ).href,
+      "robots.txt",
+      "standard-path"
+    );
+
+    addDiscoveredResource(
+      new URL(
+        "/.well-known/security.txt",
+        finalTarget.origin
+      ).href,
+      "security.txt",
+      "standard-path"
+    );
+
+    /*
+     * Discover same-origin links from HTML.
+     */
+    if (
+      contentType
+        .toLowerCase()
+        .includes("text/html")
+    ) {
+      try {
+        const html =
+          await response.text();
+
+        const linkMatches =
+          html.matchAll(
+            /<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi
+          );
+
+        let discoveredLinkCount = 0;
+
+        for (
+          const match of linkMatches
+        ) {
+          if (
+            discoveredLinkCount >= 50
+          ) {
+            break;
+          }
+
+          const rawHref =
+            match[1]?.trim();
+
+          if (!rawHref) {
+            continue;
+          }
+
+          if (
+            rawHref.startsWith("#") ||
+            rawHref.startsWith("mailto:") ||
+            rawHref.startsWith("tel:") ||
+            rawHref.startsWith("javascript:")
+          ) {
+            continue;
+          }
+
+          try {
+            const discoveredURL =
+              new URL(
+                rawHref,
+                finalTarget.href
+              );
+
+            if (
+              discoveredURL.origin !==
+              finalTarget.origin
+            ) {
+              continue;
+            }
+
+            discoveredURL.hash = "";
+
+            addDiscoveredResource(
+              discoveredURL.href,
+              "page",
+              "html-link"
+            );
+
+            discoveredLinkCount++;
+          } catch {
+            // Ignore invalid links.
+          }
+        }
+      } catch {
+        // HTML discovery is best-effort.
+      }
+    }
+
+    /*
+     * Limit the discovery surface.
+     * This is discovery only — no active exploitation.
+     */
+    const discoveryLimit = 50;
+
+    const discoveredSurface =
+      discoveredResources.slice(
+        0,
+        discoveryLimit
+      );
+    
     /*
      * ---------------------------------------------------------
      * SECURITY.TXT
