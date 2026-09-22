@@ -1218,7 +1218,7 @@ if (
 
         if (
           resourceURL.origin !==
-          finalTarget.origin
+          originalTargetOrigin
         ) {
           return;
         }
