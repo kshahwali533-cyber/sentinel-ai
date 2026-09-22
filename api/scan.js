@@ -1202,6 +1202,8 @@ if (
      * PUBLIC SURFACE DISCOVERY
      * ---------------------------------------------------------
      */
+    const originalTargetOrigin =
+  new URL(url).origin;
 
     const discoveredResources = [];
 
