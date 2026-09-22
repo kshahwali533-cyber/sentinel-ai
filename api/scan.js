@@ -1203,7 +1203,7 @@ if (
      * ---------------------------------------------------------
      */
     const originalTargetOrigin =
-  mainResult.originalURL.origin;
+  finalTarget.origin;
 
     const discoveredResources = [];
 
