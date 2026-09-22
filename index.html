@@ -2049,11 +2049,11 @@ function displayScanResults(data) {
     ).length;
 
     /*
-   * ---------------------------------------------------------
-   * ADVANCED VULNERABILITY DISCOVERY — SETUP 4
-   * DISCOVERED ATTACK SURFACE UI
-   * ---------------------------------------------------------
-   */
+ * ---------------------------------------------------------
+ * ADVANCED VULNERABILITY DISCOVERY — SETUP 5
+ * DISCOVERED RESOURCE DETAILS
+ * ---------------------------------------------------------
+ */
 
   let attackSurfaceHTML = "";
 
@@ -2061,11 +2061,34 @@ function displayScanResults(data) {
     discoveredSurface.length > 0 ||
     surfaceFindings.length > 0
   ) {
+
+    const resourceListHTML =
+      discoveredSurface
+        .slice(0, 20)
+        .map(resource => `
+          <li>
+            <strong>
+              ${escapeHTML(
+                resource.type ||
+                "Resource"
+              )}
+            </strong>
+            <br>
+            <span>
+              ${escapeHTML(
+                resource.url ||
+                ""
+              )}
+            </span>
+          </li>
+        `)
+        .join("");
+
     attackSurfaceHTML = `
       <div class="priority">
 
         <strong>
-          Discovered Attack Surface
+          🔎 Discovered Attack Surface
         </strong>
 
         <br><br>
@@ -2078,6 +2101,22 @@ function displayScanResults(data) {
             ? `<br>
                ${surfaceFindings.length}
                security-relevant surface indicators detected.`
+            : ""
+        }
+
+        ${
+          resourceListHTML
+            ? `
+              <br><br>
+
+              <strong>
+                Discovered Resources
+              </strong>
+
+              <ul>
+                ${resourceListHTML}
+              </ul>
+            `
             : ""
         }
 
