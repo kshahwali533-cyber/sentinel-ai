@@ -2125,7 +2125,66 @@ function displayScanResults(data) {
   }
 
   let priorityHTML = "";
+  
+/*
+ * ---------------------------------------------------------
+ * ADVANCED VULNERABILITY DISCOVERY — SETUP 6
+ * SECURITY-RELEVANT FINDINGS DETAILS
+ * ---------------------------------------------------------
+ */
 
+let surfaceFindingsHTML = "";
+
+if (surfaceFindings.length > 0) {
+
+  const findingsListHTML =
+    surfaceFindings
+      .slice(0, 20)
+      .map(finding => `
+        <li>
+          <strong>
+            ${escapeHTML(
+              finding.category ||
+              "Security Finding"
+            )}
+          </strong>
+          <br>
+          <span>
+            ${escapeHTML(
+              finding.indicator ||
+              ""
+            )}
+          </span>
+          <br>
+          <small>
+            ${escapeHTML(
+              finding.url ||
+              ""
+            )}
+          </small>
+        </li>
+      `)
+      .join("");
+
+  surfaceFindingsHTML = `
+    <div class="priority">
+
+      <strong>
+        ⚠️ Security-Relevant Findings
+      </strong>
+
+      <br><br>
+
+      ${surfaceFindings.length}
+      security-relevant surface indicators detected.
+
+      <ul>
+        ${findingsListHTML}
+      </ul>
+
+    </div>
+  `;
+}
 
   const warningChecks =
     checks.filter(
