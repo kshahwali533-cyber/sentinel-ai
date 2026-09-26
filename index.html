@@ -2124,6 +2124,66 @@ function displayScanResults(data) {
 
   let priorityHTML = "";
   
+  /*
+ * ---------------------------------------------------------
+ * ADVANCED VULNERABILITY DISCOVERY — SETUP 7
+ * TECHNOLOGY & SERVICE FINGERPRINTING
+ * ---------------------------------------------------------
+ */
+
+let technologyFindingsHTML = "";
+
+if (technologyFindings.length > 0) {
+
+  const technologyListHTML =
+    technologyFindings
+      .slice(0, 20)
+      .map(finding => `
+        <li>
+          <strong>
+            ${escapeHTML(
+              finding.technology ||
+              "Technology / Service"
+            )}
+          </strong>
+          <br>
+          <span>
+            ${escapeHTML(
+              finding.indicator ||
+              ""
+            )}
+          </span>
+          <br>
+          <small>
+            Source:
+            ${escapeHTML(
+              finding.source ||
+              "HTTP Response"
+            )}
+          </small>
+        </li>
+      `)
+      .join("");
+
+  technologyFindingsHTML = `
+    <div class="priority">
+
+      <strong>
+        🧩 Technology & Service Fingerprinting
+      </strong>
+
+      <br><br>
+
+      ${technologyFindings.length}
+      public technology/service signals detected.
+
+      <ul>
+        ${technologyListHTML}
+      </ul>
+
+    </div>
+  `;
+}
 /*
  * ---------------------------------------------------------
  * ADVANCED VULNERABILITY DISCOVERY — SETUP 6
