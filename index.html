@@ -2004,8 +2004,7 @@ function displayScanResults(data) {
    * DISCOVERED ATTACK SURFACE
    * ---------------------------------------------------------
    */
-
-  const discoveredSurface =
+    const discoveredSurface =
     Array.isArray(data.discoveredSurface)
       ? data.discoveredSurface
       : [];
@@ -2015,6 +2014,11 @@ function displayScanResults(data) {
       ? data.surfaceFindings
       : [];
 
+  const technologyFindings =
+    Array.isArray(data.technologyFindings)
+      ? data.technologyFindings
+      : [];
+
   const score =
     Number(
       data.score ??
@@ -2022,11 +2026,9 @@ function displayScanResults(data) {
       0
     );
 
-
   const riskLevel =
     data.riskLevel ||
     "Unknown";
-
 
   const passed =
     checks.filter(
@@ -2034,21 +2036,17 @@ function displayScanResults(data) {
         check.status === "PASS"
     ).length;
 
-
   const warnings =
     checks.filter(
       check =>
         check.status === "WARNING"
     ).length;
 
-
   const informational =
     checks.filter(
       check =>
         check.status === "INFO"
     ).length;
-
-    /*
  * ---------------------------------------------------------
  * ADVANCED VULNERABILITY DISCOVERY — SETUP 5
  * DISCOVERED RESOURCE DETAILS
