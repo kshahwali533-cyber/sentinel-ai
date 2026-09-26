@@ -1503,6 +1503,150 @@ if (
         // Ignore malformed discovered resources.
       }
     }
+    /*
+ * ---------------------------------------------------------
+ * ADVANCED VULNERABILITY DISCOVERY — SETUP 7
+ * TECHNOLOGY & SERVICE FINGERPRINTING
+ * ---------------------------------------------------------
+ */
+
+const technologyFindings = [];
+
+function addTechnologyFinding(
+  technology,
+  source,
+  indicator,
+  severity = "INFO"
+) {
+  technologyFindings.push({
+    technology,
+    source,
+    indicator,
+    severity
+  });
+}
+
+/*
+ * Detect publicly exposed technology/service
+ * information from response headers.
+ *
+ * Discovery only — no exploitation.
+ */
+
+const serverHeader =
+  headers.get("server");
+
+if (serverHeader) {
+  addTechnologyFinding(
+    "Server",
+    "HTTP Header",
+    `Server header exposes: ${serverHeader}`,
+    "INFO"
+  );
+}
+
+const poweredByHeader =
+  headers.get("x-powered-by");
+
+if (poweredByHeader) {
+  addTechnologyFinding(
+    "Application Framework",
+    "HTTP Header",
+    `X-Powered-By exposes: ${poweredByHeader}`,
+    "INFO"
+  );
+}
+
+const generatorHeader =
+  headers.get("x-generator");
+
+if (generatorHeader) {
+  addTechnologyFinding(
+    "Generator",
+    "HTTP Header",
+    `X-Generator exposes: ${generatorHeader}`,
+    "INFO"
+  );
+}
+
+const viaHeader =
+  headers.get("via");
+
+if (viaHeader) {
+  addTechnologyFinding(
+    "Proxy / Gateway",
+    "HTTP Header",
+    `Via header exposes: ${viaHeader}`,
+    "INFO"
+  );
+}
+
+/*
+ * Detect common infrastructure/service fingerprints.
+ */
+
+if (headers.get("cf-ray")) {
+  addTechnologyFinding(
+    "Cloudflare",
+    "HTTP Header",
+    "Cloudflare infrastructure fingerprint detected.",
+    "INFO"
+  );
+}
+
+if (headers.get("x-vercel-id")) {
+  addTechnologyFinding(
+    "Vercel",
+    "HTTP Header",
+    "Vercel infrastructure fingerprint detected.",
+    "INFO"
+  );
+}
+
+if (headers.get("x-amz-cf-id")) {
+  addTechnologyFinding(
+    "Amazon CloudFront",
+    "HTTP Header",
+    "Amazon CloudFront fingerprint detected.",
+    "INFO"
+  );
+}
+
+if (headers.get("x-cache")) {
+  addTechnologyFinding(
+    "Caching Layer",
+    "HTTP Header",
+    `Cache infrastructure fingerprint detected: ${headers.get("x-cache")}`,
+    "INFO"
+  );
+}
+
+/*
+ * Remove duplicate technology fingerprints.
+ */
+
+const uniqueTechnologyFindings = [];
+
+for (
+  const finding of technologyFindings
+) {
+  const exists =
+    uniqueTechnologyFindings.some(
+      item =>
+        item.technology ===
+          finding.technology &&
+        item.source ===
+          finding.source &&
+        item.indicator ===
+          finding.indicator
+    );
+
+  if (!exists) {
+    uniqueTechnologyFindings.push(
+      finding
+    );
+  }
+}
     
     /*
      * ---------------------------------------------------------
