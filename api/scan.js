@@ -1826,6 +1826,7 @@ for (
       checks,
       discoveredSurface,
        surfaceFindings,
+      technologyFindings: uniqueTechnologyFindings,
       summary: {
         total: totalChecks,
         totalChecks,
