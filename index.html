@@ -1938,11 +1938,13 @@ trackEvent(
 
     };
 
-
-    saveScanHistory(
+   saveScanHistory(
       latestScan
     );
-
+console.log(
+  "Sentinel technologyFindings:",
+  latestScan.technologyFindings
+);
 
     displayScanResults(
       latestScan
