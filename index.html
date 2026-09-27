@@ -930,14 +930,26 @@ async function updateAuthUI() {
   }
 
   try {
-    const {
-      data: { session },
-      error
-    } = await supabaseClient.auth.getSession();
+    console.log("AUTH DEBUG: before getSession");
 
-    if (error) {
-      throw error;
-    }
+const {
+  data: { session },
+  error
+} = await Promise.race([
+  supabaseClient.auth.getSession(),
+  new Promise((_, reject) =>
+    setTimeout(
+      () => reject(new Error("getSession timeout after 8 seconds")),
+      8000
+    )
+  )
+]);
+
+console.log("AUTH DEBUG: after getSession");
+
+if (error) {
+  throw error;
+}
 
     const user = session?.user;
 
