@@ -2200,6 +2200,65 @@ if (technologyFindings.length > 0) {
     </div>
   `;
 }
+  let applicationFindingsHTML = "";
+
+if (applicationFindings.length > 0) {
+
+  const applicationListHTML =
+    applicationFindings
+      .slice(0, 50)
+      .map(finding => `
+        <li>
+          <strong>
+            ${escapeHTML(
+              finding.type ||
+              "Application Entry Point"
+            )}
+          </strong>
+          <br>
+          <span>
+            ${escapeHTML(
+              finding.indicator ||
+              ""
+            )}
+          </span>
+          <br>
+          <small>
+            Method:
+            ${escapeHTML(
+              finding.method ||
+              "GET"
+            )}
+            <br>
+            URL:
+            ${escapeHTML(
+              finding.url ||
+              ""
+            )}
+          </small>
+        </li>
+      `)
+      .join("");
+
+  applicationFindingsHTML = `
+    <div class="priority">
+
+      <strong>
+        🚪 Application Entry-Point Discovery
+      </strong>
+
+      <br><br>
+
+      ${applicationFindings.length}
+      application entry points detected.
+
+      <ul>
+        ${applicationListHTML}
+      </ul>
+
+    </div>
+  `;
+}
 /*
  * ---------------------------------------------------------
  * ADVANCED VULNERABILITY DISCOVERY — SETUP 6
