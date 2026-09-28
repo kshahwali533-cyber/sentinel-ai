@@ -1505,6 +1505,192 @@ if (
     }
     /*
  * ---------------------------------------------------------
+ * ADVANCED VULNERABILITY DISCOVERY — SETUP 8
+ * APPLICATION ENTRY-POINT DISCOVERY
+ * ---------------------------------------------------------
+ */
+
+const applicationFindings = [];
+
+function addApplicationFinding(
+  type,
+  url,
+  indicator,
+  method = "GET"
+) {
+  applicationFindings.push({
+    type,
+    url,
+    indicator,
+    method
+  });
+}
+
+/*
+ * Passive discovery of HTML forms.
+ * Sentinel identifies application entry points only.
+ * It does not submit forms or modify parameters.
+ */
+
+if (
+  contentType
+    .toLowerCase()
+    .includes("text/html")
+) {
+  try {
+    const html =
+      await response.clone().text();
+
+    const formMatches =
+      html.matchAll(
+        /<form\b([^>]*)>/gi
+      );
+
+    let formCount = 0;
+
+    for (
+      const match of formMatches
+    ) {
+      if (formCount >= 20) {
+        break;
+      }
+
+      const attributes =
+        match[1] || "";
+
+      const actionMatch =
+        attributes.match(
+          /action\s*=\s*["']([^"']*)["']/i
+        );
+
+      const methodMatch =
+        attributes.match(
+          /method\s*=\s*["']([^"']*)["']/i
+        );
+
+      const rawAction =
+        actionMatch?.[1]?.trim() || "";
+
+      const method =
+        (
+          methodMatch?.[1] ||
+          "GET"
+        ).toUpperCase();
+
+      try {
+        const formURL =
+          new URL(
+            rawAction || finalTarget.href,
+            finalTarget.href
+          );
+
+        if (
+          formURL.origin !==
+          originalTargetOrigin
+        ) {
+          continue;
+        }
+
+        formURL.hash = "";
+
+        addApplicationFinding(
+          "Form",
+          formURL.href,
+          "HTML form entry point detected.",
+          method
+        );
+
+        formCount++;
+      } catch {
+        // Ignore malformed form actions.
+      }
+    }
+
+    /*
+     * Discover same-origin JavaScript resources.
+     */
+
+    const scriptMatches =
+      html.matchAll(
+        /<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi
+      );
+
+    let scriptCount = 0;
+
+    for (
+      const match of scriptMatches
+    ) {
+      if (scriptCount >= 30) {
+        break;
+      }
+
+      const rawSrc =
+        match[1]?.trim();
+
+      if (!rawSrc) {
+        continue;
+      }
+
+      try {
+        const scriptURL =
+          new URL(
+            rawSrc,
+            finalTarget.href
+          );
+
+        if (
+          scriptURL.origin !==
+          originalTargetOrigin
+        ) {
+          continue;
+        }
+
+        scriptURL.hash = "";
+
+        addApplicationFinding(
+          "JavaScript",
+          scriptURL.href,
+          "Same-origin JavaScript resource detected.",
+          "GET"
+        );
+
+        scriptCount++;
+      } catch {
+        // Ignore malformed script URLs.
+      }
+    }
+  } catch {
+    // Application entry-point discovery is best-effort.
+  }
+}
+
+/*
+ * Remove duplicate application findings.
+ */
+
+const uniqueApplicationFindings = [];
+
+for (
+  const finding of applicationFindings
+) {
+  const exists =
+    uniqueApplicationFindings.some(
+      item =>
+        item.type === finding.type &&
+        item.url === finding.url &&
+        item.method === finding.method
+    );
+
+  if (!exists) {
+    uniqueApplicationFindings.push(
+      finding
+    );
+  }
+}
+    
+/*
+ *  
+   ---------------------------------------------------------
  * ADVANCED VULNERABILITY DISCOVERY — SETUP 7
  * TECHNOLOGY & SERVICE FINGERPRINTING
  * ---------------------------------------------------------
