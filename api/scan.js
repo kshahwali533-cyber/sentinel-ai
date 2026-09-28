@@ -2013,6 +2013,7 @@ for (
       discoveredSurface,
        surfaceFindings,
       technologyFindings: uniqueTechnologyFindings,
+      applicationFindings: uniqueApplicationFindings,
       summary: {
         total: totalChecks,
         totalChecks,
