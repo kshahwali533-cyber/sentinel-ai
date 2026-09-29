@@ -1270,6 +1270,71 @@ if (
       "security.txt",
       "standard-path"
     );
+        /*
+     * ---------------------------------------------------------
+     * CONTROLLED COMMON-PATH DISCOVERY
+     * ---------------------------------------------------------
+     *
+     * Discovery only.
+     * Sentinel checks a small, fixed set of common public
+     * security-relevant paths on the same origin.
+     */
+
+    const commonDiscoveryPaths = [
+      "/admin",
+      "/login",
+      "/signin",
+      "/dashboard",
+      "/api",
+      "/graphql",
+      "/upload",
+      "/backup",
+      "/debug",
+      "/internal",
+      "/.git/",
+      "/.env"
+    ];
+
+    for (
+      const path of commonDiscoveryPaths
+    ) {
+      try {
+        const candidateURL =
+          new URL(
+            path,
+            finalTarget.origin
+          );
+
+        const discoveryResult =
+          await safeFetch(
+            candidateURL,
+            {
+              method: "GET",
+              timeout: 4000,
+              headers: {
+                "User-Agent":
+                  "Sentinel-AI-Security-Scanner/3.2"
+              }
+            }
+          );
+
+        const discoveryResponse =
+          discoveryResult.response;
+
+        if (
+          discoveryResponse.status >= 200 &&
+          discoveryResponse.status < 400
+        ) {
+          addDiscoveredResource(
+            candidateURL.href,
+            "common-path",
+            "controlled-discovery"
+          );
+        }
+      } catch {
+        // Ignore unavailable or blocked paths.
+      }
+    }
 
     /*
      * Discover same-origin links from HTML.
