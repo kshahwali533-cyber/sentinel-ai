@@ -1388,55 +1388,75 @@ if (
      * Sentinel does not attempt to exploit them.
      */
     const sensitivePathPatterns = [
-      {
-        pattern: /\/admin(?:\/|$)/i,
-        indicator: "Administrative path detected."
-      },
-      {
-        pattern: /\/administrator(?:\/|$)/i,
-        indicator: "Administrator path detected."
-      },
-      {
-        pattern: /\/login(?:\/|$)/i,
-        indicator: "Login/authentication path detected."
-      },
-      {
-        pattern: /\/signin(?:\/|$)/i,
-        indicator: "Sign-in path detected."
-      },
-      {
-        pattern: /\/dashboard(?:\/|$)/i,
-        indicator: "Dashboard path detected."
-      },
-      {
-        pattern: /\/api(?:\/|$)/i,
-        indicator: "API path detected."
-      },
-      {
-        pattern: /\/graphql(?:\/|$)/i,
-        indicator: "GraphQL endpoint path detected."
-      },
-      {
-        pattern: /\/upload(?:\/|$)/i,
-        indicator: "Upload-related path detected."
-      },
-      {
-        pattern: /\/uploads?(?:\/|$)/i,
-        indicator: "Upload resource path detected."
-      },
-      {
-        pattern: /\/backup(?:\/|$)/i,
-        indicator: "Backup-related path detected."
-      },
-      {
-        pattern: /\/debug(?:\/|$)/i,
-        indicator: "Debug-related path detected."
-      },
-      {
-        pattern: /\/internal(?:\/|$)/i,
-        indicator: "Internal-looking path detected."
-      }
-    ];
+  {
+    pattern: /\/admin(?:\/|$)/i,
+    indicator: "Administrative path detected."
+  },
+  {
+    pattern: /\/administrator(?:\/|$)/i,
+    indicator: "Administrator path detected."
+  },
+  {
+    pattern: /\/login(?:\/|$)/i,
+    indicator: "Login/authentication path detected."
+  },
+  {
+    pattern: /\/signin(?:\/|$)/i,
+    indicator: "Sign-in path detected."
+  },
+  {
+    pattern: /\/dashboard(?:\/|$)/i,
+    indicator: "Dashboard path detected."
+  },
+  {
+    pattern: /\/api(?:\/|$)/i,
+    indicator: "API path detected."
+  },
+  {
+    pattern: /\/graphql(?:\/|$)/i,
+    indicator: "GraphQL endpoint path detected."
+  },
+  {
+    pattern: /\/upload(?:\/|$)/i,
+    indicator: "Upload-related path detected."
+  },
+  {
+    pattern: /\/uploads?(?:\/|$)/i,
+    indicator: "Upload resource path detected."
+  },
+  {
+    pattern: /\/backup(?:\/|$)/i,
+    indicator: "Backup-related path detected."
+  },
+  {
+    pattern: /\/debug(?:\/|$)/i,
+    indicator: "Debug-related path detected."
+  },
+  {
+    pattern: /\/internal(?:\/|$)/i,
+    indicator: "Internal-looking path detected."
+  },
+  {
+    pattern: /\/\.env(?:\.|\/|$)/i,
+    indicator: "Environment configuration file path detected."
+  },
+  {
+    pattern: /\/\.git(?:\/|$)/i,
+    indicator: "Git repository path detected."
+  },
+  {
+    pattern: /\/config(?:\.|\/|$)/i,
+    indicator: "Configuration resource path detected."
+  },
+  {
+    pattern: /\/(?:database|db)(?:\.|\/|$)/i,
+    indicator: "Database-related resource path detected."
+  },
+  {
+    pattern: /\.(?:bak|backup|old|orig|save|swp)(?:$|[?#])/i,
+    indicator: "Potential backup or temporary file detected."
+  }
+];
 
     for (
       const resource of discoveredSurface
