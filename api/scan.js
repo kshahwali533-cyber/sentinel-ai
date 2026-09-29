@@ -1275,6 +1275,7 @@ if (
      * Discover same-origin links from HTML.
      */
     if (
+      let responseHTML = "";
       contentType
         .toLowerCase()
         .includes("text/html")
