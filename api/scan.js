@@ -1275,11 +1275,10 @@ if (
      * Discover same-origin links from HTML.
      */
     if (
-      let responseHTML = "";
-      contentType
-        .toLowerCase()
-        .includes("text/html")
-    ) {
+  contentType
+    .toLowerCase()
+    .includes("text/html")
+) {
       try {
         const html =
           await response.text();
