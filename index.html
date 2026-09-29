@@ -2027,6 +2027,11 @@ function displayScanResults(data) {
     Array.isArray(data.surfaceFindings)
       ? data.surfaceFindings
       : [];
+  const applicationFindings =
+  Array.isArray(data.applicationFindings)
+    ? data.applicationFindings
+    : [];
+  
 
   const technologyFindings =
     Array.isArray(data.technologyFindings)
