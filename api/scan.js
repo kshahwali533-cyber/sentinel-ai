@@ -1810,6 +1810,69 @@ if (
     // Application entry-point discovery is best-effort.
   }
 }
+    catch {
+    // Application entry-point discovery is best-effort.
+  }
+}
+        /*
+     * ---------------------------------------------------------
+     * CONTROLLED FORM INPUT DISCOVERY
+     * ---------------------------------------------------------
+     *
+     * Discovery only.
+     * Sentinel identifies form input names and types.
+     * It does not submit forms or modify input values.
+     */
+
+    const inputMatches =
+      html.matchAll(
+        /<input\b([^>]*)>/gi
+      );
+
+    let inputCount = 0;
+
+    for (
+      const match of inputMatches
+    ) {
+      if (inputCount >= 50) {
+        break;
+      }
+
+      const attributes =
+        match[1] || "";
+
+      const nameMatch =
+        attributes.match(
+          /name\s*=\s*["']([^"']*)["']/i
+        );
+
+      const typeMatch =
+        attributes.match(
+          /type\s*=\s*["']([^"']*)["']/i
+        );
+
+      const inputName =
+        nameMatch?.[1]?.trim() || "";
+
+      const inputType =
+        (
+          typeMatch?.[1] ||
+          "text"
+        ).trim().toLowerCase();
+
+      if (!inputName) {
+        continue;
+      }
+
+      addApplicationFinding(
+        "Form Input",
+        finalTarget.href,
+        `Input "${inputName}" detected (type: ${inputType}).`,
+        "GET"
+      );
+
+      inputCount++;
+    }
 
 /*
  * Remove duplicate application findings.
