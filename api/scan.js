@@ -1810,11 +1810,8 @@ if (
     // Application entry-point discovery is best-effort.
   }
 }
-    catch {
-    // Application entry-point discovery is best-effort.
-  }
-}
-        /*
+    
+    /*
      * ---------------------------------------------------------
      * CONTROLLED FORM INPUT DISCOVERY
      * ---------------------------------------------------------
