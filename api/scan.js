@@ -1806,11 +1806,7 @@ if (
         // Ignore malformed script URLs.
       }
     }
-  } catch {
-    // Application entry-point discovery is best-effort.
-  }
-}
-    
+  
     /*
      * ---------------------------------------------------------
      * CONTROLLED FORM INPUT DISCOVERY
@@ -1867,9 +1863,14 @@ if (
         `Input "${inputName}" detected (type: ${inputType}).`,
         "GET"
       );
-
       inputCount++;
     }
+
+  } catch {
+
+    // Application entry-point discovery is best-effort.
+  }
+}
 
 /*
  * Remove duplicate application findings.
