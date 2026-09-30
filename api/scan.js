@@ -1323,7 +1323,7 @@ if (
 
         if (
   discoveryResponse.status >= 200 &&
-  discoveryResponse.status < 400
+  discoveryResponse.status < 500
 ) {
   addDiscoveredResource(
     discoveryResult.finalURL.href,
