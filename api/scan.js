@@ -1323,13 +1323,14 @@ if (
 
         if (
   discoveryResponse.status >= 200 &&
-  discoveryResponse.status < 500
+  discoveryResponse.status < 400
 ) {
   addDiscoveredResource(
     discoveryResult.finalURL.href,
     "common-path",
     "controlled-discovery"
   );
+        }
         }
       } catch {
         // Ignore unavailable or blocked paths.
