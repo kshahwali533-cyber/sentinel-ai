@@ -1588,6 +1588,68 @@ if (
         // Ignore malformed discovered resources.
       }
     }
+        /*
+     * ---------------------------------------------------------
+     * CONTROLLED QUERY-PARAMETER SURFACE DISCOVERY
+     * ---------------------------------------------------------
+     *
+     * Discovery only.
+     * Sentinel checks a fixed set of common parameterized
+     * paths without modifying parameter values.
+     */
+
+    const parameterDiscoveryPaths = [
+      "/?id=1",
+      "/?user=1",
+      "/?file=test",
+      "/?path=test",
+      "/?url=https://example.com/",
+      "/?redirect=/",
+      "/?next=/",
+      "/?return=/",
+      "/?callback=test"
+    ];
+
+    for (
+      const path of parameterDiscoveryPaths
+    ) {
+      try {
+        const candidateURL =
+          new URL(
+            path,
+            finalTarget.origin
+          );
+
+        const discoveryResult =
+          await safeFetch(
+            candidateURL,
+            {
+              method: "GET",
+              timeout: 4000,
+              headers: {
+                "User-Agent":
+                  "Sentinel-AI-Security-Scanner/3.2"
+              }
+            }
+          );
+
+        const discoveryResponse =
+          discoveryResult.response;
+
+        if (
+          discoveryResponse.status >= 200 &&
+          discoveryResponse.status < 500
+        ) {
+          addDiscoveredResource(
+            discoveryResult.finalURL.href,
+            "parameterized-path",
+            "controlled-parameter-discovery"
+          );
+        }
+      } catch {
+        // Ignore unavailable or blocked parameterized paths.
+      }
+    }
     /*
  * ---------------------------------------------------------
  * ADVANCED VULNERABILITY DISCOVERY — SETUP 8
