@@ -1337,92 +1337,97 @@ if (
     }
 
     /*
-     * Discover same-origin links from HTML.
-     */
-    if (
+ * Discover same-origin links from HTML.
+ */
+
+let html = "";
+
+if (
   contentType
     .toLowerCase()
     .includes("text/html")
 ) {
-      try {
-        const html =
-          await response.text();
+  try {
+    html =
+      await response.text();
+  } catch {
+    html = "";
+  }
+}
 
-        const linkMatches =
-          html.matchAll(
-            /<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi
-          );
+if (html) {
+  const linkMatches =
+    html.matchAll(
+      /<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi
+    );
 
-        let discoveredLinkCount = 0;
+  let discoveredLinkCount = 0;
 
-        for (
-          const match of linkMatches
-        ) {
-          if (
-            discoveredLinkCount >= 50
-          ) {
-            break;
-          }
-
-          const rawHref =
-            match[1]?.trim();
-
-          if (!rawHref) {
-            continue;
-          }
-
-          if (
-            rawHref.startsWith("#") ||
-            rawHref.startsWith("mailto:") ||
-            rawHref.startsWith("tel:") ||
-            rawHref.startsWith("javascript:")
-          ) {
-            continue;
-          }
-
-          try {
-            const discoveredURL =
-              new URL(
-                rawHref,
-                finalTarget.href
-              );
-
-            if (
-              discoveredURL.origin !==
-              finalTarget.origin
-            ) {
-              continue;
-            }
-
-            discoveredURL.hash = "";
-
-            addDiscoveredResource(
-              discoveredURL.href,
-              "page",
-              "html-link"
-            );
-
-            discoveredLinkCount++;
-          } catch {
-            // Ignore invalid links.
-          }
-        }
-      } catch {
-        // HTML discovery is best-effort.
-      }
+  for (
+    const match of linkMatches
+  ) {
+    if (
+      discoveredLinkCount >= 50
+    ) {
+      break;
     }
 
-    /*
-     * Limit the discovery surface.
-     * This is discovery only — no active exploitation.
-     */
-    const discoveryLimit = 50;
+    const rawHref =
+      match[1]?.trim();
 
-    const discoveredSurface =
-      discoveredResources.slice(
-        0,
-        discoveryLimit
+    if (!rawHref) {
+      continue;
+    }
+
+    if (
+      rawHref.startsWith("#") ||
+      rawHref.startsWith("mailto:") ||
+      rawHref.startsWith("tel:") ||
+      rawHref.startsWith("javascript:")
+    ) {
+      continue;
+    }
+
+    try {
+      const discoveredURL =
+        new URL(
+          rawHref,
+          finalTarget.href
+        );
+
+      if (
+        discoveredURL.origin !==
+        finalTarget.origin
+      ) {
+        continue;
+      }
+
+      discoveredURL.hash = "";
+
+      addDiscoveredResource(
+        discoveredURL.href,
+        "page",
+        "html-link"
       );
+
+      discoveredLinkCount++;
+    } catch {
+      // Ignore invalid links.
+    }
+  }
+}
+
+/*
+ * Limit the discovery surface.
+ * This is discovery only — no active exploitation.
+ */
+const discoveryLimit = 50;
+
+const discoveredSurface =
+  discoveredResources.slice(
+    0,
+    discoveryLimit
+  );
 
         /*
      * ---------------------------------------------------------
