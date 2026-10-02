@@ -1690,7 +1690,7 @@ if (
     .includes("text/html")
 ) {
   try {
-    const htmlContent = html;
+    
     const formMatches =
       html.matchAll(
         /<form\b([^>]*)>/gi
