@@ -1487,10 +1487,6 @@ const discoveredSurface =
     indicator: "GraphQL endpoint path detected."
   },
   {
-    pattern: /\/upload(?:\/|$)/i,
-    indicator: "Upload-related path detected."
-  },
-  {
     pattern: /\/uploads?(?:\/|$)/i,
     indicator: "Upload resource path detected."
   },
