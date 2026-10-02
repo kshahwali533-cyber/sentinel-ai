@@ -1690,9 +1690,7 @@ if (
     .includes("text/html")
 ) {
   try {
-    const html =
-      await response.clone().text();
-
+    const htmlContent = html;
     const formMatches =
       html.matchAll(
         /<form\b([^>]*)>/gi
