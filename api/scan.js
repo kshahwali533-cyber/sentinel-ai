@@ -1884,8 +1884,9 @@ for (
     uniqueApplicationFindings.some(
       item =>
         item.type === finding.type &&
-        item.url === finding.url &&
-        item.method === finding.method
+item.url === finding.url &&
+item.indicator === finding.indicator &&
+item.method === finding.method
     );
 
   if (!exists) {
