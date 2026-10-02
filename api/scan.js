@@ -1323,7 +1323,7 @@ if (
 
         if (
   discoveryResponse.status >= 200 &&
-  discoveryResponse.status < 500
+  discoveryResponse.status < 300
 ) {
   addDiscoveredResource(
     discoveryResult.finalURL.href,
@@ -1638,7 +1638,7 @@ if (
 
         if (
           discoveryResponse.status >= 200 &&
-          discoveryResponse.status < 500
+          discoveryResponse.status < 300
         ) {
           addDiscoveredResource(
             discoveryResult.finalURL.href,
