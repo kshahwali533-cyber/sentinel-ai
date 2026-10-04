@@ -1542,6 +1542,11 @@ const discoveredSurface =
         }
       }
     }
+    /*
+ * =========================================================
+ * SETUP 3 — QUERY PARAMETER DISCOVERY
+ * =========================================================
+ */
 
     /*
      * Detect potentially interesting query parameters.
