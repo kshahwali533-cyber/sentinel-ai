@@ -711,7 +711,8 @@ if (
 
     const finalURL =
       finalTarget.href;
-
+    
+    // SETUP 5 — SECURITY CONFIGURATION CHECKS
     const checks = [];
 
     function addCheck(
