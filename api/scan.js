@@ -2330,6 +2330,7 @@ for (
        surfaceFindings,
       technologyFindings: uniqueTechnologyFindings,
       applicationFindings: uniqueApplicationFindings,
+      clientEndpointFindings,
       summary: {
         total: totalChecks,
         totalChecks,
