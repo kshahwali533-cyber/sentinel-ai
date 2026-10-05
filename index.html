@@ -2205,6 +2205,18 @@ if (technologyFindings.length > 0) {
     </div>
   `;
 }
+  let clientEndpointFindingsHTML = "";
+
+if (clientEndpointFindings && clientEndpointFindings.length > 0) {
+  clientEndpointFindingsHTML = `
+    <div class="priority">
+      <strong>🔗 Client-Side Endpoint Discovery</strong>
+      <br><br>
+      ${clientEndpointFindings.length}
+      client-side endpoint references detected.
+    </div>
+  `;
+}
   let applicationFindingsHTML = "";
 
 if (applicationFindings.length > 0) {
