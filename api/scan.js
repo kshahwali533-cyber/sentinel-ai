@@ -2503,6 +2503,7 @@ for (
       technologyFindings: uniqueTechnologyFindings,
       applicationFindings: uniqueApplicationFindings,
       clientEndpointFindings,
+      linkedResourceFindings: uniqueLinkedResourceFindings,
       summary: {
         total: totalChecks,
         totalChecks,
