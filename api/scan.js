@@ -1876,6 +1876,151 @@ if (
     // Application entry-point discovery is best-effort.
   }
 }
+    /*
+ * ---------------------------------------------------------
+ * ADVANCED VULNERABILITY DISCOVERY — SETUP 9
+ * LINKED RESOURCE CORRELATION
+ * ---------------------------------------------------------
+ *
+ * Discovery only.
+ * Sentinel correlates same-origin links and resources
+ * already exposed by the target page.
+ */
+
+const linkedResourceFindings = [];
+
+function addLinkedResourceFinding(
+  url,
+  source,
+  type
+) {
+  try {
+    const resourceURL =
+      new URL(url, finalTarget.href);
+
+    if (
+      resourceURL.origin !==
+      originalTargetOrigin
+    ) {
+      return;
+    }
+
+    resourceURL.hash = "";
+
+    const normalizedURL =
+      resourceURL.href;
+
+    const exists =
+      linkedResourceFindings.some(
+        item =>
+          item.url === normalizedURL &&
+          item.source === source
+      );
+
+    if (!exists) {
+      linkedResourceFindings.push({
+        url: normalizedURL,
+        source,
+        type,
+        severity: "INFO"
+      });
+    }
+  } catch {
+    // Ignore malformed resource URLs.
+  }
+}
+
+if (html) {
+  const linkMatches =
+    html.matchAll(
+      /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi
+    );
+
+  let linkCount = 0;
+  const linkLimit = 50;
+
+  for (
+    const match of linkMatches
+  ) {
+    if (
+      linkCount >= linkLimit
+    ) {
+      break;
+    }
+
+    const rawURL =
+      match[1]?.trim();
+
+    if (!rawURL) {
+      continue;
+    }
+
+    try {
+      const linkURL =
+        new URL(
+          rawURL,
+          finalTarget.href
+        );
+
+      if (
+        linkURL.origin !==
+        originalTargetOrigin
+      ) {
+        continue;
+      }
+
+      linkURL.hash = "";
+
+      const pathname =
+        linkURL.pathname.toLowerCase();
+
+      /*
+       * Ignore obvious static assets.
+       */
+      if (
+        /\.(?:png|jpg|jpeg|gif|svg|webp|ico|css|woff|woff2|ttf|map)$/i.test(
+          pathname
+        )
+      ) {
+        continue;
+      }
+
+      addLinkedResourceFinding(
+        linkURL.href,
+        "html-link",
+        "same-origin-linked-resource"
+      );
+
+      linkCount++;
+    } catch {
+      // Ignore invalid links.
+    }
+  }
+}
+
+/*
+ * Remove duplicate linked-resource findings.
+ */
+
+const uniqueLinkedResourceFindings = [];
+
+for (
+  const finding of linkedResourceFindings
+) {
+  const exists =
+    uniqueLinkedResourceFindings.some(
+      item =>
+        item.url === finding.url &&
+        item.source === finding.source &&
+        item.type === finding.type
+    );
+
+  if (!exists) {
+    uniqueLinkedResourceFindings.push(
+      finding
+    );
+  }
+}
 
 /*
  * Remove duplicate application findings.
