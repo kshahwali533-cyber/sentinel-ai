@@ -2036,6 +2036,11 @@ function displayScanResults(data) {
   Array.isArray(data.clientEndpointFindings)
     ? data.clientEndpointFindings
     : [];
+  
+  const linkedResourceFindings =
+  Array.isArray(data.linkedResourceFindings)
+    ? data.linkedResourceFindings
+    : [];
 
   const technologyFindings =
     Array.isArray(data.technologyFindings)
