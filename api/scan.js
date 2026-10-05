@@ -1901,15 +1901,15 @@ item.method === finding.method
     );
   }
 }
-    /*
+/*
  * ---------------------------------------------------------
  * ADVANCED VULNERABILITY DISCOVERY — SETUP 6
  * CLIENT-SIDE ENDPOINT DISCOVERY
  * ---------------------------------------------------------
  *
  * Discovery only.
- * Sentinel identifies same-origin API/endpoint references
- * exposed in client-side HTML and JavaScript.
+ * Sentinel identifies meaningful same-origin API/endpoint
+ * references exposed in client-side HTML and JavaScript.
  */
 
 const clientEndpointFindings = [];
@@ -1935,11 +1935,38 @@ function addClientEndpointFinding(
     const normalizedURL =
       endpointURL.href;
 
+    const pathname =
+      endpointURL.pathname.toLowerCase();
+
+    /*
+     * Ignore obvious static assets.
+     * These are not normally application endpoints.
+     */
+    const staticAssetPattern =
+      /\.(?:js|mjs|css|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|map)$/i;
+
+    if (
+      staticAssetPattern.test(pathname)
+    ) {
+      return;
+    }
+
+    /*
+     * Keep only meaningful application/API paths.
+     */
+    const meaningfulEndpointPattern =
+      /\/(?:api|graphql|ajax|endpoint)(?:\/|$)|\/v\d+(?:\/|$)/i;
+
+    if (
+      !meaningfulEndpointPattern.test(pathname)
+    ) {
+      return;
+    }
+
     const exists =
       clientEndpointFindings.some(
         item =>
-          item.url === normalizedURL &&
-          item.source === source
+          item.url === normalizedURL
       );
 
     if (!exists) {
@@ -1989,7 +2016,7 @@ if (html) {
       addClientEndpointFinding(
         rawEndpoint,
         "html-javascript",
-        "Potential client-side API or application endpoint reference detected."
+        "Meaningful client-side API or application endpoint reference detected."
       );
 
       endpointCount++;
