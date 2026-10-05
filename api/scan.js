@@ -1901,6 +1901,107 @@ item.method === finding.method
     );
   }
 }
+    /*
+ * ---------------------------------------------------------
+ * ADVANCED VULNERABILITY DISCOVERY — SETUP 6
+ * CLIENT-SIDE ENDPOINT DISCOVERY
+ * ---------------------------------------------------------
+ *
+ * Discovery only.
+ * Sentinel identifies same-origin API/endpoint references
+ * exposed in client-side HTML and JavaScript.
+ */
+
+const clientEndpointFindings = [];
+
+function addClientEndpointFinding(
+  url,
+  source,
+  indicator
+) {
+  try {
+    const endpointURL =
+      new URL(url, finalTarget.href);
+
+    if (
+      endpointURL.origin !==
+      originalTargetOrigin
+    ) {
+      return;
+    }
+
+    endpointURL.hash = "";
+
+    const normalizedURL =
+      endpointURL.href;
+
+    const exists =
+      clientEndpointFindings.some(
+        item =>
+          item.url === normalizedURL &&
+          item.source === source
+      );
+
+    if (!exists) {
+      clientEndpointFindings.push({
+        url: normalizedURL,
+        source,
+        indicator,
+        severity: "INFO"
+      });
+    }
+  } catch {
+    // Ignore invalid endpoint references.
+  }
+}
+
+if (html) {
+  const endpointPatterns = [
+    /["'`](\/(?:api|graphql|v\d+\/)[^"'`\s]*)["'`]/gi,
+    /["'`](\/[^"'`\s]*(?:api|graphql|ajax|endpoint)[^"'`\s]*)["'`]/gi
+  ];
+
+  let endpointCount = 0;
+  const endpointLimit = 50;
+
+  for (
+    const pattern of endpointPatterns
+  ) {
+    const matches =
+      html.matchAll(pattern);
+
+    for (
+      const match of matches
+    ) {
+      if (
+        endpointCount >= endpointLimit
+      ) {
+        break;
+      }
+
+      const rawEndpoint =
+        match[1]?.trim();
+
+      if (!rawEndpoint) {
+        continue;
+      }
+
+      addClientEndpointFinding(
+        rawEndpoint,
+        "html-javascript",
+        "Potential client-side API or application endpoint reference detected."
+      );
+
+      endpointCount++;
+    }
+
+    if (
+      endpointCount >= endpointLimit
+    ) {
+      break;
+    }
+  }
+}
     
 /*
  *  
