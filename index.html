@@ -2211,13 +2211,60 @@ if (technologyFindings.length > 0) {
 }
   let clientEndpointFindingsHTML = "";
 
-if (clientEndpointFindings && clientEndpointFindings.length > 0) {
+if (
+  clientEndpointFindings &&
+  clientEndpointFindings.length > 0
+) {
+
+  const clientEndpointListHTML =
+    clientEndpointFindings
+      .slice(0, 50)
+      .map(finding => `
+        <li>
+          <strong>
+            Client-Side Endpoint
+          </strong>
+          <br>
+          <span>
+            ${escapeHTML(
+              finding.indicator ||
+              "Potential client-side endpoint reference detected."
+            )}
+          </span>
+          <br>
+          <small>
+            Source:
+            ${escapeHTML(
+              finding.source ||
+              "html-javascript"
+            )}
+            <br>
+            URL:
+            ${escapeHTML(
+              finding.url ||
+              ""
+            )}
+          </small>
+        </li>
+      `)
+      .join("");
+
   clientEndpointFindingsHTML = `
     <div class="priority">
-      <strong>🔗 Client-Side Endpoint Discovery</strong>
+
+      <strong>
+        🔗 Client-Side Endpoint Discovery
+      </strong>
+
       <br><br>
+
       ${clientEndpointFindings.length}
       client-side endpoint references detected.
+
+      <ul>
+        ${clientEndpointListHTML}
+      </ul>
+
     </div>
   `;
 }
