@@ -2032,6 +2032,10 @@ function displayScanResults(data) {
     ? data.applicationFindings
     : [];
   
+  const clientEndpointFindings =
+  Array.isArray(data.clientEndpointFindings)
+    ? data.clientEndpointFindings
+    : [];
 
   const technologyFindings =
     Array.isArray(data.technologyFindings)
