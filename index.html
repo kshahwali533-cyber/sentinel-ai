@@ -2273,6 +2273,68 @@ if (
     </div>
   `;
 }
+  let linkedResourceFindingsHTML = "";
+
+if (
+  linkedResourceFindings &&
+  linkedResourceFindings.length > 0
+) {
+
+  const linkedResourceListHTML =
+    linkedResourceFindings
+      .slice(0, 50)
+      .map(finding => `
+        <li>
+          <strong>
+            Linked Resource
+          </strong>
+          <br>
+          <span>
+            Same-origin linked resource detected.
+          </span>
+          <br>
+          <small>
+            Source:
+            ${escapeHTML(
+              finding.source ||
+              "html-link"
+            )}
+            <br>
+            Type:
+            ${escapeHTML(
+              finding.type ||
+              "same-origin-linked-resource"
+            )}
+            <br>
+            URL:
+            ${escapeHTML(
+              finding.url ||
+              ""
+            )}
+          </small>
+        </li>
+      `)
+      .join("");
+
+  linkedResourceFindingsHTML = `
+    <div class="priority">
+
+      <strong>
+        🔗 Linked Resource Discovery
+      </strong>
+
+      <br><br>
+
+      ${linkedResourceFindings.length}
+      same-origin linked resources detected.
+
+      <ul>
+        ${linkedResourceListHTML}
+      </ul>
+
+    </div>
+  `;
+}
   let applicationFindingsHTML = "";
 
 if (applicationFindings.length > 0) {
