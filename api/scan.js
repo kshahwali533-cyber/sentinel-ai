@@ -2046,6 +2046,491 @@ item.method === finding.method
     );
   }
 }
+    /*
+ * ---------------------------------------------------------
+ * ADVANCED VULNERABILITY DISCOVERY — SETUP 10
+ * JAVASCRIPT ENDPOINT CORRELATION
+ * ---------------------------------------------------------
+ *
+ * Discovery only.
+ * Sentinel AI inspects same-origin JavaScript resources
+ * exposed by the target HTML and correlates application/API
+ * endpoint references found inside them.
+ * ---------------------------------------------------------
+ */
+
+const javascriptEndpointFindings = [];
+
+function addJavascriptEndpointFinding(
+  endpoint,
+  source,
+  type = "JavaScript Endpoint"
+) {
+  if (!endpoint || !source) {
+    return;
+  }
+
+  const normalizedEndpoint =
+    String(endpoint).trim();
+
+  if (!normalizedEndpoint) {
+    return;
+  }
+
+  if (normalizedEndpoint.length > 500) {
+    return;
+  }
+
+  const exists =
+    javascriptEndpointFindings.some(
+      finding =>
+        finding.endpoint ===
+          normalizedEndpoint &&
+        finding.source === source
+    );
+
+  if (exists) {
+    return;
+  }
+
+  if (
+    javascriptEndpointFindings.length >= 50
+  ) {
+    return;
+  }
+
+  javascriptEndpointFindings.push({
+    endpoint: normalizedEndpoint,
+    source,
+    type
+  });
+}
+
+
+/*
+ * ---------------------------------------------------------
+ * 10.1 — DISCOVER SAME-ORIGIN JAVASCRIPT FILES
+ * ---------------------------------------------------------
+ */
+
+const javascriptURLs = [];
+
+if (html) {
+  try {
+    const scriptMatches =
+      html.matchAll(
+        /<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi
+      );
+
+    for (
+      const match of scriptMatches
+    ) {
+      if (
+        javascriptURLs.length >= 20
+      ) {
+        break;
+      }
+
+      const rawSrc =
+        match[1]?.trim();
+
+      if (!rawSrc) {
+        continue;
+      }
+
+      if (
+        rawSrc.startsWith("javascript:") ||
+        rawSrc.startsWith("data:") ||
+        rawSrc.startsWith("blob:")
+      ) {
+        continue;
+      }
+
+      try {
+        const scriptURL =
+          new URL(
+            rawSrc,
+            finalTarget.href
+          );
+
+        if (
+          scriptURL.protocol !== "http:" &&
+          scriptURL.protocol !== "https:"
+        ) {
+          continue;
+        }
+
+        if (
+          scriptURL.origin !==
+          originalTargetOrigin
+        ) {
+          continue;
+        }
+
+        const pathname =
+          scriptURL.pathname.toLowerCase();
+
+        if (
+          !pathname.endsWith(".js") &&
+          !pathname.endsWith(".mjs")
+        ) {
+          continue;
+        }
+
+        scriptURL.hash = "";
+
+        const exists =
+          javascriptURLs.some(
+            existing =>
+              existing.href ===
+              scriptURL.href
+          );
+
+        if (exists) {
+          continue;
+        }
+
+        javascriptURLs.push(
+          scriptURL
+        );
+      } catch {
+        continue;
+      }
+    }
+  } catch {
+    /*
+     * JavaScript discovery is best-effort.
+     * Failure must not fail the complete scan.
+     */
+  }
+}
+
+
+/*
+ * ---------------------------------------------------------
+ * 10.2 — FETCH AND INSPECT JAVASCRIPT
+ * ---------------------------------------------------------
+ */
+
+for (
+  const scriptURL of javascriptURLs
+) {
+  if (
+    javascriptEndpointFindings.length >= 50
+  ) {
+    break;
+  }
+
+  try {
+    const scriptResult =
+      await safeFetch(
+        scriptURL,
+        {
+          method: "GET",
+          timeout: 5000,
+          headers: {
+            "User-Agent":
+              "Sentinel-AI-Security-Scanner/3.2",
+            "Accept":
+              "application/javascript,text/javascript,*/*;q=0.8"
+          }
+        }
+      );
+
+    const scriptResponse =
+      scriptResult.response;
+
+    if (
+      !scriptResponse ||
+      !scriptResponse.ok
+    ) {
+      continue;
+    }
+
+    /*
+     * Do not process JavaScript responses larger
+     * than 5 MB.
+     */
+
+    const scriptContentLength =
+      Number(
+        scriptResponse.headers.get(
+          "content-length"
+        ) || 0
+      );
+
+    if (
+      scriptContentLength >
+      5 * 1024 * 1024
+    ) {
+      continue;
+    }
+
+    const scriptContent =
+      await scriptResponse.text();
+
+    if (!scriptContent) {
+      continue;
+    }
+
+    if (
+      scriptContent.length >
+      5 * 1024 * 1024
+    ) {
+      continue;
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * 10.3 — API / APPLICATION ENDPOINT PATTERNS
+     * -------------------------------------------------------
+     */
+
+    const endpointPatterns = [
+      {
+        pattern:
+          /["'`](\/api\/[^"'`\s<>]{1,500})["'`]/gi,
+        type: "API Endpoint"
+      },
+      {
+        pattern:
+          /["'`](\/graphql[^"'`\s<>]{0,500})["'`]/gi,
+        type: "GraphQL Endpoint"
+      },
+      {
+        pattern:
+          /["'`](\/v\d+(?:\/[^"'`\s<>]{0,500})?)["'`]/gi,
+        type: "Versioned API Endpoint"
+      },
+      {
+        pattern:
+          /["'`](\/ajax\/[^"'`\s<>]{1,500})["'`]/gi,
+        type: "AJAX Endpoint"
+      },
+      {
+        pattern:
+          /["'`](\/endpoint\/[^"'`\s<>]{1,500})["'`]/gi,
+        type: "Application Endpoint"
+      }
+    ];
+
+
+    for (
+      const endpointPattern
+      of endpointPatterns
+    ) {
+      let match;
+
+      while (
+        (
+          match =
+            endpointPattern.pattern.exec(
+              scriptContent
+            )
+        ) !== null
+      ) {
+        addJavascriptEndpointFinding(
+          match[1],
+          scriptURL.pathname,
+          endpointPattern.type
+        );
+
+        if (
+          javascriptEndpointFindings.length >= 50
+        ) {
+          break;
+        }
+      }
+
+      if (
+        javascriptEndpointFindings.length >= 50
+      ) {
+        break;
+      }
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * 10.4 — FETCH / XHR / AXIOS ENDPOINT CORRELATION
+     * -------------------------------------------------------
+     */
+
+    if (
+      javascriptEndpointFindings.length < 50
+    ) {
+      const requestPatterns = [
+        {
+          pattern:
+            /fetch\s*\(\s*["'`](\/[^"'`\s<>]{1,500})["'`]/gi,
+          type: "Fetch Endpoint"
+        },
+        {
+          pattern:
+            /axios\.(?:get|post|put|patch|delete)\s*\(\s*["'`](\/[^"'`\s<>]{1,500})["'`]/gi,
+          type: "Axios Endpoint"
+        },
+        {
+          pattern:
+            /(?:url|endpoint)\s*:\s*["'`](\/[^"'`\s<>]{1,500})["'`]/gi,
+          type: "Request Endpoint"
+        },
+        {
+          pattern:
+            /XMLHttpRequest[\s\S]{0,500}?\.(?:open)\s*\(\s*["'"][A-Z]+["'"]\s*,\s*["'`](\/[^"'`\s<>]{1,500})["'`]/gi,
+          type: "XMLHttpRequest Endpoint"
+        }
+      ];
+
+      for (
+        const requestPattern
+        of requestPatterns
+      ) {
+        let match;
+
+        while (
+          (
+            match =
+              requestPattern.pattern.exec(
+                scriptContent
+              )
+          ) !== null
+        ) {
+          addJavascriptEndpointFinding(
+            match[1],
+            scriptURL.pathname,
+            requestPattern.type
+          );
+
+          if (
+            javascriptEndpointFindings.length >= 50
+          ) {
+            break;
+          }
+        }
+
+        if (
+          javascriptEndpointFindings.length >= 50
+        ) {
+          break;
+        }
+      }
+    }
+  } catch {
+    /*
+     * A failed JavaScript request must never
+     * fail the complete Sentinel AI scan.
+     */
+    continue;
+  }
+}
+
+
+/*
+ * ---------------------------------------------------------
+ * 10.5 — FINAL DEDUPLICATION
+ * ---------------------------------------------------------
+ */
+
+const uniqueJavascriptEndpointFindings = [];
+
+for (
+  const finding
+  of javascriptEndpointFindings
+) {
+  const exists =
+    uniqueJavascriptEndpointFindings.some(
+      existing =>
+        existing.endpoint ===
+          finding.endpoint
+    );
+
+  if (exists) {
+    continue;
+  }
+
+  uniqueJavascriptEndpointFindings.push(
+    finding
+  );
+
+  if (
+    uniqueJavascriptEndpointFindings.length >=
+    50
+  ) {
+    break;
+  }
+}
+
+
+/*
+ * ---------------------------------------------------------
+ * 10.6 — ADD CORRELATED ENDPOINTS TO APPLICATION FINDINGS
+ * ---------------------------------------------------------
+ */
+
+for (
+  const finding
+  of uniqueJavascriptEndpointFindings
+) {
+  const exists =
+    applicationFindings.some(
+      existing =>
+        existing.type ===
+          "JavaScript Endpoint" &&
+        existing.url ===
+          finding.endpoint
+    );
+
+  if (exists) {
+    continue;
+  }
+
+  applicationFindings.push({
+    type:
+      "JavaScript Endpoint",
+
+    url:
+      finding.endpoint,
+
+    indicator:
+      `${finding.type} discovered in ${finding.source}.`,
+
+    method:
+      "DISCOVERY"
+  });
+}
+
+
+/*
+ * ---------------------------------------------------------
+ * 10.7 — ADD SETUP #10 SUMMARY FINDING
+ * ---------------------------------------------------------
+ */
+
+if (
+  uniqueJavascriptEndpointFindings.length > 0
+) {
+  applicationFindings.push({
+    type:
+      "JavaScript Endpoint Correlation",
+
+    url:
+      finalTarget.href,
+
+    indicator:
+      `Sentinel AI correlated ${uniqueJavascriptEndpointFindings.length} endpoint reference(s) from same-origin JavaScript resources.`,
+
+    method:
+      "DISCOVERY"
+  });
+}
+
+/*
+ * ---------------------------------------------------------
+ * SETUP 10 COMPLETE
+ * ---------------------------------------------------------
+ */
 /*
  * ---------------------------------------------------------
  * ADVANCED VULNERABILITY DISCOVERY — SETUP 6
