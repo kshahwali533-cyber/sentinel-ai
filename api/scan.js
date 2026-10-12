@@ -2915,36 +2915,28 @@ for (
       );
     }
 
-    // SCORE
-    const totalChecks =
-      checks.length;
+    // SCORE — Conservative Security Configuration Score
+    const totalChecks = checks.length;
 
-    const passed =
-      checks.filter(
-        c => c.status === "PASS"
-      ).length;
+    const passed = checks.filter(
+      c => c.status === "PASS"
+    ).length;
 
-    const warnings =
-      checks.filter(
-        c => c.status === "WARNING"
-      ).length;
+    const warnings = checks.filter(
+      c => c.status === "WARNING"
+    ).length;
 
-    const informational =
-      checks.filter(
-        c => c.status === "INFO"
-      ).length;
+    const informational = checks.filter(
+      c => c.status === "INFO"
+    ).length;
 
+    // INFO findings are neutral: they do not earn points.
+    // WARNING findings receive no points.
     let score = 0;
 
     if (totalChecks > 0) {
       score = Math.round(
-        (
-          (
-            passed +
-            informational * 0.75
-          ) /
-          totalChecks
-        ) * 100
+        (passed / totalChecks) * 100
       );
     }
 
