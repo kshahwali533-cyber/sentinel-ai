@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://project-3jyda.vercel.app/sitemap.xml
