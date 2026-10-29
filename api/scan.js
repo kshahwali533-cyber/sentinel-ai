@@ -2930,14 +2930,13 @@ for (
       c => c.status === "INFO"
     ).length;
 
-    // INFO findings are neutral and must not dilute the score.
-    // PASS checks earn points; WARNING checks earn no points.
-    const scoredChecks = passed + warnings;
+    // INFO findings are neutral: they do not earn points.
+    // WARNING findings receive no points.
     let score = 0;
 
-    if (scoredChecks > 0) {
+    if (totalChecks > 0) {
       score = Math.round(
-        (passed / scoredChecks) * 100
+        (passed / totalChecks) * 100
       );
     }
 
