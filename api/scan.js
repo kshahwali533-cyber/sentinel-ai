@@ -690,19 +690,105 @@ if (!hostname) {
 
     const response =
       mainResult.response;
-const contentLength =
-  Number(response.headers.get("content-length") || 0);
 
-const MAX_RESPONSE_SIZE = 5 * 1024 * 1024;
+    const MAX_RESPONSE_SIZE = 5 * 1024 * 1024;
+    const contentLengthHeader =
+      response.headers.get("content-length");
+    const contentLength =
+      contentLengthHeader === null
+        ? null
+        : Number(contentLengthHeader);
 
-if (
-  contentLength > MAX_RESPONSE_SIZE
-) {
-  return res.status(413).json({
-    error:
-      "The website response is too large to scan safely."
-  });
-}
+    if (
+      contentLengthHeader !== null &&
+      (!Number.isFinite(contentLength) ||
+        contentLength < 0 ||
+        contentLength > MAX_RESPONSE_SIZE)
+    ) {
+      try {
+        await response.body?.cancel();
+      } catch {}
+      return res.status(413).json({
+        error:
+          "The website response is too large or has an invalid size declaration."
+      });
+    }
+
+    async function readResponseTextLimited(
+      responseToRead,
+      maxBytes = MAX_RESPONSE_SIZE,
+      timeoutMs = 10000
+    ) {
+      if (!responseToRead?.body) {
+        return "";
+      }
+
+      const reader =
+        responseToRead.body.getReader();
+      const chunks = [];
+      let totalBytes = 0;
+      let timeoutHandle;
+
+      const timeoutPromise =
+        new Promise((_, reject) => {
+          timeoutHandle = setTimeout(() => {
+            reader.cancel().catch(() => {});
+            const error =
+              new Error("Response body timed out.");
+            error.code = "RESPONSE_BODY_TIMEOUT";
+            reject(error);
+          }, timeoutMs);
+        });
+
+      const readPromise = (async () => {
+        while (true) {
+          const { done, value } =
+            await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          totalBytes += value.byteLength;
+
+          if (totalBytes > maxBytes) {
+            await reader.cancel().catch(() => {});
+            const error =
+              new Error("Response body exceeded the allowed size.");
+            error.code = "RESPONSE_TOO_LARGE";
+            throw error;
+          }
+
+          chunks.push(value);
+        }
+
+        const combined =
+          new Uint8Array(totalBytes);
+        let offset = 0;
+
+        for (const chunk of chunks) {
+          combined.set(chunk, offset);
+          offset += chunk.byteLength;
+        }
+
+        return new TextDecoder("utf-8", {
+          fatal: false
+        }).decode(combined);
+      })();
+
+      try {
+        return await Promise.race([
+          readPromise,
+          timeoutPromise
+        ]);
+      } finally {
+        clearTimeout(timeoutHandle);
+        try {
+          reader.releaseLock();
+        } catch {}
+      }
+    }
+
     const finalTarget =
       mainResult.finalURL;
 
@@ -1349,9 +1435,26 @@ if (
     .includes("text/html")
 ) {
   try {
-    html =
-      await response.text();
-  } catch {
+    html = await readResponseTextLimited(
+      response,
+      MAX_RESPONSE_SIZE,
+      10000
+    );
+  } catch (error) {
+    if (error?.code === "RESPONSE_TOO_LARGE") {
+      return res.status(413).json({
+        error:
+          "The website response exceeded the 5 MB safety limit."
+      });
+    }
+
+    if (error?.code === "RESPONSE_BODY_TIMEOUT") {
+      return res.status(504).json({
+        error:
+          "The website response body took too long to download."
+      });
+    }
+
     html = "";
   }
 }
@@ -2266,17 +2369,21 @@ for (
       continue;
     }
 
-    const scriptContent =
-      await scriptResponse.text();
+    let scriptContent = "";
 
-    if (!scriptContent) {
+    try {
+      scriptContent =
+        await readResponseTextLimited(
+          scriptResponse,
+          MAX_RESPONSE_SIZE,
+          8000
+        );
+    } catch {
+      // Oversized or slow scripts are skipped safely.
       continue;
     }
 
-    if (
-      scriptContent.length >
-      5 * 1024 * 1024
-    ) {
+    if (!scriptContent) {
       continue;
     }
 
