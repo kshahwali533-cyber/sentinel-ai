@@ -6,11 +6,57 @@ export default async function handler(req, res) {
   }
 
   try {
+    const body = req.body;
+
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return res.status(400).json({
+        error: "Invalid request body."
+      });
+    }
+
     const {
       finding,
       severity,
       website
-    } = req.body || {};
+    } = body;
+
+    if (typeof finding !== "string" || !finding.trim()) {
+      return res.status(400).json({
+        error: "Security finding is required."
+      });
+    }
+
+    if (finding.length > 160) {
+      return res.status(400).json({
+        error: "Security finding is too long."
+      });
+    }
+
+    if (severity !== undefined && (typeof severity !== "string" || severity.length > 32)) {
+      return res.status(400).json({
+        error: "Invalid severity value."
+      });
+    }
+
+    if (website !== undefined && (typeof website !== "string" || website.length > 2048)) {
+      return res.status(400).json({
+        error: "Invalid website value."
+      });
+    }
+
+    if (typeof website === "string" && website.trim()) {
+      try {
+        const parsedWebsite = new URL(website);
+        if (!["http:", "https:"].includes(parsedWebsite.protocol) ||
+            parsedWebsite.username || parsedWebsite.password) {
+          throw new Error("Unsupported website URL.");
+        }
+      } catch {
+        return res.status(400).json({
+          error: "Website must be a valid HTTP or HTTPS URL."
+        });
+      }
+    }
 
     if (!finding) {
       return res.status(400).json({
@@ -289,6 +335,7 @@ export default async function handler(req, res) {
               "Content-Type": "application/json",
               "Authorization": `Bearer ${apiKey}`
             },
+            signal: AbortSignal.timeout(15000),
             body: JSON.stringify({
               model: "gpt-5.6-luna",
               input: `
@@ -340,12 +387,42 @@ Do not invent facts about the website.
             aiResult = null;
           }
 
-          if (aiResult) {
-            return res.status(200).json({
-              success: true,
-              aiPowered: true,
-              assistant: aiResult
-            });
+          if (
+            aiResult &&
+            typeof aiResult === "object" &&
+            !Array.isArray(aiResult)
+          ) {
+            const textFields = [
+              "title",
+              "severity",
+              "explanation",
+              "why_it_matters",
+              "defensive_action",
+              "verification"
+            ];
+
+            const validTextFields = textFields.every(
+              field =>
+                typeof aiResult[field] === "string" &&
+                aiResult[field].length <= 2000
+            );
+
+            const validSteps =
+              Array.isArray(aiResult.steps) &&
+              aiResult.steps.length <= 8 &&
+              aiResult.steps.every(
+                step =>
+                  typeof step === "string" &&
+                  step.length <= 500
+              );
+
+            if (validTextFields && validSteps) {
+              return res.status(200).json({
+                success: true,
+                aiPowered: true,
+                assistant: aiResult
+              });
+            }
           }
         }
 
