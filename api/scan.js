@@ -533,8 +533,6 @@ if (!hostname) {
           headers: options.headers || {},
           servername: net.isIP(hostname) ? undefined : hostname,
           lookup: (lookupHostname, lookupOptions, callback) => {
-            const normalizedLookupHostname = String(lookupHostname)
-              .toLowerCase()
             const normalizedLookupHostname = normalizeHost(lookupHostname);
 
             if (normalizedLookupHostname !== hostname) {
