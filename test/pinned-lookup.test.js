@@ -92,3 +92,47 @@ test("lookup normalizes bracketed IPv6 hostnames", async () => {
 
   assert.deepEqual(result, { address: "2001:db8::1", family: 6 });
 });
+
+test("lookup is case-insensitive for DNS hostnames", async () => {
+  const lookup = createPinnedLookup(
+    "Example.TEST",
+    { address: "93.184.216.34", family: 4 }
+  );
+
+  const result = await new Promise((resolve, reject) => {
+    lookup("example.test", {}, (error, address, family) => {
+      if (error) reject(error);
+      else resolve({ address, family });
+    });
+  });
+
+  assert.deepEqual(result, { address: "93.184.216.34", family: 4 });
+});
+
+test("lookup returns only the pinned IPv6 address when all:true is requested", async () => {
+  const lookup = createPinnedLookup(
+    "example.test",
+    { address: "2001:db8::1", family: 6 }
+  );
+
+  const addresses = await new Promise((resolve, reject) => {
+    lookup("example.test", { all: true }, (error, result) => {
+      if (error) reject(error);
+      else resolve(result);
+    });
+  });
+
+  assert.deepEqual(addresses, [
+    { address: "2001:db8::1", family: 6 }
+  ]);
+});
+
+test("helper rejects a pinned address with a mismatched address family", () => {
+  assert.throws(
+    () => createPinnedLookup(
+      "example.test",
+      { address: "2001:db8::1", family: 4 }
+    ),
+    /valid hostname and pinned IP address/
+  );
+});
