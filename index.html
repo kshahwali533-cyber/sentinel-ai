@@ -2588,6 +2588,20 @@ if (surfaceFindings.length > 0) {
 
           </div>
 
+          ${
+            check.evidence
+              ? `
+                <div class="message evidence">
+                  <strong>Evidence:</strong>
+                  ${escapeHTML(check.evidence.source || "Scanner observation")}
+                  ${check.evidence.signal ? " — " + escapeHTML(check.evidence.signal) : ""}
+                  ${check.evidence.observed ? "<br>Observed: " + escapeHTML(check.evidence.observed) : ""}
+                  ${check.evidence.expected ? "<br>Expected: " + escapeHTML(check.evidence.expected) : ""}
+                </div>
+              `
+              : ""
+          }
+
 
           ${
             check.fix
