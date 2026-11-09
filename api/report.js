@@ -8,23 +8,70 @@ export default async function handler(req, res) {
 
   try {
 
-    const {
-      website,
-      securityScore,
-      riskLevel,
-      checks,
-      scanId
-    } = req.body || {};
+    const body = req.body || {};
 
-    if (!website) {
+    if (
+      typeof body !== "object" ||
+      Array.isArray(body)
+    ) {
       return res.status(400).json({
-        error: "Website is required."
+        error: "Invalid report request."
       });
     }
 
-    if (!Array.isArray(checks)) {
+    const website =
+      typeof body.website === "string"
+        ? body.website.trim().slice(0, 2048)
+        : "";
+    const securityScore = body.securityScore;
+    const riskLevel =
+      typeof body.riskLevel === "string"
+        ? body.riskLevel.trim().slice(0, 40)
+        : "Unknown";
+    const scanId =
+      typeof body.scanId === "string"
+        ? body.scanId.trim().slice(0, 100)
+        : "";
+
+    if (!website) {
       return res.status(400).json({
-        error: "Security checks are required."
+        error: "A valid website is required."
+      });
+    }
+
+    if (
+      !Array.isArray(body.checks) ||
+      body.checks.length === 0 ||
+      body.checks.length > 100
+    ) {
+      return res.status(400).json({
+        error: "Between 1 and 100 security checks are required."
+      });
+    }
+
+    const checks = body.checks.map(check => {
+      if (!check || typeof check !== "object" || Array.isArray(check)) {
+        return null;
+      }
+
+      const safeText = (value, maxLength, fallback = "") =>
+        typeof value === "string"
+          ? value.trim().slice(0, maxLength)
+          : fallback;
+
+      return {
+        name: safeText(check.name, 120, "Security Check"),
+        status: safeText(check.status, 20, "INFO").toUpperCase(),
+        message: safeText(check.message, 1000),
+        description: safeText(check.description, 1000),
+        fix: safeText(check.fix, 1000),
+        recommendation: safeText(check.recommendation, 1000)
+      };
+    });
+
+    if (checks.some(check => check === null)) {
+      return res.status(400).json({
+        error: "One or more security checks are invalid."
       });
     }
 
