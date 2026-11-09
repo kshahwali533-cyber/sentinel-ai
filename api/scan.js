@@ -833,13 +833,15 @@ if (
       name,
       status,
       message,
-      fix = ""
+      fix = "",
+      evidence = null
     ) {
       checks.push({
         name,
         status,
         message,
-        ...(fix ? { fix } : {})
+        ...(fix ? { fix } : {}),
+        ...(evidence ? { evidence } : {})
       });
     }
 
@@ -895,7 +897,13 @@ if (
         "HSTS",
         "WARNING",
         "HSTS header was not detected.",
-        "Enable Strict-Transport-Security with an appropriate max-age."
+        "Enable Strict-Transport-Security with an appropriate max-age.",
+        {
+          source: "HTTP response header",
+          signal: "strict-transport-security",
+          observed: "Header not present",
+          expected: "Strict-Transport-Security with max-age of at least 31536000 seconds"
+        }
       );
     }
 
@@ -910,7 +918,13 @@ if (
         "Content Security Policy",
         "WARNING",
         "Content-Security-Policy was not detected.",
-        "Add a carefully configured Content-Security-Policy header."
+        "Add a carefully configured Content-Security-Policy header.",
+        {
+          source: "HTTP response header",
+          signal: "content-security-policy",
+          observed: "Header not present",
+          expected: "A site-specific Content-Security-Policy header"
+        }
       );
     } else if (
       /'unsafe-inline'/i.test(csp) ||
@@ -949,7 +963,13 @@ if (
         "Clickjacking Protection",
         "WARNING",
         "No clear clickjacking protection was detected.",
-        "Add X-Frame-Options or CSP frame-ancestors."
+        "Add X-Frame-Options or CSP frame-ancestors.",
+        {
+          source: "HTTP response headers",
+          signal: "x-frame-options / content-security-policy frame-ancestors",
+          observed: `X-Frame-Options: ${xFrame || "not present"}; CSP frame-ancestors: ${frameAncestors ? "present" : "not present"}`,
+          expected: "X-Frame-Options or a Content-Security-Policy frame-ancestors directive"
+        }
       );
     }
 
@@ -975,7 +995,13 @@ if (
         "X-Content-Type-Options",
         "WARNING",
         "X-Content-Type-Options: nosniff was not detected.",
-        "Add X-Content-Type-Options: nosniff."
+        "Add X-Content-Type-Options: nosniff.",
+        {
+          source: "HTTP response header",
+          signal: "x-content-type-options",
+          observed: xContentType || "Header not present",
+          expected: "X-Content-Type-Options: nosniff"
+        }
       );
     }
 
