@@ -8,27 +8,90 @@ export default async function handler(req, res) {
 
   try {
 
+    const body = req.body;
+
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return res.status(400).json({
+        error: "Invalid request body."
+      });
+    }
+
     const {
       website,
       securityScore,
       riskLevel,
       checks,
       scanId
-    } = req.body || {};
+    } = body;
 
-    if (!website) {
+    if (typeof website !== "string" || !website.trim() || website.length > 2048) {
       return res.status(400).json({
-        error: "Website is required."
+        error: "A valid website URL is required."
       });
     }
 
-    if (!Array.isArray(checks)) {
+    try {
+      const parsedWebsite = new URL(website);
+      if (!["http:", "https:"].includes(parsedWebsite.protocol) ||
+          parsedWebsite.username || parsedWebsite.password) {
+        throw new Error("Unsupported URL.");
+      }
+    } catch {
       return res.status(400).json({
-        error: "Security checks are required."
+        error: "Website must be a valid HTTP or HTTPS URL."
       });
     }
 
-    const score = Number(securityScore);
+    if (!Array.isArray(checks) || checks.length > 200) {
+      return res.status(400).json({
+        error: "Security checks must be an array containing no more than 200 items."
+      });
+    }
+
+    if (checks.some(check => !check || typeof check !== "object" || Array.isArray(check))) {
+      return res.status(400).json({
+        error: "Each security check must be a valid object."
+      });
+    }
+
+    if (typeof securityScore !== "number" || !Number.isFinite(securityScore) ||
+        securityScore < 0 || securityScore > 100) {
+      return res.status(400).json({
+        error: "Security score must be a number between 0 and 100."
+      });
+    }
+
+    if (riskLevel !== undefined &&
+        (typeof riskLevel !== "string" || riskLevel.length > 24)) {
+      return res.status(400).json({
+        error: "Invalid risk level."
+      });
+    }
+
+    if (scanId !== undefined &&
+        (typeof scanId !== "string" || scanId.length > 128)) {
+      return res.status(400).json({
+        error: "Invalid scan identifier."
+      });
+    }
+
+    const safeText = (value, maxLength, fallback) =>
+      typeof value === "string" && value.trim()
+        ? value.trim().slice(0, maxLength)
+        : fallback;
+
+    for (const check of checks) {
+      for (const field of ["name", "title", "status", "message", "description", "fix", "recommendation"]) {
+        if (check[field] !== undefined &&
+            (typeof check[field] !== "string" || check[field].length > 2000)) {
+          return res.status(400).json({
+            error: "A security check contains an invalid or oversized text field."
+          });
+        }
+      }
+    }
+
+    const score = securityScore;
 
     if (!Number.isFinite(score)) {
       return res.status(400).json({
@@ -68,16 +131,18 @@ export default async function handler(req, res) {
       .slice(0, 5)
       .map((check, index) => ({
         priority: index + 1,
-        title: check?.name || check?.title || "Security Finding",
-        status: check?.status || "Warning",
-        message:
-          check?.message ||
-          check?.description ||
-          "A security configuration issue was detected.",
-        fix:
-          check?.fix ||
-          check?.recommendation ||
+        title: safeText(check.name || check.title, 160, "Security Finding"),
+        status: safeText(check.status, 24, "Warning"),
+        message: safeText(
+          check.message || check.description,
+          500,
+          "A security configuration issue was detected."
+        ),
+        fix: safeText(
+          check.fix || check.recommendation,
+          500,
           "Review and improve this security configuration."
+        )
       }));
 
     const recommendations = priorityFindings.map(
@@ -93,9 +158,9 @@ export default async function handler(req, res) {
 
     const report = {
       website: String(website),
-      scanId: scanId ? String(scanId) : "",
+      scanId: scanId || "",
       securityScore: safeScore,
-      riskLevel: riskLevel || "Unknown",
+      riskLevel: safeText(riskLevel, 24, "Unknown"),
 
       generatedAt: new Date().toISOString(),
 
