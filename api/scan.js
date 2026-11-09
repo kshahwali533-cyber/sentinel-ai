@@ -688,6 +688,41 @@ if (!hostname) {
       });
     }
 
+    async function readTextLimited(response, maxBytes) {
+      const reader = response.body?.getReader();
+
+      if (!reader) {
+        throw new Error("Response body stream is unavailable.");
+      }
+
+      const decoder = new TextDecoder();
+      let text = "";
+      let totalBytes = 0;
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          totalBytes += value.byteLength;
+
+          if (totalBytes > maxBytes) {
+            await reader.cancel();
+            throw new Error("Response body exceeded the scan size limit.");
+          }
+
+          text += decoder.decode(value, { stream: true });
+        }
+
+        return text + decoder.decode();
+      } finally {
+        reader.releaseLock();
+      }
+    }
+
     const response =
       mainResult.response;
 const contentLength =
@@ -1350,7 +1385,7 @@ if (
 ) {
   try {
     html =
-      await response.text();
+      await readTextLimited(response, MAX_RESPONSE_SIZE);
   } catch {
     html = "";
   }
@@ -2267,7 +2302,7 @@ for (
     }
 
     const scriptContent =
-      await scriptResponse.text();
+      await readTextLimited(scriptResponse, 5 * 1024 * 1024);
 
     if (!scriptContent) {
       continue;
