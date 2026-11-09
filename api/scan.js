@@ -487,15 +487,6 @@ if (!hostname) {
       };
     }
 
-    const initialValidation =
-      await validateTargetURL(target);
-
-    if (!initialValidation.safe) {
-      return res.status(400).json({
-        error: initialValidation.reason
-      });
-    }
-
     /*
      * ---------------------------------------------------------
      * SAFE FETCH WITH MANUAL REDIRECT VALIDATION
@@ -1450,6 +1441,8 @@ if (
     "controlled-discovery"
   );
         }
+
+        await discoveryResponse.body?.cancel();
       } catch {
         // Ignore unavailable or blocked paths.
       }
@@ -1771,6 +1764,8 @@ const discoveredSurface =
             "controlled-parameter-discovery"
           );
         }
+
+        await discoveryResponse.body?.cancel();
       } catch {
         // Ignore unavailable or blocked parameterized paths.
       }
@@ -2362,6 +2357,7 @@ for (
       !scriptResponse ||
       !scriptResponse.ok
     ) {
+      await scriptResponse?.body?.cancel();
       continue;
     }
 
@@ -2381,6 +2377,7 @@ for (
       scriptContentLength >
       5 * 1024 * 1024
     ) {
+      await scriptResponse.body?.cancel();
       continue;
     }
 
@@ -2971,6 +2968,8 @@ for (
           "Consider publishing /.well-known/security.txt."
         );
       }
+
+      await securityResponse.body?.cancel();
     } catch {
       addCheck(
         "Security.txt",
@@ -3025,6 +3024,8 @@ for (
           "Robots.txt availability could not be confirmed."
         );
       }
+
+      await robotsResponse.body?.cancel();
     } catch {
       addCheck(
         "Robots.txt",
