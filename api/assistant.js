@@ -387,12 +387,42 @@ Do not invent facts about the website.
             aiResult = null;
           }
 
-          if (aiResult) {
-            return res.status(200).json({
-              success: true,
-              aiPowered: true,
-              assistant: aiResult
-            });
+          if (
+            aiResult &&
+            typeof aiResult === "object" &&
+            !Array.isArray(aiResult)
+          ) {
+            const textFields = [
+              "title",
+              "severity",
+              "explanation",
+              "why_it_matters",
+              "defensive_action",
+              "verification"
+            ];
+
+            const validTextFields = textFields.every(
+              field =>
+                typeof aiResult[field] === "string" &&
+                aiResult[field].length <= 2000
+            );
+
+            const validSteps =
+              Array.isArray(aiResult.steps) &&
+              aiResult.steps.length <= 8 &&
+              aiResult.steps.every(
+                step =>
+                  typeof step === "string" &&
+                  step.length <= 500
+              );
+
+            if (validTextFields && validSteps) {
+              return res.status(200).json({
+                success: true,
+                aiPowered: true,
+                assistant: aiResult
+              });
+            }
           }
         }
 
