@@ -75,6 +75,25 @@ export default async function handler(req, res) {
       });
     }
 
+    if (website.length > 2048) {
+      return res.status(400).json({
+        error: "Website URL is too long."
+      });
+    }
+
+    if (!/^https?:\/\//i.test(website)) {
+      return res.status(400).json({
+        error: "Website must use HTTP or HTTPS."
+      });
+    }
+
+    const allowedStatuses = new Set(["PASS", "WARNING", "INFO"]);
+    if (checks.some(check => !allowedStatuses.has(check.status))) {
+      return res.status(400).json({
+        error: "One or more security check statuses are invalid."
+      });
+    }
+
     const score = Number(securityScore);
 
     if (!Number.isFinite(score)) {
