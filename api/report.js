@@ -16,15 +16,33 @@ export default async function handler(req, res) {
       scanId
     } = req.body || {};
 
-    if (!website) {
+    if (typeof website !== "string" || !website.trim() || website.length > 2048) {
       return res.status(400).json({
-        error: "Website is required."
+        error: "A valid website URL is required."
       });
     }
 
-    if (!Array.isArray(checks)) {
+    try {
+      const parsedWebsite = new URL(website);
+      if (!["http:", "https:"].includes(parsedWebsite.protocol) ||
+          parsedWebsite.username || parsedWebsite.password) {
+        throw new Error("Unsupported URL.");
+      }
+    } catch {
       return res.status(400).json({
-        error: "Security checks are required."
+        error: "Website must be a valid HTTP or HTTPS URL."
+      });
+    }
+
+    if (!Array.isArray(checks) || checks.length > 200) {
+      return res.status(400).json({
+        error: "Security checks must be an array containing no more than 200 items."
+      });
+    }
+
+    if (checks.some(check => !check || typeof check !== "object" || Array.isArray(check))) {
+      return res.status(400).json({
+        error: "Each security check must be a valid object."
       });
     }
 
