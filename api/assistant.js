@@ -290,7 +290,12 @@ export default async function handler(req, res) {
               "Authorization": `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-              model: "gpt-5.6-luna",
+              model: "gpt-6-luna",
+              text: {
+                format: {
+                  type: "json_object"
+                }
+              },
               input: `
 You are Sentinel AI, a defensive cybersecurity mentor.
 
@@ -329,22 +334,66 @@ Do not invent facts about the website.
 
         const data = await response.json();
 
-        if (response.ok && data?.output_text) {
-          let aiResult;
+        /*
+         * Raw HTTP Responses API text is returned in
+         * output[].content[].text. output_text is a convenience
+         * property exposed by some SDKs, not guaranteed in raw JSON.
+         */
+        const responseText =
+          typeof data?.output_text === "string"
+            ? data.output_text
+            : Array.isArray(data?.output)
+              ? data.output
+                  .filter(item => item?.type === "message")
+                  .flatMap(item =>
+                    Array.isArray(item.content)
+                      ? item.content
+                          .filter(part => part?.type === "output_text")
+                          .map(part => part.text)
+                      : []
+                  )
+                  .join("\n")
+              : "";
+
+        if (response.ok && responseText) {
+          let aiResult = null;
 
           try {
-            aiResult = JSON.parse(
-              data.output_text.trim()
-            );
+            aiResult = JSON.parse(responseText.trim());
           } catch {
             aiResult = null;
           }
 
-          if (aiResult) {
+          const validAssistant =
+            aiResult &&
+            typeof aiResult === "object" &&
+            !Array.isArray(aiResult) &&
+            typeof aiResult.title === "string" &&
+            typeof aiResult.explanation === "string" &&
+            typeof aiResult.why_it_matters === "string" &&
+            typeof aiResult.defensive_action === "string" &&
+            Array.isArray(aiResult.steps) &&
+            aiResult.steps.length > 0 &&
+            aiResult.steps.length <= 8 &&
+            aiResult.steps.every(step => typeof step === "string") &&
+            typeof aiResult.verification === "string";
+
+          if (validAssistant) {
             return res.status(200).json({
               success: true,
               aiPowered: true,
-              assistant: aiResult
+              assistant: {
+                title: aiResult.title.slice(0, 160),
+                severity:
+                  typeof aiResult.severity === "string"
+                    ? aiResult.severity.slice(0, 40)
+                    : severity || "Unknown",
+                explanation: aiResult.explanation.slice(0, 2000),
+                why_it_matters: aiResult.why_it_matters.slice(0, 2000),
+                defensive_action: aiResult.defensive_action.slice(0, 2000),
+                steps: aiResult.steps.map(step => step.slice(0, 500)),
+                verification: aiResult.verification.slice(0, 2000)
+              }
             });
           }
         }
