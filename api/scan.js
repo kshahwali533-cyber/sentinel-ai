@@ -504,7 +504,13 @@ if (!hostname) {
         throw new Error("No validated destination addresses are available.");
       }
 
-      const hostname = urlObject.hostname.toLowerCase().replace(/^\\[|\\]$/g, "");
+      const normalizeHost = value => {
+        const normalized = String(value).toLowerCase();
+        return normalized.startsWith("[") && normalized.endsWith("]")
+          ? normalized.slice(1, -1)
+          : normalized;
+      };
+      const hostname = normalizeHost(urlObject.hostname);
       const pinned = validatedAddresses[0];
       const pinnedFamily = net.isIP(pinned.address);
 
@@ -529,7 +535,7 @@ if (!hostname) {
           lookup: (lookupHostname, lookupOptions, callback) => {
             const normalizedLookupHostname = String(lookupHostname)
               .toLowerCase()
-              .replace(/^\\[|\\]$/g, "");
+            const normalizedLookupHostname = normalizeHost(lookupHostname);
 
             if (normalizedLookupHostname !== hostname) {
               callback(new Error("Unexpected hostname requested during connection."));
