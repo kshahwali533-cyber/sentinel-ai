@@ -1,4 +1,22 @@
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseAdmin =
+  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false
+          }
+        }
+      )
+    : null;
+
 export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Only POST requests are allowed."
@@ -45,6 +63,53 @@ export default async function handler(req, res) {
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
+
+    /*
+     * Protect paid AI calls from automated abuse.
+     * This uses the existing atomic Supabase rate-limit RPC,
+     * with a separate key namespace from website scans.
+     * Fail closed when the paid AI key is configured but
+     * the rate limiter cannot be checked.
+     */
+    if (apiKey) {
+      if (!supabaseAdmin) {
+        return res.status(503).json({
+          error: "AI service is temporarily unavailable."
+        });
+      }
+
+      const clientIP =
+        req.headers["x-real-ip"]?.toString().trim() ||
+        req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ||
+        req.socket?.remoteAddress ||
+        "unknown";
+
+      const rateWindowMs = 60 * 60 * 1000;
+      const rateWindowStart = new Date(
+        Math.floor(Date.now() / rateWindowMs) * rateWindowMs
+      ).toISOString();
+
+      const { data: rateAllowed, error: rateError } =
+        await supabaseAdmin.rpc("check_scan_rate_limit", {
+          p_ip_address: `mentor:${clientIP.slice(0, 90)}`,
+          p_window_start: rateWindowStart,
+          p_rate_limit: 20
+        });
+
+      if (rateError) {
+        console.error("AI Mentor rate-limit check failed:", rateError);
+        return res.status(503).json({
+          error: "AI service is temporarily unavailable."
+        });
+      }
+
+      if (!rateAllowed) {
+        return res.status(429).json({
+          error: "AI Mentor usage limit reached. Please try again later."
+        });
+      }
+    }
+
 
     /*
      * ---------------------------------------------------------
