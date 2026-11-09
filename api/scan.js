@@ -168,18 +168,33 @@ if (target.port) {
         return false;
       }
 
-      const first = Number(ip.split(".")[0]);
-      const second = Number(ip.split(".")[1]);
+      /*
+       * Reject non-public, special-purpose, documentation,
+       * benchmarking, multicast and reserved IPv4 ranges.
+       * This is intentionally conservative for an outbound scanner.
+       */
+      const blockedRanges = [
+        ["0.0.0.0", "0.255.255.255"],
+        ["10.0.0.0", "10.255.255.255"],
+        ["100.64.0.0", "100.127.255.255"],
+        ["127.0.0.0", "127.255.255.255"],
+        ["169.254.0.0", "169.254.255.255"],
+        ["172.16.0.0", "172.31.255.255"],
+        ["192.0.0.0", "192.0.0.255"],
+        ["192.0.2.0", "192.0.2.255"],
+        ["192.88.99.0", "192.88.99.255"],
+        ["192.168.0.0", "192.168.255.255"],
+        ["198.18.0.0", "198.19.255.255"],
+        ["198.51.100.0", "198.51.100.255"],
+        ["203.0.113.0", "203.0.113.255"],
+        ["224.0.0.0", "255.255.255.255"]
+      ];
 
-      return (
-        first === 10 ||
-        first === 127 ||
-        (first === 169 && second === 254) ||
-        (first === 172 && second >= 16 && second <= 31) ||
-        (first === 192 && second === 168) ||
-        (first === 100 && second >= 64 && second <= 127) ||
-        (first === 0)
-      );
+      return blockedRanges.some(([start, end]) => {
+        const startValue = ipv4ToNumber(start);
+        const endValue = ipv4ToNumber(end);
+        return value >= startValue && value <= endValue;
+      });
     }
 
     function expandIPv6(ip) {
@@ -324,6 +339,37 @@ if (target.port) {
           `${groups[6] >> 8}.${groups[6] & 255}.${groups[7] >> 8}.${groups[7] & 255}`;
 
         return isPrivateIPv4(mappedIPv4);
+      }
+
+      /*
+       * Only globally assigned unicast space (2000::/3) is
+       * eligible for scanning. Reject transition, benchmark,
+       * documentation and ORCHID ranges as well.
+       */
+      const isGlobalUnicast =
+        groups[0] >= 0x2000 &&
+        groups[0] <= 0x3fff;
+
+      if (!isGlobalUnicast) {
+        return true;
+      }
+
+      if (
+        groups[0] === 0x2001 &&
+        (
+          groups[1] === 0x0000 ||
+          groups[1] === 0x0002 ||
+          groups[1] === 0x0db8 ||
+          (groups[1] & 0xfff0) === 0x0010 ||
+          (groups[1] & 0xfff0) === 0x0020
+        )
+      ) {
+        return true;
+      }
+
+      // 6to4 embeds an IPv4 destination in the IPv6 address.
+      if (groups[0] === 0x2002) {
+        return true;
       }
 
       return false;
