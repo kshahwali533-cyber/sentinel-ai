@@ -33,7 +33,7 @@ jobs:
 
           const source = fs.readFileSync("api/scan.js", "utf8");
 
-          if (/\\bfetch\\s*\\(/.test(source)) {
+          if (/\bfetch\s*\(/.test(source)) {
             throw new Error("Unpinned fetch() calls remain in api/scan.js.");
           }
 
