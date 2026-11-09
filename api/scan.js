@@ -399,7 +399,7 @@ if (target.port) {
       }
 
       const hostname = urlObject.hostname.toLowerCase();
-      if (!hostname || hostname.length > 253 || /[\\s/\\\\]/.test(hostname) || hostname.includes("..")) {
+      if (!hostname || hostname.length > 253 || /[\s/\\]/.test(hostname) || hostname.includes("..")) {
         return { safe: false, reason: "The website hostname is invalid." };
       }
       const blockedHosts = ["localhost", "localhost.", "127.0.0.1", "0.0.0.0", "::1", "[::1]"];
