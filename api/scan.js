@@ -3,16 +3,19 @@ import net from "node:net";
 import { Agent } from "undici";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false
-    }
-  }
-);
+const supabaseAdmin =
+  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false
+          }
+        }
+      )
+    : null;
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -42,6 +45,12 @@ if (
         Math.floor(Date.now() / RATE_WINDOW_MS) *
           RATE_WINDOW_MS
       ).toISOString();
+    if (!supabaseAdmin) {
+      return res.status(503).json({
+        error: "Scan service is temporarily unavailable."
+      });
+    }
+
     const { data: rateAllowed, error: rateError } =
   await supabaseAdmin.rpc("check_scan_rate_limit", {
     p_ip_address: clientIP,
