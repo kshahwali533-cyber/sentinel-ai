@@ -1393,25 +1393,9 @@ if (!hostname) {
     );
 
     /*
-     * Discover common public security resources.
+     * robots.txt and security.txt are added to discovered resources
+     * only after a successful HTTP response confirms they exist.
      */
-    addDiscoveredResource(
-      new URL(
-        "/robots.txt",
-        finalTarget.origin
-      ).href,
-      "robots.txt",
-      "standard-path"
-    );
-
-    addDiscoveredResource(
-      new URL(
-        "/.well-known/security.txt",
-        finalTarget.origin
-      ).href,
-      "security.txt",
-      "standard-path"
-    );
         /*
      * ---------------------------------------------------------
      * CONTROLLED COMMON-PATH DISCOVERY
@@ -3014,6 +2998,12 @@ for (
         securityResponse.ok &&
         securityResponse.status < 400
       ) {
+        addDiscoveredResource(
+          securityResult.finalURL.href,
+          "security.txt",
+          "verified-standard-path"
+        );
+
         addCheck(
           "Security.txt",
           "PASS",
@@ -3071,6 +3061,12 @@ for (
         robotsResponse.ok &&
         robotsResponse.status < 400
       ) {
+        addDiscoveredResource(
+          robotsResult.finalURL.href,
+          "robots.txt",
+          "verified-standard-path"
+        );
+
         addCheck(
           "Robots.txt",
           "PASS",
