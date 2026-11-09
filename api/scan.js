@@ -565,6 +565,7 @@ if (target.port) {
           if (
             redirectCount >= maxRedirects
           ) {
+            await discardResponseBody(response);
             const error =
               new Error(
                 "The website exceeded the maximum number of redirects."
@@ -585,6 +586,7 @@ if (target.port) {
                 currentURL.href
               );
           } catch {
+            await discardResponseBody(response);
             const error =
               new Error(
                 "The website returned an invalid redirect destination."
@@ -600,6 +602,7 @@ if (target.port) {
             await validateTargetURL(nextURL);
 
           if (!nextValidation.safe) {
+            await discardResponseBody(response);
             const error =
               new Error(
                 "The website redirected to a private or local destination."
