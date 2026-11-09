@@ -4,6 +4,7 @@ import http from "node:http";
 import https from "node:https";
 import { Readable } from "node:stream";
 import { createPinnedLookup } from "./_lib/pinned-lookup.js";
+import { isPublicIP } from "./_lib/public-ip.js";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
@@ -142,211 +143,6 @@ if (target.port) {
      * ---------------------------------------------------------
      */
 
-    function ipv4ToNumber(ip) {
-      const parts = ip.split(".").map(Number);
-
-      if (
-        parts.length !== 4 ||
-        parts.some(
-          part =>
-            !Number.isInteger(part) ||
-            part < 0 ||
-            part > 255
-        )
-      ) {
-        return null;
-      }
-
-      return (
-        parts[0] * 256 ** 3 +
-        parts[1] * 256 ** 2 +
-        parts[2] * 256 +
-        parts[3]
-      );
-    }
-
-    function isPrivateIPv4(ip) {
-      const value = ipv4ToNumber(ip);
-
-      if (value === null) {
-        return false;
-      }
-
-      const first = Number(ip.split(".")[0]);
-      const second = Number(ip.split(".")[1]);
-
-      return (
-        first === 10 ||
-        first === 127 ||
-        (first === 169 && second === 254) ||
-        (first === 172 && second >= 16 && second <= 31) ||
-        (first === 192 && second === 168) ||
-        (first === 100 && second >= 64 && second <= 127) ||
-        (first === 0)
-      );
-    }
-
-    function expandIPv6(ip) {
-      let address = ip.toLowerCase();
-
-      if (address.includes("%")) {
-        address = address.split("%")[0];
-      }
-
-      if (address.includes(".")) {
-        const lastColon = address.lastIndexOf(":");
-        const ipv4Part = address.slice(lastColon + 1);
-        const ipv4Value = ipv4ToNumber(ipv4Part);
-
-        if (ipv4Value !== null) {
-          const high = ((ipv4Value >>> 16) & 0xffff)
-            .toString(16)
-            .padStart(4, "0");
-
-          const low = (ipv4Value & 0xffff)
-            .toString(16)
-            .padStart(4, "0");
-
-          address =
-            address.slice(0, lastColon + 1) +
-            high +
-            ":" +
-            low;
-        }
-      }
-
-      const halves = address.split("::");
-
-      if (halves.length > 2) {
-        return null;
-      }
-
-      let left = halves[0]
-        ? halves[0].split(":").filter(Boolean)
-        : [];
-
-      let right = halves[1]
-        ? halves[1].split(":").filter(Boolean)
-        : [];
-
-      if (halves.length === 1) {
-        if (left.length !== 8) {
-          return null;
-        }
-      } else {
-        const missing = 8 - left.length - right.length;
-
-        if (missing < 1) {
-          return null;
-        }
-
-        left = [
-          ...left,
-          ...Array(missing).fill("0"),
-          ...right
-        ];
-      }
-
-      if (left.length !== 8) {
-        return null;
-      }
-
-      if (
-        left.some(
-          part =>
-            !/^[0-9a-f]{1,4}$/i.test(part)
-        )
-      ) {
-        return null;
-      }
-
-      return left.map(part =>
-        parseInt(part, 16)
-      );
-    }
-
-    function isPrivateIPv6(ip) {
-      const groups = expandIPv6(ip);
-
-      if (!groups) {
-        return false;
-      }
-
-      /*
-       * ::1 loopback
-       */
-      const isLoopback =
-        groups.every((value, index) =>
-          index === 7
-            ? value === 1
-            : value === 0
-        );
-
-      if (isLoopback) {
-        return true;
-      }
-
-      /*
-       * :: unspecified
-       */
-      const isUnspecified =
-        groups.every(value => value === 0);
-
-      if (isUnspecified) {
-        return true;
-      }
-
-      /*
-       * fc00::/7 — Unique Local Addresses
-       */
-      if ((groups[0] & 0xfe00) === 0xfc00) {
-        return true;
-      }
-
-      /*
-       * fe80::/10 — Link Local
-       */
-      if ((groups[0] & 0xffc0) === 0xfe80) {
-        return true;
-      }
-
-      /*
-       * IPv4-mapped IPv6:
-       * ::ffff:192.168.x.x
-       * ::ffff:127.x.x.x
-       */
-      if (
-        groups.length === 8 &&
-        groups[0] === 0 &&
-        groups[1] === 0 &&
-        groups[2] === 0 &&
-        groups[3] === 0 &&
-        groups[4] === 0 &&
-        groups[5] === 0xffff
-      ) {
-        const mappedIPv4 =
-          `${groups[6] >> 8}.${groups[6] & 255}.${groups[7] >> 8}.${groups[7] & 255}`;
-
-        return isPrivateIPv4(mappedIPv4);
-      }
-
-      return false;
-    }
-
-    function isPrivateIP(ip) {
-      const family = net.isIP(ip);
-
-      if (family === 4) {
-        return isPrivateIPv4(ip);
-      }
-
-      if (family === 6) {
-        return isPrivateIPv6(ip);
-      }
-
-      return false;
-    }
-
     async function validateTargetURL(urlObject) {
       if (
         !["http:", "https:"].includes(
@@ -429,7 +225,7 @@ if (!hostname) {
        * Direct IP address.
        */
       if (net.isIP(hostname)) {
-        if (isPrivateIP(hostname)) {
+        if (!isPublicIP(hostname)) {
           return {
             safe: false,
             reason:
@@ -465,7 +261,7 @@ if (!hostname) {
         }
 
         for (const entry of resolved) {
-          if (isPrivateIP(entry.address)) {
+          if (!isPublicIP(entry.address)) {
             return {
               safe: false,
               reason:
@@ -517,7 +313,7 @@ if (!hostname) {
       const pinned = validatedAddresses[0];
       const pinnedFamily = net.isIP(pinned.address);
 
-      if (!pinnedFamily || pinnedFamily !== pinned.family || isPrivateIP(pinned.address)) {
+      if (!pinnedFamily || pinnedFamily !== pinned.family || !isPublicIP(pinned.address)) {
         throw new Error("The validated destination address is not safe.");
       }
 
