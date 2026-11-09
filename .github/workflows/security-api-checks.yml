@@ -25,6 +25,7 @@ jobs:
           node --check api/scan.js
           node --check api/assistant.js
           node --check api/report.js
+          node --test test/pinned-lookup.test.js
 
       - name: Verify scanner uses pinned DNS connections
         run: |
