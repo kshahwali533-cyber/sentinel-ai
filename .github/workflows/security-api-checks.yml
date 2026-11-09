@@ -1,0 +1,53 @@
+name: Sentinel AI security API checks
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - security/pin-validated-dns-connection
+
+jobs:
+  syntax-and-ssrf-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate API JavaScript syntax
+        run: |
+          node --check api/scan.js
+          node --check api/assistant.js
+          node --check api/report.js
+
+      - name: Verify scanner uses pinned DNS connections
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const source = fs.readFileSync("api/scan.js", "utf8");
+
+          if (/\\bfetch\\s*\\(/.test(source)) {
+            throw new Error("Unpinned fetch() calls remain in api/scan.js.");
+          }
+
+          if (!source.includes("lookup: (lookupHostname, lookupOptions, callback)")) {
+            throw new Error("Pinned DNS lookup callback is missing.");
+          }
+
+          if (!source.includes("validation.addresses")) {
+            throw new Error("Validated DNS addresses are not passed to the request.");
+          }
+
+          if (!source.includes("servername: net.isIP(hostname) ? undefined : hostname")) {
+            throw new Error("HTTPS hostname verification/SNI configuration is missing.");
+          }
+
+          console.log("Pinned DNS connection guard checks passed.");
+          NODE
