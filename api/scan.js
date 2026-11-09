@@ -1515,6 +1515,14 @@ if (
   }
 }
 
+if (
+  !contentType
+    .toLowerCase()
+    .includes("text/html")
+) {
+  await discardResponseBody(response);
+}
+
 if (html) {
   const linkMatches =
     html.matchAll(
