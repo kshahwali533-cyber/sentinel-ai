@@ -533,6 +533,7 @@ if (!hostname) {
           method: options.method || "GET",
           headers: options.headers || {},
           servername: net.isIP(hostname) ? undefined : hostname,
+          // Never let the transport resolve this hostname again after validation.
           lookup: createPinnedLookup(hostname, pinned)
         }, incoming => {
           settled = true;
