@@ -1,5 +1,6 @@
 import dns from "node:dns/promises";
 import net from "node:net";
+import { Agent } from "undici";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
@@ -390,141 +391,51 @@ if (target.port) {
     }
 
     async function validateTargetURL(urlObject) {
-      if (
-        !["http:", "https:"].includes(
-          urlObject.protocol
-        )
-      ) {
-        return {
-          safe: false,
-          reason:
-            "The website redirected to an unsupported destination."
-        };
+      if (!["http:", "https:"].includes(urlObject.protocol)) {
+        return { safe: false, reason: "The website redirected to an unsupported destination." };
+      }
+      if (urlObject.username || urlObject.password) {
+        return { safe: false, reason: "URLs containing username or password information are not supported." };
       }
 
-      if (
-        urlObject.username ||
-        urlObject.password
-      ) {
-        return {
-          safe: false,
-          reason:
-            "URLs containing username or password information are not supported."
-        };
+      const hostname = urlObject.hostname.toLowerCase();
+      if (!hostname || hostname.length > 253 || /[\\s/\\\\]/.test(hostname) || hostname.includes("..")) {
+        return { safe: false, reason: "The website hostname is invalid." };
+      }
+      const blockedHosts = ["localhost", "localhost.", "127.0.0.1", "0.0.0.0", "::1", "[::1]"];
+      if (blockedHosts.includes(hostname) || hostname.endsWith(".local") || hostname.endsWith(".localhost") || hostname.endsWith(".internal")) {
+        return { safe: false, reason: "Private or local websites cannot be scanned." };
       }
 
-      const hostname =
-        urlObject.hostname.toLowerCase();
-if (!hostname) {
-  return {
-    safe: false,
-    reason:
-      "A valid website hostname is required."
-  };
-}
-      if (hostname.length > 253) {
-  return {
-    safe: false,
-    reason:
-      "The website hostname is too long."
-  };
-      }
-      if (
-  /[\s/\\]/.test(hostname)
-) {
-  return {
-    safe: false,
-    reason:
-      "The website hostname contains invalid characters."
-  };
-      }
-      if (hostname.includes("..")) {
-  return {
-    safe: false,
-    reason:
-      "The website hostname is invalid."
-  };
-      }
-      const blockedHosts = [
-        "localhost",
-        "localhost.",
-        "127.0.0.1",
-        "0.0.0.0",
-        "::1",
-        "[::1]"
-      ];
-
-      if (
-        blockedHosts.includes(hostname) ||
-        hostname.endsWith(".local") ||
-        hostname.endsWith(".localhost") ||
-        hostname.endsWith(".internal")
-      ) {
-        return {
-          safe: false,
-          reason:
-            "Private or local websites cannot be scanned."
-        };
-      }
-
-      /*
-       * Direct IP address.
-       */
       if (net.isIP(hostname)) {
         if (isPrivateIP(hostname)) {
-          return {
-            safe: false,
-            reason:
-              "Private or local websites cannot be scanned."
-          };
+          return { safe: false, reason: "Private or local websites cannot be scanned." };
         }
-
-        return {
-          safe: true
-        };
+        return { safe: true, address: hostname, family: net.isIP(hostname) };
       }
 
-      /*
-       * Resolve hostname and inspect every returned address.
-       * If ANY resolved address is private/local, block it.
-       */
       try {
-        const resolved =
-          await dns.lookup(hostname, {
-            all: true,
-            verbatim: true
-          });
-
+        const resolved = await dns.lookup(hostname, { all: true, verbatim: true });
         if (!resolved || !resolved.length) {
-          return {
-            safe: false,
-            reason:
-              "The website hostname could not be safely resolved."
-          };
+          return { safe: false, reason: "The website hostname could not be safely resolved." };
         }
-
         for (const entry of resolved) {
           if (isPrivateIP(entry.address)) {
-            return {
-              safe: false,
-              reason:
-                "The website hostname resolves to a private or local destination."
-            };
+            return { safe: false, reason: "The website hostname resolves to a private or local destination." };
           }
         }
-      } catch {
+
+        // Pin the exact public address validated above. The HTTP client must
+        // use this address for its socket lookup instead of resolving again.
         return {
-          safe: false,
-          reason:
-            "The website hostname could not be safely resolved."
+          safe: true,
+          address: resolved[0].address,
+          family: resolved[0].family
         };
+      } catch {
+        return { safe: false, reason: "The website hostname could not be safely resolved." };
       }
-
-      return {
-        safe: true
-      };
     }
-
     const initialValidation =
       await validateTargetURL(target);
 
@@ -540,11 +451,26 @@ if (!hostname) {
      * ---------------------------------------------------------
      */
 
+    const responseAgents = new WeakMap();
+
+    async function closeResponseAgent(response) {
+      const agent = response && responseAgents.get(response);
+      if (!agent) return;
+      responseAgents.delete(response);
+      try {
+        await agent.close();
+      } catch {
+        try { await agent.destroy(); } catch {}
+      }
+    }
+
     async function discardResponseBody(response) {
       try {
         await response?.body?.cancel();
       } catch {
         // Best-effort cleanup for responses whose bodies are not inspected.
+      } finally {
+        await closeResponseAgent(response);
       }
     }
 
@@ -571,31 +497,48 @@ if (!hostname) {
           throw error;
         }
 
-        const controller =
-          new AbortController();
+        const controller = new AbortController();
+        const expectedHostname = currentURL.hostname.toLowerCase();
+        const pinnedAddress = validation.address;
+        const pinnedFamily = validation.family;
 
-        const timeout =
-          setTimeout(
-            () => controller.abort(),
-            options.timeout || 15000
-          );
+        // Undici's custom lookup pins the socket to the already-validated
+        // DNS answer, closing the validation-to-connect DNS rebinding gap.
+        const dispatcher = new Agent({
+          connect: {
+            lookup(hostname, lookupOptions, callback) {
+              if (hostname.toLowerCase() !== expectedHostname) {
+                callback(new Error("Unexpected outbound hostname."));
+                return;
+              }
+              if (lookupOptions?.all) {
+                callback(null, [{ address: pinnedAddress, family: pinnedFamily }]);
+              } else {
+                callback(null, pinnedAddress, pinnedFamily);
+              }
+            }
+          }
+        });
+
+        const timeout = setTimeout(
+          () => controller.abort(),
+          options.timeout || 15000
+        );
 
         let response;
 
         try {
-          response = await fetch(
-            currentURL.href,
-            {
-              method:
-                options.method || "GET",
-              redirect: "manual",
-              signal: controller.signal,
-              headers:
-                options.headers || {}
-            }
-          );
+          response = await fetch(currentURL.href, {
+            method: options.method || "GET",
+            redirect: "manual",
+            signal: controller.signal,
+            headers: options.headers || {},
+            dispatcher
+          });
+          responseAgents.set(response, dispatcher);
         } catch (error) {
           clearTimeout(timeout);
+          try { await dispatcher.close(); } catch {}
           throw error;
         }
 
@@ -760,9 +703,7 @@ if (!hostname) {
         contentLength < 0 ||
         contentLength > MAX_RESPONSE_SIZE)
     ) {
-      try {
-        await response.body?.cancel();
-      } catch {}
+      await discardResponseBody(response);
       return res.status(413).json({
         error:
           "The website response is too large or has an invalid size declaration."
@@ -775,6 +716,7 @@ if (!hostname) {
       timeoutMs = 10000
     ) {
       if (!responseToRead?.body) {
+        await closeResponseAgent(responseToRead);
         return "";
       }
 
@@ -841,6 +783,7 @@ if (!hostname) {
         try {
           reader.releaseLock();
         } catch {}
+        await closeResponseAgent(responseToRead);
       }
     }
 
