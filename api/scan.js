@@ -3,6 +3,7 @@ import net from "node:net";
 import http from "node:http";
 import https from "node:https";
 import { Readable } from "node:stream";
+import { createPinnedLookup } from "./_lib/pinned-lookup.js";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
@@ -532,21 +533,7 @@ if (!hostname) {
           method: options.method || "GET",
           headers: options.headers || {},
           servername: net.isIP(hostname) ? undefined : hostname,
-          lookup: (lookupHostname, lookupOptions, callback) => {
-            const normalizedLookupHostname = normalizeHost(lookupHostname);
-
-            if (normalizedLookupHostname !== hostname) {
-              callback(new Error("Unexpected hostname requested during connection."));
-              return;
-            }
-
-            if (lookupOptions?.all) {
-              callback(null, [pinned]);
-              return;
-            }
-
-            callback(null, pinned.address, pinned.family);
-          }
+          lookup: createPinnedLookup(hostname, pinned)
         }, incoming => {
           settled = true;
           clearTimeout(timeout);
