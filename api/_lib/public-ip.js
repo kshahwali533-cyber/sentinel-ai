@@ -5,7 +5,7 @@ function ipv4Number(address) {
   if (parts.length !== 4) return null;
   let value = 0;
   for (const part of parts) {
-    if (!/^\\d{1,3}$/.test(part)) return null;
+    if (!/^\d{1,3}$/.test(part)) return null;
     const octet = Number(part);
     if (octet > 255) return null;
     value = value * 256 + octet;
@@ -54,17 +54,12 @@ function inIPv6Range(value, network, prefix) {
 }
 
 const BLOCKED_IPV6_RANGES = [
-  ["2001::", 23],       // IETF protocol assignments
-  ["2001:db8::", 32],   // Documentation
-  ["2002::", 16],       // 6to4 (may encode non-public IPv4 destinations)
-  ["3fff::", 20]        // Documentation
+  ["2001::", 23],
+  ["2001:db8::", 32],
+  ["2002::", 16],
+  ["3fff::", 20]
 ].map(([address, prefix]) => [expandIPv6(address), prefix]);
 
-/**
- * True only for globally routable unicast addresses suitable for outbound scans.
- * Special-use, private, shared, loopback, link-local, multicast and documentation
- * ranges are deliberately denied.
- */
 export function isPublicIP(address) {
   const family = net.isIP(address);
   if (family === 4) {
