@@ -28,7 +28,7 @@ test("rejects missing, primitive, and array evidence", () => {
 
 test("removes control characters and caps evidence field length", () => {
   const result = normalizeEvidence({
-    observed: "  header\\u0000 value  ",
+    observed: "  header\u0000 value  ",
     expected: "x".repeat(800)
   });
   assert.equal(result.observed, "header value");
