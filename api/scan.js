@@ -447,8 +447,10 @@ if (!hostname) {
        * Resolve hostname and inspect every returned address.
        * If ANY resolved address is private/local, block it.
        */
+      let resolved;
+
       try {
-        const resolved =
+        resolved =
           await dns.lookup(hostname, {
             all: true,
             verbatim: true
