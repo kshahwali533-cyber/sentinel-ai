@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - security/pin-validated-dns-connection
+      - feature/validation-evidence-report
 
 jobs:
   syntax-and-ssrf-guard:
