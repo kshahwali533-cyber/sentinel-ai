@@ -35,7 +35,8 @@ if (
   });
 }
     const clientIP =
-      req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+      req.headers["x-real-ip"]?.toString().trim() ||
+      req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ||
       req.socket?.remoteAddress ||
       "unknown";
         const RATE_LIMIT = 10;
