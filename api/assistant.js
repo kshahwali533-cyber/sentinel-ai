@@ -40,9 +40,23 @@ export default async function handler(req, res) {
         ? body.finding.trim()
         : "";
 
-    const severity =
+    const allowedSeverities = [
+      "Critical",
+      "High",
+      "Medium",
+      "Low",
+      "Info",
+      "Unknown"
+    ];
+
+    const requestedSeverity =
       typeof body.severity === "string"
-        ? body.severity.trim().slice(0, 40)
+        ? body.severity.trim()
+        : "Unknown";
+
+    const severity =
+      allowedSeverities.includes(requestedSeverity)
+        ? requestedSeverity
         : "Unknown";
 
     const website =
@@ -475,9 +489,9 @@ Do not provide exploitation instructions or invent facts about the website.`
               assistant: {
                 title: aiResult.title.slice(0, 160),
                 severity:
-                  typeof aiResult.severity === "string"
-                    ? aiResult.severity.slice(0, 40)
-                    : severity || "Unknown",
+                  allowedSeverities.includes(aiResult.severity)
+                    ? aiResult.severity
+                    : severity,
                 explanation: aiResult.explanation.slice(0, 2000),
                 why_it_matters: aiResult.why_it_matters.slice(0, 2000),
                 defensive_action: aiResult.defensive_action.slice(0, 2000),
