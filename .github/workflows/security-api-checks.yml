@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - security/pin-validated-dns-connection
   push:
     branches:
       - security/pin-validated-dns-connection
@@ -28,7 +29,6 @@ jobs:
           node --check api/report.js
           node --check api/_lib/pinned-lookup.js
           node --check api/_lib/security-evidence.js
-          node --check api/report.js
           node --check test/pinned-lookup.test.js
           node --check test/security-evidence.test.js
           node --test test/pinned-lookup.test.js test/security-evidence.test.js
