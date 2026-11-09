@@ -21,7 +21,7 @@ export default async function handler(req, res) {
 
     const website =
       typeof body.website === "string"
-        ? body.website.trim().slice(0, 2048)
+        ? body.website.trim()
         : "";
     const securityScore = body.securityScore;
     const riskLevel =
@@ -81,9 +81,23 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!/^https?:\/\//i.test(website)) {
+    let parsedWebsite;
+    try {
+      parsedWebsite = new URL(website);
+    } catch {
       return res.status(400).json({
-        error: "Website must use HTTP or HTTPS."
+        error: "A valid website URL is required."
+      });
+    }
+
+    if (
+      !["http:", "https:"].includes(parsedWebsite.protocol) ||
+      !parsedWebsite.hostname ||
+      parsedWebsite.username ||
+      parsedWebsite.password
+    ) {
+      return res.status(400).json({
+        error: "Website must be a valid HTTP or HTTPS URL."
       });
     }
 
