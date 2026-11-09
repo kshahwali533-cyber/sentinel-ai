@@ -540,6 +540,14 @@ if (!hostname) {
      * ---------------------------------------------------------
      */
 
+    async function discardResponseBody(response) {
+      try {
+        await response?.body?.cancel();
+      } catch {
+        // Best-effort cleanup for responses whose bodies are not inspected.
+      }
+    }
+
     async function safeFetch(startURL, options = {}) {
       let currentURL =
         new URL(startURL.href);
@@ -660,6 +668,7 @@ if (!hostname) {
             throw error;
           }
 
+          await discardResponseBody(response);
           currentURL = nextURL;
           continue;
         }
@@ -1464,6 +1473,7 @@ if (!hostname) {
     "controlled-discovery"
   );
         }
+        await discardResponseBody(discoveryResponse);
       } catch {
         // Ignore unavailable or blocked paths.
       }
@@ -1802,6 +1812,7 @@ const discoveredSurface =
             "controlled-parameter-discovery"
           );
         }
+        await discardResponseBody(discoveryResponse);
       } catch {
         // Ignore unavailable or blocked parameterized paths.
       }
@@ -2393,6 +2404,7 @@ for (
       !scriptResponse ||
       !scriptResponse.ok
     ) {
+      await discardResponseBody(scriptResponse);
       continue;
     }
 
@@ -2412,6 +2424,7 @@ for (
       scriptContentLength >
       5 * 1024 * 1024
     ) {
+      await discardResponseBody(scriptResponse);
       continue;
     }
 
@@ -3006,6 +3019,8 @@ for (
           "Consider publishing /.well-known/security.txt."
         );
       }
+
+      await discardResponseBody(securityResponse);
     } catch {
       addCheck(
         "Security.txt",
@@ -3060,6 +3075,8 @@ for (
           "Robots.txt availability could not be confirmed."
         );
       }
+
+      await discardResponseBody(robotsResponse);
     } catch {
       addCheck(
         "Robots.txt",
