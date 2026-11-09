@@ -2,7 +2,7 @@ const MAX_EVIDENCE_FIELD_LENGTH = 500;
 
 function cleanEvidenceText(value) {
   if (typeof value !== "string") return null;
-  const cleaned = value.replace(/[\\u0000-\\u001f\\u007f]/g, " ").trim();
+  const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, " ").trim();
   if (!cleaned) return null;
   return cleaned.slice(0, MAX_EVIDENCE_FIELD_LENGTH);
 }
