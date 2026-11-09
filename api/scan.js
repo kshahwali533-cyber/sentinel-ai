@@ -1,5 +1,8 @@
 import dns from "node:dns/promises";
 import net from "node:net";
+import http from "node:http";
+import https from "node:https";
+import { Readable } from "node:stream";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
@@ -368,7 +371,7 @@ if (target.port) {
       }
 
       const hostname =
-        urlObject.hostname.toLowerCase();
+        urlObject.hostname.toLowerCase().replace(/^\[|\]$/g, "");
 if (!hostname) {
   return {
     safe: false,
@@ -434,7 +437,8 @@ if (!hostname) {
         }
 
         return {
-          safe: true
+          safe: true,
+          addresses: [{ address: hostname, family: net.isIP(hostname) }]
         };
       }
 
@@ -475,7 +479,11 @@ if (!hostname) {
       }
 
       return {
-        safe: true
+        safe: true,
+        addresses: resolved.map(entry => ({
+          address: entry.address,
+          family: entry.family || net.isIP(entry.address)
+        }))
       };
     }
 
@@ -493,6 +501,104 @@ if (!hostname) {
      * SAFE FETCH WITH MANUAL REDIRECT VALIDATION
      * ---------------------------------------------------------
      */
+
+
+    /*
+     * Connect only to an IP address that was resolved and validated
+     * immediately above. The custom lookup callback prevents Node's
+     * HTTP client from performing a second DNS lookup at connect time.
+     */
+    async function requestPinned(urlObject, validatedAddresses, options = {}) {
+      if (!Array.isArray(validatedAddresses) || validatedAddresses.length === 0) {
+        throw new Error("No validated destination addresses are available.");
+      }
+
+      const hostname = urlObject.hostname.toLowerCase().replace(/^\\[|\\]$/g, "");
+      const pinned = validatedAddresses[0];
+      const pinnedFamily = net.isIP(pinned.address);
+
+      if (!pinnedFamily || pinnedFamily !== pinned.family || isPrivateIP(pinned.address)) {
+        throw new Error("The validated destination address is not safe.");
+      }
+
+      const transport = urlObject.protocol === "https:" ? https : http;
+
+      return await new Promise((resolve, reject) => {
+        let settled = false;
+        const timeoutMs = options.timeout || 15000;
+
+        const request = transport.request({
+          protocol: urlObject.protocol,
+          hostname,
+          port: urlObject.port || undefined,
+          path: `${urlObject.pathname}${urlObject.search}`,
+          method: options.method || "GET",
+          headers: options.headers || {},
+          servername: net.isIP(hostname) ? undefined : hostname,
+          lookup: (lookupHostname, lookupOptions, callback) => {
+            const normalizedLookupHostname = String(lookupHostname)
+              .toLowerCase()
+              .replace(/^\\[|\\]$/g, "");
+
+            if (normalizedLookupHostname !== hostname) {
+              callback(new Error("Unexpected hostname requested during connection."));
+              return;
+            }
+
+            if (lookupOptions?.all) {
+              callback(null, [pinned]);
+              return;
+            }
+
+            callback(null, pinned.address, pinned.family);
+          }
+        }, incoming => {
+          settled = true;
+          clearTimeout(timeout);
+
+          const responseHeaders = new Headers();
+
+          for (const [name, value] of Object.entries(incoming.headers)) {
+            if (value === undefined) continue;
+
+            if (Array.isArray(value)) {
+              for (const item of value) {
+                responseHeaders.append(name, String(item));
+              }
+            } else {
+              responseHeaders.set(name, String(value));
+            }
+          }
+
+          const status = incoming.statusCode || 502;
+          const body = [204, 205, 304].includes(status)
+            ? null
+            : Readable.toWeb(incoming);
+
+          resolve(new Response(body, {
+            status,
+            statusText: incoming.statusMessage,
+            headers: responseHeaders
+          }));
+        });
+
+        const timeout = setTimeout(() => {
+          const error = new Error("The website took too long to respond.");
+          error.name = "AbortError";
+          request.destroy(error);
+        }, timeoutMs);
+
+        request.on("error", error => {
+          clearTimeout(timeout);
+
+          if (!settled) {
+            reject(error);
+          }
+        });
+
+        request.end();
+      });
+    }
 
     async function safeFetch(startURL, options = {}) {
       let currentURL =
@@ -517,35 +623,11 @@ if (!hostname) {
           throw error;
         }
 
-        const controller =
-          new AbortController();
-
-        const timeout =
-          setTimeout(
-            () => controller.abort(),
-            options.timeout || 15000
-          );
-
-        let response;
-
-        try {
-          response = await fetch(
-            currentURL.href,
-            {
-              method:
-                options.method || "GET",
-              redirect: "manual",
-              signal: controller.signal,
-              headers:
-                options.headers || {}
-            }
-          );
-        } catch (error) {
-          clearTimeout(timeout);
-          throw error;
-        }
-
-        clearTimeout(timeout);
+        const response = await requestPinned(
+          currentURL,
+          validation.addresses,
+          options
+        );
 
         /*
          * Handle redirects manually so every redirect
@@ -614,6 +696,7 @@ if (!hostname) {
             throw error;
           }
 
+          await response.body?.cancel();
           currentURL = nextURL;
           continue;
         }
