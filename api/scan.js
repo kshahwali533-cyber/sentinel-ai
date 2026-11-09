@@ -536,33 +536,44 @@ if (!hostname) {
           // Never let the transport resolve this hostname again after validation.
           lookup: createPinnedLookup(hostname, pinned)
         }, incoming => {
-          settled = true;
-          clearTimeout(timeout);
+          try {
+            const responseHeaders = new Headers();
 
-          const responseHeaders = new Headers();
+            for (const [name, value] of Object.entries(incoming.headers)) {
+              if (value === undefined) continue;
 
-          for (const [name, value] of Object.entries(incoming.headers)) {
-            if (value === undefined) continue;
-
-            if (Array.isArray(value)) {
-              for (const item of value) {
-                responseHeaders.append(name, String(item));
+              if (Array.isArray(value)) {
+                for (const item of value) {
+                  responseHeaders.append(name, String(item));
+                }
+              } else {
+                responseHeaders.set(name, String(value));
               }
-            } else {
-              responseHeaders.set(name, String(value));
+            }
+
+            const status = incoming.statusCode || 502;
+            const body = [204, 205, 304].includes(status)
+              ? null
+              : Readable.toWeb(incoming);
+
+            const response = new Response(body, {
+              status,
+              statusText: incoming.statusMessage,
+              headers: responseHeaders
+            });
+
+            settled = true;
+            clearTimeout(timeout);
+            resolve(response);
+          } catch (error) {
+            clearTimeout(timeout);
+            incoming.destroy(error);
+
+            if (!settled) {
+              settled = true;
+              reject(error);
             }
           }
-
-          const status = incoming.statusCode || 502;
-          const body = [204, 205, 304].includes(status)
-            ? null
-            : Readable.toWeb(incoming);
-
-          resolve(new Response(body, {
-            status,
-            statusText: incoming.statusMessage,
-            headers: responseHeaders
-          }));
         });
 
         const timeout = setTimeout(() => {
@@ -1456,7 +1467,10 @@ if (
       await readTextLimited(response, MAX_RESPONSE_SIZE);
   } catch {
     html = "";
+    await response.body?.cancel().catch(() => {});
   }
+} else {
+  await response.body?.cancel().catch(() => {});
 }
 
 if (html) {
