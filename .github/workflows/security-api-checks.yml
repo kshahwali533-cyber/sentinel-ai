@@ -38,7 +38,10 @@ jobs:
             throw new Error("Unpinned fetch() calls remain in api/scan.js.");
           }
 
-          if (!source.includes("lookup: (lookupHostname, lookupOptions, callback)")) {
+          const helper = fs.readFileSync("api/_lib/pinned-lookup.js", "utf8");
+
+          if (!source.includes("lookup: createPinnedLookup(hostname, pinned)") ||
+              !helper.includes("return (lookupHostname, lookupOptions, callback)")) {
             throw new Error("Pinned DNS lookup callback is missing.");
           }
 
