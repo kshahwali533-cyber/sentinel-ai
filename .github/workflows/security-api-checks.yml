@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - security/pin-validated-dns-connection
   push:
     branches:
       - security/pin-validated-dns-connection
