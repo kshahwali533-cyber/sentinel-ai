@@ -5,6 +5,7 @@ import https from "node:https";
 import { Readable } from "node:stream";
 import { createPinnedLookup } from "./_lib/pinned-lookup.js";
 import { isPublicIP } from "./_lib/public-ip.js";
+import { readTextLimited } from "./_lib/read-limited.js";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
@@ -561,41 +562,6 @@ if (!hostname) {
         error:
           "Sentinel AI could not connect to the target website."
       });
-    }
-
-    async function readTextLimited(response, maxBytes) {
-      const reader = response.body?.getReader();
-
-      if (!reader) {
-        throw new Error("Response body stream is unavailable.");
-      }
-
-      const decoder = new TextDecoder();
-      let text = "";
-      let totalBytes = 0;
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-
-          if (done) {
-            break;
-          }
-
-          totalBytes += value.byteLength;
-
-          if (totalBytes > maxBytes) {
-            await reader.cancel();
-            throw new Error("Response body exceeded the scan size limit.");
-          }
-
-          text += decoder.decode(value, { stream: true });
-        }
-
-        return text + decoder.decode();
-      } finally {
-        reader.releaseLock();
-      }
     }
 
     const response =

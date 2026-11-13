@@ -27,9 +27,11 @@ jobs:
           node --check api/report.js
           node --check api/_lib/pinned-lookup.js
           node --check api/_lib/public-ip.js
+          node --check api/_lib/read-limited.js
           node --check test/public-ip.test.js
+          node --check test/read-limited.test.js
           node --check test/pinned-lookup.test.js
-          node --test test/pinned-lookup.test.js test/public-ip.test.js
+          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js
 
       - name: Verify scanner uses pinned DNS connections
         run: |
