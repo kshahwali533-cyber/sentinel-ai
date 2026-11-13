@@ -1,3 +1,5 @@
+import { normalizeEvidence } from "./_lib/security-evidence.js";
+
 export default async function handler(req, res) {
 
   if (req.method !== "POST") {
@@ -81,6 +83,24 @@ export default async function handler(req, res) {
         : fallback;
 
     for (const check of checks) {
+      if (check.evidence !== undefined &&
+          (!check.evidence || typeof check.evidence !== "object" || Array.isArray(check.evidence))) {
+        return res.status(400).json({
+          error: "Security evidence must be a valid object."
+        });
+      }
+
+      if (check.evidence) {
+        for (const field of ["source", "signal", "observed", "expected"]) {
+          if (check.evidence[field] !== undefined &&
+              (typeof check.evidence[field] !== "string" || check.evidence[field].length > 2000)) {
+            return res.status(400).json({
+              error: "Security evidence contains an invalid or oversized field."
+            });
+          }
+        }
+      }
+
       for (const field of ["name", "title", "status", "message", "description", "fix", "recommendation"]) {
         if (check[field] !== undefined &&
             (typeof check[field] !== "string" || check[field].length > 2000)) {
@@ -122,6 +142,10 @@ export default async function handler(req, res) {
         String(check?.status || "").toLowerCase() === "informational"
     ).length;
 
+    const evidenceBackedFindings = checks.filter(
+      check => normalizeEvidence(check.evidence) !== null
+    ).length;
+
     const priorityFindings = checks
       .filter(
         check =>
@@ -142,7 +166,10 @@ export default async function handler(req, res) {
           check.fix || check.recommendation,
           500,
           "Review and improve this security configuration."
-        )
+        ),
+        ...(normalizeEvidence(check.evidence)
+          ? { evidence: normalizeEvidence(check.evidence) }
+          : {})
       }));
 
     const recommendations = priorityFindings.map(
@@ -169,7 +196,8 @@ export default async function handler(req, res) {
         passed,
         warnings,
         informational,
-        priorityIssues: priorityFindings.length
+        priorityIssues: priorityFindings.length,
+        evidenceBackedFindings
       },
 
       priorityFindings,
