@@ -3237,7 +3237,7 @@ async function generateProfessionalReport(button) {
       : [];
 
 
-  reportWindow.document.write(`
+  const reportHTML = `
 
     <!DOCTYPE html>
 
@@ -3685,10 +3685,12 @@ async function generateProfessionalReport(button) {
 
     </html>
 
-  `);
+  `;
 
 
-  reportWindow.document.close();
+  const reportBlob = new Blob([reportHTML], { type: "text/html;charset=utf-8" });
+  const reportUrl = URL.createObjectURL(reportBlob);
+  reportWindow.location.replace(reportUrl);
 trackSentinelEvent("report_generated");
 
   try {
