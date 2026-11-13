@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - security/pin-validated-dns-connection
+      - integration/sentinel-evidence-2026-11
 
 jobs:
   syntax-and-ssrf-guard:
@@ -31,7 +32,9 @@ jobs:
           node --check test/public-ip.test.js
           node --check test/read-limited.test.js
           node --check test/pinned-lookup.test.js
-          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js
+          node --check api/_lib/security-evidence.js
+          node --check test/security-evidence.test.js
+          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js
 
       - name: Verify scanner uses pinned DNS connections
         run: |
