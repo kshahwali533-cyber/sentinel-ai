@@ -7,11 +7,13 @@ on:
       - security/pin-validated-dns-connection
       - integration/sentinel-evidence-2026-11
       - fix/professional-report-mobile-blank-2026-11
+      - security/response-headers-hardening-2026-11
   push:
     branches:
       - security/pin-validated-dns-connection
       - integration/sentinel-evidence-2026-11
       - fix/professional-report-mobile-blank-2026-11
+      - security/response-headers-hardening-2026-11
 
 jobs:
   syntax-and-ssrf-guard:
@@ -68,4 +70,30 @@ jobs:
           }
 
           console.log("Pinned DNS connection guard checks passed.");
+          NODE
+
+      - name: Validate Vercel security response headers
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const config = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
+          const route = config.headers?.find((item) => item.source === "/(.*)");
+          const headers = new Map((route?.headers || []).map((item) => [item.key.toLowerCase(), item.value]));
+
+          for (const [name, expected] of [
+            ["x-content-type-options", "nosniff"],
+            ["x-frame-options", "DENY"],
+            ["referrer-policy", "strict-origin-when-cross-origin"]
+          ]) {
+            if (headers.get(name) !== expected) {
+              throw new Error(`Missing or incorrect ${name} response header.`);
+            }
+          }
+
+          if (!headers.has("content-security-policy-report-only")) {
+            throw new Error("CSP must remain in report-only mode until browser compatibility is verified.");
+          }
+
+          console.log("Vercel security response header configuration passed.");
           NODE
