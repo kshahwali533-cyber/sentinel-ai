@@ -575,6 +575,20 @@ if (!hostname) {
 
     const response =
       mainResult.response;
+
+    // A 401/403 response is not a reliable representation of the
+    // protected page. Do not calculate or save a misleading security score.
+    if ([401, 403].includes(response.status)) {
+      await response.body?.cancel();
+
+      return res.status(422).json({
+        code: "TARGET_ACCESS_RESTRICTED",
+        error:
+          "The target website returned HTTP " +
+          response.status +
+          " (access restricted). Sentinel AI cannot verify the page security headers or produce a reliable score. If this is a Vercel Preview deployment, its deployment protection may be blocking server-side scanning. Test a publicly accessible authorized URL or use an approved temporary test access method."
+      });
+    }
 const contentLength =
   Number(response.headers.get("content-length") || 0);
 
