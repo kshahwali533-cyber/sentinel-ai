@@ -4,22 +4,22 @@ import fs from "node:fs";
 import vm from "node:vm";
 
 const html = fs.readFileSync("index.html", "utf8");
-const scripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi)]
-  .filter((match) => !/\\bsrc\\s*=/.test(match[1]))
-  .filter((match) => !/type\\s*=\\s*["']application\\/(?:json|ld\\+json)["']/i.test(match[1]))
+const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+  .filter((match) => !/\bsrc\s*=/.test(match[1]))
+  .filter((match) => !/type\s*=\s*["']application\/(?:json|ld\+json)["']/i.test(match[1]))
   .map((match) => match[2])
   .filter((source) => source.trim());
 
 test("inline browser scripts parse without syntax errors", () => {
   assert.ok(scripts.length > 0, "Expected inline application scripts in index.html");
   for (const [index, source] of scripts.entries()) {
-    assert.doesNotThrow(() => new vm.Script(source), `inline script ${index + 1} should parse`);
+    assert.doesNotThrow(() => new vm.Script(source), \`inline script \${index + 1} should parse\`);
   }
 });
 
 test("professional report waits for the API and does not open an empty popup", () => {
   const start = html.indexOf("async function generateProfessionalReport(button) {");
-  const end = html.indexOf("/* =========================\\n   LOCAL + CLOUD SCAN HISTORY", start);
+  const end = html.indexOf("/* =========================\n   LOCAL + CLOUD SCAN HISTORY", start);
   assert.notEqual(start, -1, "report function should exist");
   assert.notEqual(end, -1, "report function end should be identifiable");
   const fn = html.slice(start, end);
