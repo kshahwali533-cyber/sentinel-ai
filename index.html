@@ -4849,14 +4849,14 @@ async function loadOrganizationAssets(organizationId) {
         </div>
       `;
     }).join("") : '<div class="monitoring-meta">No verified assets are shared with this workspace yet.</div>';
-    const selectHtml = data.can_manage && available.length ? `
+    const selectHtml = data.can_manage && data.sharing_enabled && available.length ? `
       <div class="analytics-panel">
         <select id="orgAssetSelect-${escapeHTML(organizationId)}">
           ${available.map((asset) => `<option value="${escapeHTML(asset.id)}">${escapeHTML(asset.hostname || asset.url)}</option>`).join("")}
         </select>
         <button type="button" onclick="shareOrganizationAsset('${escapeHTML(organizationId)}')">Share verified asset</button>
       </div>
-    ` : data.can_manage ? '<div class="monitoring-meta">No other verified member-owned assets are available to share.</div>' : "";
+    ` : data.can_manage && !data.sharing_enabled ? '<div class="monitoring-meta">Asset sharing is disabled by the workspace owner.</div>' : data.can_manage ? '<div class="monitoring-meta">No other verified member-owned assets are available to share.</div>' : "";
     node.innerHTML = sharedHtml + selectHtml;
   } catch (error) {
     node.className = "error";
