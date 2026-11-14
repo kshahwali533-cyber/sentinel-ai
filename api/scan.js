@@ -3,6 +3,7 @@ import net from "node:net";
 import http from "node:http";
 import https from "node:https";
 import { Readable } from "node:stream";
+import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 import { createPinnedLookup } from "./_lib/pinned-lookup.js";
 import { isPublicIP } from "./_lib/public-ip.js";
 import { readTextLimited } from "./_lib/read-limited.js";
@@ -24,6 +25,7 @@ const supabaseAdmin =
         }
       )
     : null;
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -59,25 +61,27 @@ if (
       });
     }
 
-    const { data: rateAllowed, error: rateError } =
-  await supabaseAdmin.rpc("check_scan_rate_limit", {
-    p_ip_address: clientIP,
-    p_window_start: rateWindowStart,
-    p_rate_limit: RATE_LIMIT
-  });
-
-if (rateError) {
-  console.error("Rate limit check failed:", rateError);
-  return res.status(500).json({
-    error: "Unable to process scan request safely."
-  });
-}
-
-if (!rateAllowed) {
-  return res.status(429).json({
-    error: "Scan limit reached. Please try again later."
-  });
-}
+    if (!isValidMonitoringWorkerSecret(req.headers["x-sentinel-monitor-worker"], process.env.CRON_SECRET)) {
+      const { data: rateAllowed, error: rateError } =
+    await supabaseAdmin.rpc("check_scan_rate_limit", {
+      p_ip_address: clientIP,
+      p_window_start: rateWindowStart,
+      p_rate_limit: RATE_LIMIT
+    });
+  
+  if (rateError) {
+    console.error("Rate limit check failed:", rateError);
+    return res.status(500).json({
+      error: "Unable to process scan request safely."
+    });
+  }
+  
+  if (!rateAllowed) {
+    return res.status(429).json({
+      error: "Scan limit reached. Please try again later."
+    });
+  }
+    }
 
     let authenticatedUser = null;
     const authorization = req.headers.authorization || "";

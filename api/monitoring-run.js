@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { buildMonitoringAlert } from "./_lib/monitoring.js";
+import { buildMonitoringAlert, fetchMonitoringScan } from "./_lib/monitoring.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -17,6 +17,7 @@ function appOrigin(req) {
   return "https://" + host;
 }
 
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
@@ -30,7 +31,7 @@ export default async function handler(req, res) {
   if (!supabaseAdmin) return res.status(503).json({ error: "Monitoring worker is not configured." });
 
   let claimed = [];
-  const summary = { claimed: 0, succeeded: 0, failed: 0, alerts: 0 };
+  const summary = { claimed: 0, succeeded: 0, failed: 0, alerts: 0, retries: 0 };
   try {
     const { data, error } = await supabaseAdmin.rpc("claim_due_monitoring_sites", { p_limit: 3 });
     if (error) throw error;
@@ -47,16 +48,14 @@ export default async function handler(req, res) {
         if (runError) throw runError;
         runId = run.id;
 
-        const response = await fetch(origin + "/api/scan", {
-          method: "POST",
-          headers: { "content-type": "application/json", "x-sentinel-monitor-worker": "1" },
-          body: JSON.stringify({ url: site.target_url }),
-          signal: AbortSignal.timeout(90000)
-        });
-        const scan = await response.json().catch(() => ({}));
-        if (!response.ok || !Number.isFinite(Number(scan.score ?? scan.securityScore))) {
-          throw new Error("SCAN_FAILED");
-        }
+        const scanResult = await fetchMonitoringScan(
+          fetch,
+          origin + "/api/scan",
+          site.target_url,
+          secret
+        );
+        const scan = scanResult.scan;
+        summary.retries += Math.max(0, scanResult.attempts - 1);
 
         const score = Math.max(0, Math.min(100, Math.round(Number(scan.score ?? scan.securityScore))));
         const riskLevel = String(scan.riskLevel || "Unknown").slice(0, 40);
