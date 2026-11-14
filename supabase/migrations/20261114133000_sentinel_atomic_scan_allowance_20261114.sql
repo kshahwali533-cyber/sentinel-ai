@@ -117,7 +117,7 @@ begin
   ) values (
     v_user_id,
     'scan.completed',
-    left(p_resource_host, 253),
+    pg_catalog.left(p_resource_host, 253),
     coalesce(p_metadata, '{}'::jsonb)
   );
 
