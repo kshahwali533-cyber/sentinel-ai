@@ -17,6 +17,7 @@ test("organization slugs contain only normalized URL-safe characters", () => {
   assert.equal(slugifyOrganizationName("Chitral Security Team"), "chitral-security-team");
   assert.equal(slugifyOrganizationName("Équipe Sécurité"), "equipe-securite");
   assert.match(slugifyOrganizationName("!!"), /^[a-z0-9-]+$/);
+  assert.ok(slugifyOrganizationName("x".repeat(100)).length <= 41);
 });
 
 test("invitation tokens are stored as SHA-256 hashes", () => {
