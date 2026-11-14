@@ -26,6 +26,35 @@ export default async function handler(req, res) {
   try {
     const body = req.body || {};
 
+    let authenticatedUser = null;
+    const authorization = req.headers.authorization || "";
+    if (authorization) {
+      const accessToken = typeof authorization === "string" && authorization.startsWith("Bearer ")
+        ? authorization.slice(7).trim()
+        : "";
+      if (!accessToken || !supabaseAdmin) {
+        return res.status(401).json({ error: "A valid signed-in session is required." });
+      }
+      const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(accessToken);
+      if (authError || !authData?.user?.id) {
+        return res.status(401).json({ error: "Your session is invalid. Please sign in again." });
+      }
+      authenticatedUser = authData.user;
+    }
+
+    const recordMentorUsage = async (aiPowered) => {
+      if (!authenticatedUser || !supabaseAdmin) return;
+      let resourceHost = null;
+      try { resourceHost = website ? new URL(website).hostname : null; } catch {}
+      const { error } = await supabaseAdmin.from("usage_events").insert({
+        user_id: authenticatedUser.id,
+        event_type: "mentor.used",
+        resource_host: resourceHost,
+        metadata: { ai_powered: aiPowered, severity }
+      });
+      if (error) console.error("Mentor usage event could not be recorded:", error);
+    };
+
     if (
       typeof body !== "object" ||
       Array.isArray(body)
@@ -483,6 +512,7 @@ Do not provide exploitation instructions or invent facts about the website.`
             typeof aiResult.verification === "string";
 
           if (validAssistant) {
+            await recordMentorUsage(true);
             return res.status(200).json({
               success: true,
               aiPowered: true,
@@ -525,6 +555,7 @@ Do not provide exploitation instructions or invent facts about the website.`
      * ---------------------------------------------------------
      */
 
+    await recordMentorUsage(false);
     return res.status(200).json({
       success: true,
       aiPowered: false,
