@@ -19,7 +19,9 @@ function average(values) {
 
 function hostnameOf(value) {
   try {
-    return new URL(value).hostname.toLowerCase();
+    const parsed = new URL(value);
+    if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname) return null;
+    return parsed.hostname.toLowerCase();
   } catch {
     return null;
   }
