@@ -527,6 +527,42 @@
       border-bottom: 0;
     }
 
+    .intel-result {
+      padding: 16px;
+      margin-top: 14px;
+      border-radius: 10px;
+      background: #07111f;
+      border: 1px solid #18304a;
+      overflow-wrap: anywhere;
+    }
+
+    .intel-result h3,
+    .intel-result h4 {
+      color: #38bdf8;
+      margin: 12px 0 6px;
+    }
+
+    .intel-meta {
+      color: #a9b8c9;
+      font-size: 13px;
+      margin: 6px 0;
+    }
+
+    .intel-chip {
+      display: inline-block;
+      padding: 5px 9px;
+      margin: 4px 5px 4px 0;
+      border-radius: 6px;
+      background: #102a43;
+      color: #bae6fd;
+      font-size: 12px;
+    }
+
+    .intel-result a {
+      color: #7dd3fc;
+      overflow-wrap: anywhere;
+    }
+
     .research-project,
     .research-finding {
       padding: 15px;
@@ -661,6 +697,7 @@
     <a href="#analytics">Analytics</a>
     <a href="#history">History</a>
     <a href="#monitoring">Monitoring</a>
+    <a href="#intelligence">Intelligence</a>
     <a href="#research">Research</a>
     <a href="#mission">Mission</a>
   </nav>
@@ -1032,6 +1069,24 @@
 </section>
 
 
+<section id="intelligence">
+
+  <h2 class="section-title">Vulnerability Intelligence</h2>
+
+  <div class="history">
+    <p class="message">
+      Look up an exact CVE ID using the NIST National Vulnerability Database and CISA Known Exploited Vulnerabilities catalog.
+      Sentinel AI does not infer that your website is affected from a product name or version guess.
+    </p>
+    <div id="intelStatus" class="notice">Sign in to search trusted vulnerability sources.</div>
+    <input id="intelCveInput" type="text" maxlength="32" placeholder="CVE-2021-44228">
+    <button type="button" onclick="lookupVulnerability()">Look Up CVE</button>
+    <div id="intelResults"></div>
+  </div>
+
+</section>
+
+
 <section id="research">
 
   <h2 class="section-title">Research Workspace</h2>
@@ -1258,6 +1313,14 @@ if (error) {
         historyStatus.textContent =
           "📱 Local history is active. Log in to enable cloud history.";
       }
+
+      const intelStatus = document.getElementById("intelStatus");
+      if (intelStatus) {
+        intelStatus.className = "notice";
+        intelStatus.textContent = "Log in to search trusted vulnerability sources.";
+      }
+      const intelResults = document.getElementById("intelResults");
+      if (intelResults) intelResults.innerHTML = "";
 
       const researchStatus = document.getElementById("researchStatus");
       if (researchStatus) {
@@ -3842,6 +3905,119 @@ async function clearScanHistory() {
 
   await clearSupabaseHistory();
 
+}
+
+
+/* =========================
+   VULNERABILITY INTELLIGENCE
+========================= */
+
+function renderVulnerabilityIntelligence(result) {
+  const node = document.getElementById("intelResults");
+  if (!node) return;
+  const cve = result?.cve || {};
+  const kev = result?.kev || {};
+  const meta = result?.meta || {};
+
+  if (!cve.found) {
+    node.innerHTML = `
+      <div class="intel-result">
+        <h3>${escapeHTML(cve.id || "CVE lookup")}</h3>
+        <p>No matching record was returned by the NVD API.</p>
+        ${kev.listed === true ? '<p><strong>CISA KEV:</strong> This CVE is listed in the KEV catalog.</p>' : ""}
+      </div>
+    `;
+    return;
+  }
+
+  const cvss = cve.cvss;
+  const kevStatus = kev.listed === true
+    ? '<p><strong>CISA KEV:</strong> Listed as a known exploited vulnerability.</p>'
+    : kev.listed === false
+      ? '<p><strong>CISA KEV:</strong> Not listed in this catalog snapshot. This does not prove that the vulnerability is not exploited.</p>'
+      : '<p><strong>CISA KEV:</strong> Catalog unavailable; no KEV determination can be made.</p>';
+
+  const kevEntry = kev.entry ? `
+    <div class="intel-result">
+      <h4>CISA KEV details</h4>
+      <div class="intel-meta">${escapeHTML(kev.entry.vendor || "")} · ${escapeHTML(kev.entry.product || "")}</div>
+      <p>${escapeHTML(kev.entry.name || "")}</p>
+      <p>${escapeHTML(kev.entry.description || "")}</p>
+      <p><strong>Required action:</strong> ${escapeHTML(kev.entry.required_action || "See the official CISA record.")}</p>
+      <div class="intel-meta">Added: ${escapeHTML(kev.entry.date_added || "Unknown")} · Due date: ${escapeHTML(kev.entry.due_date || "Not specified")} · Ransomware use: ${escapeHTML(kev.entry.ransomware_use || "Unknown")}</div>
+    </div>
+  ` : "";
+
+  const cpe = Array.isArray(cve.cpe_matches) ? cve.cpe_matches : [];
+  const references = Array.isArray(cve.references) ? cve.references : [];
+  const weaknesses = Array.isArray(cve.weaknesses) ? cve.weaknesses : [];
+
+  node.innerHTML = `
+    <div class="intel-result">
+      <h3>${escapeHTML(cve.id)}</h3>
+      <div class="intel-meta">NVD status: ${escapeHTML(cve.status || "Unknown")} · Published: ${escapeHTML(cve.published || "Unknown")} · Modified: ${escapeHTML(cve.last_modified || "Unknown")}</div>
+      <p>${escapeHTML(cve.description || "No English description was supplied.")}</p>
+      <h4>CVSS assessment</h4>
+      ${cvss
+        ? '<span class="intel-chip">CVSS ' + escapeHTML(cvss.version || "Unknown") + '</span><span class="intel-chip">' + escapeHTML(cvss.base_score == null ? "No score" : cvss.base_score + "/10") + '</span><span class="intel-chip">' + escapeHTML(cvss.severity || "Unrated") + '</span><p class="intel-meta">CVSS is a base severity metric, not a complete risk assessment for your environment.</p>'
+        : '<p>No NVD CVSS score is currently attached to this record.</p>'}
+      ${kevStatus}
+      <div class="intel-meta">CISA catalog: ${escapeHTML(kev.catalog_version || "Unavailable")} · Released: ${escapeHTML(kev.date_released || "Unknown")} ${kev.stale ? "· cached/stale snapshot" : ""}</div>
+      ${kev.absence_note ? '<p class="intel-meta">' + escapeHTML(kev.absence_note) + '</p>' : ""}
+      ${kevEntry}
+      <h4>Weakness classifications</h4>
+      <p>${weaknesses.length ? weaknesses.map(value => '<span class="intel-chip">' + escapeHTML(value) + '</span>').join("") : "No CWE classification supplied."}</p>
+      <h4>NVD affected-product criteria</h4>
+      ${cpe.length ? cpe.map(item => `
+        <div class="monitoring-run">
+          <div>${escapeHTML(item.criteria)}</div>
+          <div class="intel-meta">Vulnerable flag: ${item.vulnerable ? "Yes" : "No"} · Start: ${escapeHTML(item.version_start_including || item.version_start_excluding || "Not specified")} · End: ${escapeHTML(item.version_end_including || item.version_end_excluding || "Not specified")}</div>
+        </div>
+      `).join("") : "<p>No CPE applicability criteria were supplied.</p>"}
+      <p class="notice">${escapeHTML(result.applicability_note || "Verify the exact vendor, product, version, and configuration before treating this CVE as applicable.")}</p>
+      <h4>References</h4>
+      ${references.length ? references.map(item => '<p><a href="' + escapeHTML(item.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHTML(item.url) + '</a></p>').join("") : "<p>No references supplied.</p>"}
+      <div class="research-actions">
+        <a href="${escapeHTML(result.sources?.nvd || "https://nvd.nist.gov/")}" target="_blank" rel="noopener noreferrer">Open NVD record</a>
+        <a href="${escapeHTML(result.sources?.cisa_kev || "https://www.cisa.gov/known-exploited-vulnerabilities-catalog")}" target="_blank" rel="noopener noreferrer">Open CISA KEV catalog</a>
+      </div>
+      <div class="intel-meta">NVD data fetched: ${escapeHTML(meta.nvd_fetched_at || "Unknown")} ${meta.nvd_stale ? "· cached/stale record" : ""}</div>
+    </div>
+  `;
+}
+
+async function lookupVulnerability() {
+  const input = document.getElementById("intelCveInput");
+  const status = document.getElementById("intelStatus");
+  const results = document.getElementById("intelResults");
+  const cve = input?.value.trim();
+  if (!cve) {
+    status.className = "error";
+    status.textContent = "Enter a CVE ID first.";
+    return;
+  }
+
+  status.className = "notice";
+  status.textContent = "Checking NVD and CISA sources...";
+  if (results) results.innerHTML = "";
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    const token = data?.session?.access_token;
+    if (!token) throw new Error("Log in to use vulnerability intelligence.");
+
+    const response = await fetch("/api/intelligence?cve=" + encodeURIComponent(cve), {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "CVE lookup failed.");
+    renderVulnerabilityIntelligence(payload.result);
+    status.className = "success";
+    status.textContent = "Lookup complete. Verify affected product versions against the official vendor advisory.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to load vulnerability intelligence.";
+  }
 }
 
 
