@@ -15,6 +15,7 @@ on:
       - feature/scan-analytics-20261114
       - feature/research-workspace-20261114
       - feature/vulnerability-intelligence-20261114
+      - feature/team-workspaces-20261114
   push:
     branches:
       - security/pin-validated-dns-connection
@@ -48,6 +49,9 @@ jobs:
       - name: Validate API JavaScript syntax
         run: |
           node --check api/scan.js
+          node --check api/organizations.js
+          node --check api/_lib/organizations.js
+          node --check test/organizations.test.js
           node --check api/monitoring.js
           node --check api/monitoring-run.js
           node --check api/_lib/monitoring.js
@@ -59,7 +63,7 @@ jobs:
           node --check api/_lib/research-validation.js
           node --check test/scan-analytics.test.js
           node --check test/research-validation.test.js
-          node --check test/vulnerability-intelligence.test.js
+          node --check test/vulnerability-intelligence.test.js test/organizations.test.js
           node --check api/_lib/scan-analytics.js
           node --check test/monitoring.test.js
           node --check test/finding-validation.test.js
