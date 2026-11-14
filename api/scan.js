@@ -568,10 +568,35 @@ if (!hostname) {
       );
     }
 
-    let mainResult;
+    let scanReservationId = null;
+
+    if (authenticatedUser) {
+      const { data: reservationId, error: reservationError } =
+        await supabaseAdmin.rpc("reserve_scan_allowance", {
+          p_user_id: authenticatedUser.id
+        });
+
+      if (reservationError) {
+        console.error("Scan allowance reservation failed:", reservationError);
+        return res.status(503).json({
+          error: "Account usage could not be reserved safely."
+        });
+      }
+
+      if (!reservationId) {
+        return res.status(429).json({
+          error: "Your monthly beta scan allowance has been reached."
+        });
+      }
+
+      scanReservationId = reservationId;
+    }
 
     try {
-      mainResult = await safeFetch(
+      let mainResult;
+
+      try {
+        mainResult = await safeFetch(
         target,
         {
           method: "GET",
@@ -2935,19 +2960,28 @@ for (
         .substring(2, 7);
 
     if (authenticatedUser) {
-      const { error: usageInsertError } = await supabaseAdmin.from("usage_events").insert({
-        user_id: authenticatedUser.id,
-        event_type: "scan.completed",
-        resource_host: new URL(finalURL).hostname,
-        metadata: {
-          score,
-          risk_level: riskLevel,
-          check_count: totalChecks
-        }
-      });
-      if (usageInsertError) {
-        console.error("Scan usage event could not be recorded:", usageInsertError);
+      const { data: usageCompleted, error: usageCompletionError } =
+        await supabaseAdmin.rpc("complete_scan_allowance", {
+          p_reservation_id: scanReservationId,
+          p_resource_host: new URL(finalURL).hostname,
+          p_metadata: {
+            score,
+            risk_level: riskLevel,
+            check_count: totalChecks
+          }
+        });
+
+      if (usageCompletionError || usageCompleted !== true) {
+        console.error(
+          "Scan usage reservation could not be completed:",
+          usageCompletionError
+        );
+        return res.status(503).json({
+          error: "Scan usage could not be recorded safely. Please try again."
+        });
       }
+
+      scanReservationId = null;
     }
 
     return res.status(200).json({
@@ -2972,6 +3006,21 @@ for (
         informational
       }
     });
+    } finally {
+      if (scanReservationId) {
+        const { error: cancellationError } =
+          await supabaseAdmin.rpc("cancel_scan_allowance", {
+            p_reservation_id: scanReservationId
+          });
+
+        if (cancellationError) {
+          console.error(
+            "Scan allowance reservation cancellation failed:",
+            cancellationError
+          );
+        }
+      }
+    }
 
   } catch (error) {
     console.error(
