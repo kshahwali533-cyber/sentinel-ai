@@ -46,6 +46,7 @@ jobs:
           node --check api/_lib/monitoring.js
           node --check api/_lib/finding-validation.js
           node --check api/analytics.js
+          node --check test/scan-analytics.test.js
           node --check api/_lib/scan-analytics.js
           node --check test/monitoring.test.js
           node --check test/finding-validation.test.js
