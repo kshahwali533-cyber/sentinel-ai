@@ -4698,6 +4698,8 @@ function renderOrganizationWorkspace(data) {
         <div class="monitoring-meta">Workspace: ${escapeHTML(org.slug)} · Your role: ${escapeHTML(org.my_role)} · Status: ${escapeHTML(org.status)}</div>
         <h4>Members (${(org.members || []).length})</h4>
         ${members || '<div class="monitoring-meta">No members yet.</div>'}
+        <h4>Shared verified assets</h4>
+        <div id="orgAssets-${escapeHTML(org.id)}" class="monitoring-meta">Loading shared assets...</div>
         ${canManage ? `
           <div class="analytics-panel">
             <h4>Invite a collaborator</h4>
@@ -4718,6 +4720,85 @@ function renderOrganizationWorkspace(data) {
       </div>
     `;
   }).join("") : '<div class="empty-history">No team workspaces yet. Create one to get started.</div>';
+  orgs.forEach((org) => loadOrganizationAssets(org.id));
+}
+
+async function organizationAssetRequest(organizationId, payload = null) {
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  const token = data?.session?.access_token;
+  if (!token) throw new Error("Please log in to manage shared assets.");
+  const response = await fetch("/api/organization-assets" + (payload ? "" : "?organizationId=" + encodeURIComponent(organizationId)), {
+    method: payload ? "POST" : "GET",
+    headers: {
+      "Authorization": "Bearer " + token,
+      ...(payload ? { "Content-Type": "application/json" } : {})
+    },
+    ...(payload ? { body: JSON.stringify({ ...payload, organizationId }) } : {})
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Team asset request failed.");
+  return result;
+}
+
+async function loadOrganizationAssets(organizationId) {
+  const node = document.getElementById("orgAssets-" + organizationId);
+  if (!node) return;
+  try {
+    const data = await organizationAssetRequest(organizationId);
+    const assets = data.assets || [];
+    const available = data.available_assets || [];
+    const sharedHtml = assets.length ? assets.map((asset) => {
+      const site = asset.monitoring_site || {};
+      return `
+        <div class="monitoring-run">
+          <strong>${escapeHTML(site.hostname || site.url || "Verified asset")}</strong>
+          <div class="monitoring-meta">${escapeHTML(site.status || "Unknown")} · Score: ${site.last_score == null ? "Not scanned" : escapeHTML(site.last_score + "/100")} · Added ${escapeHTML(monitoringDate(asset.created_at))}</div>
+          ${data.can_manage ? `<button class="secondary-button" type="button" onclick="removeOrganizationAsset('${escapeHTML(organizationId)}','${escapeHTML(asset.id)}')">Remove shared asset</button>` : ""}
+        </div>
+      `;
+    }).join("") : '<div class="monitoring-meta">No verified assets are shared with this workspace yet.</div>';
+    const selectHtml = data.can_manage && available.length ? `
+      <div class="analytics-panel">
+        <select id="orgAssetSelect-${escapeHTML(organizationId)}">
+          ${available.map((asset) => `<option value="${escapeHTML(asset.id)}">${escapeHTML(asset.hostname || asset.url)}</option>`).join("")}
+        </select>
+        <button type="button" onclick="shareOrganizationAsset('${escapeHTML(organizationId)}')">Share verified asset</button>
+      </div>
+    ` : data.can_manage ? '<div class="monitoring-meta">No other verified member-owned assets are available to share.</div>' : "";
+    node.innerHTML = sharedHtml + selectHtml;
+  } catch (error) {
+    node.className = "error";
+    node.textContent = error?.message || "Unable to load shared assets.";
+  }
+}
+
+async function shareOrganizationAsset(organizationId) {
+  const select = document.getElementById("orgAssetSelect-" + organizationId);
+  if (!select?.value) return;
+  try {
+    await organizationAssetRequest(organizationId, { action: "share", monitoringSiteId: select.value });
+    await loadOrganizationAssets(organizationId);
+    const status = document.getElementById("organizationStatus");
+    status.className = "success";
+    status.textContent = "Verified asset shared with the workspace.";
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to share this asset.";
+  }
+}
+
+async function removeOrganizationAsset(organizationId, assetId) {
+  if (!confirm("Remove this asset from the shared workspace?")) return;
+  try {
+    await organizationAssetRequest(organizationId, { action: "remove", assetId });
+    await loadOrganizationAssets(organizationId);
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to remove this asset.";
+  }
 }
 
 async function loadOrganizationWorkspace() {

@@ -17,6 +17,7 @@ on:
       - feature/vulnerability-intelligence-20261114
       - feature/team-workspaces-20261114
       - db/team-workspace-advisor-hardening-20261114
+      - feature/team-asset-sharing-20261114
   push:
     branches:
       - security/pin-validated-dns-connection
@@ -52,8 +53,11 @@ jobs:
         run: |
           node --check api/scan.js
           node --check api/organizations.js
+          node --check api/organization-assets.js
+          node --check api/_lib/team-assets.js
+          node --check test/team-assets.test.js
           node --check api/_lib/organizations.js
-          node --check test/organizations.test.js
+          node --check test/organizations.test.js test/team-assets.test.js
           node --check api/monitoring.js
           node --check api/monitoring-run.js
           node --check api/_lib/monitoring.js
