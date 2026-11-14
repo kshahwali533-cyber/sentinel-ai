@@ -700,6 +700,7 @@
     <a href="#intelligence">Intelligence</a>
     <a href="#research">Research</a>
     <a href="#teams">Teams</a>
+    <a href="#usage">Usage</a>
     <a href="#mission">Mission</a>
   </nav>
 
@@ -1173,6 +1174,22 @@
 </section>
 
 
+<section id="usage">
+
+  <h2 class="section-title">Account Usage</h2>
+
+  <div class="history">
+    <p class="message">
+      View your monthly beta usage. Sentinel AI is not connected to a payment provider;
+      no subscription or charge is active.
+    </p>
+    <div id="usageStatus" class="message">Sign in to view account usage.</div>
+    <div id="usageSummary"></div>
+  </div>
+
+</section>
+
+
 <section id="mission">
 
   <div class="mission">
@@ -1327,6 +1344,7 @@ if (error) {
       await loadAnalyticsDashboard();
       await loadResearchWorkspace();
       await loadOrganizationWorkspace();
+      await loadUsageSummary();
 
     } else {
       authStatus.className = "notice";
@@ -1375,6 +1393,14 @@ if (error) {
       }
       const analyticsWarnings = document.getElementById("analyticsWarnings");
       if (analyticsWarnings) analyticsWarnings.textContent = "Log in to view recurring warnings.";
+
+      const usageStatus = document.getElementById("usageStatus");
+      const usageSummary = document.getElementById("usageSummary");
+      if (usageStatus) {
+        usageStatus.className = "notice";
+        usageStatus.textContent = "Sign in to view account usage.";
+      }
+      if (usageSummary) usageSummary.innerHTML = "";
 
       const organizationStatus = document.getElementById("organizationStatus");
       if (organizationStatus) {
@@ -4633,6 +4659,56 @@ async function markMonitoringAlertRead(alertId) {
     const status = document.getElementById("monitorStatus");
     status.className = "error";
     status.textContent = error?.message || "Unable to update this alert.";
+  }
+}
+
+
+/* =========================
+   ACCOUNT USAGE
+========================= */
+
+async function loadUsageSummary() {
+  const status = document.getElementById("usageStatus");
+  const summary = document.getElementById("usageSummary");
+  if (!status || !summary) return;
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    const token = data?.session?.access_token;
+    if (!token) throw new Error("Sign in to view account usage.");
+    const response = await fetch("/api/usage", {
+      headers: { "Authorization": "Bearer " + token },
+      cache: "no-store"
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "Unable to load account usage.");
+    status.className = "success";
+    status.textContent = "Beta usage summary · Period starts " + monitoringDate(result.period_start);
+    summary.innerHTML = `
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <span class="analytics-label">Current plan</span>
+          <strong>${escapeHTML(result.plan || "beta")}</strong>
+        </div>
+        <div class="analytics-card">
+          <span class="analytics-label">Completed scans</span>
+          <strong>${escapeHTML(result.usage?.scans ?? 0)} / ${escapeHTML(result.monthly_scan_limit ?? 100)}</strong>
+        </div>
+        <div class="analytics-card">
+          <span class="analytics-label">Reports generated</span>
+          <strong>${escapeHTML(result.usage?.reports ?? 0)}</strong>
+        </div>
+        <div class="analytics-card">
+          <span class="analytics-label">Mentor sessions</span>
+          <strong>${escapeHTML(result.usage?.mentor_sessions ?? 0)}</strong>
+        </div>
+      </div>
+      <div class="notice">${escapeHTML(result.billing?.message || "Beta usage only. No billing is active.")}</div>
+    `;
+  } catch (error) {
+    status.className = "notice";
+    status.textContent = error?.message || "Unable to load account usage.";
+    summary.innerHTML = "";
   }
 }
 
