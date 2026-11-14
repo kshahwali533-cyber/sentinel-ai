@@ -476,6 +476,53 @@
       font-size: 14px;
     }
 
+    .monitoring-site,
+    .monitoring-alert,
+    .monitoring-run {
+      padding: 15px;
+      margin: 12px 0;
+      border-radius: 10px;
+      background: #07111f;
+      border: 1px solid #18304a;
+      overflow-wrap: anywhere;
+    }
+
+    .monitoring-site h4,
+    .monitoring-alert h4 {
+      color: #38bdf8;
+      margin-bottom: 6px;
+    }
+
+    .monitoring-meta {
+      color: #a9b8c9;
+      font-size: 13px;
+      margin: 6px 0;
+    }
+
+    .monitoring-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .monitoring-actions button {
+      min-width: 0;
+      padding: 11px 8px;
+      font-size: 14px;
+    }
+
+    .monitoring-code {
+      display: block;
+      padding: 9px;
+      margin: 6px 0;
+      border-radius: 7px;
+      background: #102a43;
+      color: #bae6fd;
+      overflow-wrap: anywhere;
+      user-select: text;
+    }
+
     @media (max-width: 650px) {
 
       header {
@@ -521,6 +568,7 @@
     <a href="#features">Features</a>
     <a href="#scanner">Scanner</a>
     <a href="#history">History</a>
+    <a href="#monitoring">Monitoring</a>
     <a href="#mission">Mission</a>
   </nav>
 
@@ -827,6 +875,41 @@
 </section>
 
 
+<section id="monitoring">
+
+  <h2 class="section-title">Continuous Monitoring</h2>
+
+  <div class="history">
+    <p class="message">
+      Add a website you own. Sentinel AI verifies domain control through a DNS TXT record,
+      then checks its security posture daily and records meaningful changes.
+    </p>
+    <div class="notice">
+      Monitoring is limited to verified domains you own or are authorized to manage.
+      The beta currently supports up to five websites per account and daily scans.
+    </div>
+    <input
+      id="monitorWebsite"
+      type="url"
+      placeholder="https://yourdomain.com"
+      autocomplete="url"
+    >
+    <button type="button" onclick="addMonitoringSite()">
+      Add Website to Monitoring
+    </button>
+    <div id="monitorStatus" class="message">
+      Sign in to manage continuous monitoring.
+    </div>
+    <div id="monitorSites"></div>
+    <h3 style="margin-top:24px;">Security Alerts</h3>
+    <div id="monitorAlerts" class="message">No alerts loaded.</div>
+    <h3 style="margin-top:24px;">Monitoring Activity</h3>
+    <div id="monitorRuns" class="message">No monitoring runs loaded.</div>
+  </div>
+
+</section>
+
+
 <section id="mission">
 
   <div class="mission">
@@ -977,6 +1060,7 @@ if (error) {
       }
 
       await loadSupabaseHistory();
+      await loadMonitoringDashboard();
 
     } else {
       authStatus.className = "notice";
@@ -999,6 +1083,18 @@ if (error) {
         historyStatus.textContent =
           "📱 Local history is active. Log in to enable cloud history.";
       }
+
+      const monitorStatus = document.getElementById("monitorStatus");
+      if (monitorStatus) {
+        monitorStatus.className = "notice";
+        monitorStatus.textContent = "Log in to add and manage monitored websites.";
+      }
+      const monitorSites = document.getElementById("monitorSites");
+      const monitorAlerts = document.getElementById("monitorAlerts");
+      const monitorRuns = document.getElementById("monitorRuns");
+      if (monitorSites) monitorSites.innerHTML = "";
+      if (monitorAlerts) monitorAlerts.textContent = "Log in to view security alerts.";
+      if (monitorRuns) monitorRuns.textContent = "Log in to view monitoring activity.";
     }
 
   } catch (error) {
@@ -3553,6 +3649,190 @@ async function clearScanHistory() {
 
   await clearSupabaseHistory();
 
+}
+
+
+/* =========================
+   CONTINUOUS MONITORING
+========================= */
+
+async function monitoringRequest(payload = null) {
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  const token = data?.session?.access_token;
+  if (!token) throw new Error("Please log in to use continuous monitoring.");
+
+  const response = await fetch("/api/monitoring", {
+    method: payload ? "POST" : "GET",
+    headers: {
+      "Authorization": "Bearer " + token,
+      ...(payload ? { "Content-Type": "application/json" } : {})
+    },
+    ...(payload ? { body: JSON.stringify(payload) } : {})
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Monitoring request failed.");
+  return result;
+}
+
+function monitoringDate(value) {
+  if (!value) return "Not scheduled";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleString();
+}
+
+function renderMonitoringDashboard(data) {
+  const sitesNode = document.getElementById("monitorSites");
+  const alertsNode = document.getElementById("monitorAlerts");
+  const runsNode = document.getElementById("monitorRuns");
+
+  if (sitesNode) {
+    const sites = Array.isArray(data.sites) ? data.sites : [];
+    sitesNode.innerHTML = sites.length ? sites.map(site => {
+      const pending = site.status === "pending";
+      const active = site.status === "active";
+      const verification = pending ? `
+        <div class="notice">
+          <strong>Verify domain ownership</strong>
+          <div class="monitoring-meta">Create this DNS TXT record at your domain provider:</div>
+          <div class="monitoring-meta">Record name</div>
+          <code class="monitoring-code">${escapeHTML("_sentinel-ai-verification." + site.hostname)}</code>
+          <div class="monitoring-meta">Record value</div>
+          <code class="monitoring-code">${escapeHTML("sentinel-ai-verification=" + site.verification_token)}</code>
+          <button class="secondary-button" type="button" onclick="verifyMonitoringSite('${escapeHTML(site.id)}')">Verify DNS Record</button>
+        </div>
+      ` : "";
+      return `
+        <div class="monitoring-site">
+          <h4>${escapeHTML(site.hostname)}</h4>
+          <div class="monitoring-meta">Status: ${escapeHTML(site.status)}</div>
+          <div class="monitoring-meta">Last scan: ${escapeHTML(monitoringDate(site.last_scan_at))}</div>
+          <div class="monitoring-meta">Next scan: ${escapeHTML(monitoringDate(site.next_scan_at))}</div>
+          <div class="monitoring-meta">Latest score: ${site.last_score == null ? "Not scanned yet" : escapeHTML(site.last_score + "/100 · " + (site.last_risk_level || "Unknown"))}</div>
+          ${verification}
+          <div class="monitoring-actions">
+            ${active
+              ? `<button class="secondary-button" type="button" onclick="changeMonitoringSite('${escapeHTML(site.id)}','pause')">Pause</button>`
+              : (!pending ? `<button type="button" onclick="changeMonitoringSite('${escapeHTML(site.id)}','resume')">Resume</button>` : "")}
+            <button class="secondary-button" type="button" onclick="removeMonitoringSite('${escapeHTML(site.id)}')">Remove</button>
+          </div>
+        </div>
+      `;
+    }).join("") : '<div class="empty-history">No monitored websites yet.</div>';
+  }
+
+  if (alertsNode) {
+    const alerts = Array.isArray(data.alerts) ? data.alerts : [];
+    alertsNode.innerHTML = alerts.length ? alerts.map(alert => `
+      <div class="monitoring-alert">
+        <h4>${escapeHTML(alert.title)}</h4>
+        <div class="monitoring-meta">${escapeHTML(alert.severity)} · ${escapeHTML(monitoringDate(alert.created_at))} · ${alert.is_read ? "Read" : "Unread"}</div>
+        <p>${escapeHTML(alert.message)}</p>
+        ${alert.is_read ? "" : `<button class="secondary-button" type="button" onclick="markMonitoringAlertRead('${escapeHTML(alert.id)}')">Mark as read</button>`}
+      </div>
+    `).join("") : '<div class="empty-history">No security-change alerts yet. A first scan creates the baseline.</div>';
+  }
+
+  if (runsNode) {
+    const runs = Array.isArray(data.runs) ? data.runs : [];
+    runsNode.innerHTML = runs.length ? runs.map(run => `
+      <div class="monitoring-run">
+        <strong>${escapeHTML(run.status)}</strong>
+        <div class="monitoring-meta">${escapeHTML(monitoringDate(run.started_at))} · ${run.score == null ? "No score" : escapeHTML(run.score + "/100 · " + (run.risk_level || "Unknown"))}</div>
+        ${run.error_code ? `<div class="monitoring-meta">${escapeHTML(run.error_code)}</div>` : ""}
+      </div>
+    `).join("") : '<div class="empty-history">No monitoring runs yet.</div>';
+  }
+}
+
+async function loadMonitoringDashboard() {
+  const status = document.getElementById("monitorStatus");
+  const sitesNode = document.getElementById("monitorSites");
+  if (!status) return;
+
+  try {
+    const data = await monitoringRequest();
+    renderMonitoringDashboard(data);
+    status.className = "success";
+    status.textContent = "Daily monitoring is ready. Only verified websites are scanned.";
+  } catch (error) {
+    status.className = "notice";
+    status.textContent = error?.message || "Log in to manage monitoring.";
+    if (sitesNode) sitesNode.innerHTML = "";
+  }
+}
+
+async function addMonitoringSite() {
+  const input = document.getElementById("monitorWebsite");
+  const status = document.getElementById("monitorStatus");
+  if (!input || !status) return;
+  const url = input.value.trim();
+  if (!url) {
+    status.className = "error";
+    status.textContent = "Enter your website address first.";
+    return;
+  }
+
+  status.className = "notice";
+  status.textContent = "Adding website and creating its ownership challenge...";
+  try {
+    await monitoringRequest({ action: "add", url });
+    input.value = "";
+    await loadMonitoringDashboard();
+    status.className = "success";
+    status.textContent = "Website added. Add the DNS TXT record shown below, then verify it.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to add this website.";
+  }
+}
+
+async function verifyMonitoringSite(siteId) {
+  const status = document.getElementById("monitorStatus");
+  try {
+    await monitoringRequest({ action: "verify", siteId });
+    await loadMonitoringDashboard();
+    status.className = "success";
+    status.textContent = "Domain ownership verified. Daily monitoring is enabled.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "DNS verification failed.";
+  }
+}
+
+async function changeMonitoringSite(siteId, action) {
+  try {
+    await monitoringRequest({ action, siteId });
+    await loadMonitoringDashboard();
+  } catch (error) {
+    const status = document.getElementById("monitorStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to update monitoring status.";
+  }
+}
+
+async function removeMonitoringSite(siteId) {
+  if (!confirm("Remove this website and its monitoring history and alerts?")) return;
+  try {
+    await monitoringRequest({ action: "remove", siteId });
+    await loadMonitoringDashboard();
+  } catch (error) {
+    const status = document.getElementById("monitorStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to remove this website.";
+  }
+}
+
+async function markMonitoringAlertRead(alertId) {
+  try {
+    await monitoringRequest({ action: "mark_read", alertId });
+    await loadMonitoringDashboard();
+  } catch (error) {
+    const status = document.getElementById("monitorStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to update this alert.";
+  }
 }
 
 
