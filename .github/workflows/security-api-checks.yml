@@ -58,10 +58,12 @@ jobs:
           node --check api/organization-admin.js
           node --check api/_lib/organization-policies.js
           node --check test/organization-policies.test.js
+          node --check api/_lib/organization-policies.js
+          node --check test/organization-policies.test.js
           node --check api/_lib/team-assets.js
           node --check test/team-assets.test.js test/organization-policies.test.js
           node --check api/_lib/organizations.js
-          node --check test/organizations.test.js test/team-assets.test.js
+          node --check test/organizations.test.js test/team-assets.test.js test/organization-policies.test.js
           node --check api/monitoring.js
           node --check api/monitoring-run.js
           node --check api/_lib/monitoring.js
