@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { getUsageMonthStart } from "./_lib/usage-metering.js";
 
 const admin = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
   ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
 
     const userId = auth.user.id;
     const now = new Date();
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+    const monthStart = getUsageMonthStart(now);
 
     const [entitlement, scans, reports, mentor] = await Promise.all([
       admin.from("account_entitlements")
