@@ -24,12 +24,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "24"
+          package-manager-cache: false
 
       - name: Validate API JavaScript syntax
         run: |
@@ -48,7 +49,8 @@ jobs:
           node --check test/report-ui.test.js
           node --check test/restricted-target.test.js
           node --check test/scan-score.test.js
-          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js test/restricted-target.test.js test/scan-score.test.js
+          node --check test/report-api.test.js
+          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js test/restricted-target.test.js test/scan-score.test.js test/report-api.test.js
 
       - name: Verify scanner uses pinned DNS connections
         run: |
