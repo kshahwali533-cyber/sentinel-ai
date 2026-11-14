@@ -48,8 +48,13 @@ export default async function handler(req, res) {
       ]);
       const failed = [sites.error, alerts.error, runs.error].find(Boolean);
       if (failed) throw failed;
+      const safeSites = (sites.data || []).map((site) => {
+        if (site.status === "pending") return site;
+        const { verification_token, ...safeSite } = site;
+        return safeSite;
+      });
       return send(res, 200, {
-        sites: sites.data || [],
+        sites: safeSites,
         alerts: alerts.data || [],
         runs: runs.data || []
       });
