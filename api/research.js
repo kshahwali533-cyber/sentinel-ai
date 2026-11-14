@@ -143,7 +143,13 @@ export default async function handler(req, res) {
       if (!asset) return send(res, 403, { error: "Only a domain verified in your Monitoring workspace can be used as a research asset." });
 
       const endpointPath = normalizeEndpointPath(body.endpointPath, asset.url);
-      if (!endpointPath) return send(res, 400, { error: "Endpoint must be a path on the verified HTTPS domain, such as /account/profile." });
+      const assetUrl = sanitizeResearchAssetUrl(asset.url);
+      if (!endpointPath || !assetUrl) return send(res, 400, { error: "Endpoint must be a path on the verified HTTPS domain, such as /account/profile." });
+
+      const { count: findingCount, error: findingCountError } = await supabaseAdmin.from("research_findings")
+        .select("id", { count: "exact", head: true }).eq("project_id", project.id).eq("user_id", user.id);
+      if (findingCountError) throw findingCountError;
+      if ((findingCount || 0) >= 500) return send(res, 429, { error: "The beta limit is 500 findings per project." });
 
       const { data, error } = await supabaseAdmin.from("research_findings")
         .insert({
@@ -151,7 +157,7 @@ export default async function handler(req, res) {
           site_id: asset.id,
           user_id: user.id,
           asset_hostname: asset.hostname,
-          asset_url: sanitizeResearchAssetUrl(asset.url),
+          asset_url: assetUrl,
           title,
           severity,
           status: "new",
@@ -223,6 +229,10 @@ export default async function handler(req, res) {
         .select("id,project_id").eq("id", body.findingId).eq("user_id", user.id).maybeSingle();
       if (findingError) throw findingError;
       if (!finding) return send(res, 404, { error: "Research finding not found." });
+      const { count: noteCount, error: noteCountError } = await supabaseAdmin.from("research_notes")
+        .select("id", { count: "exact", head: true }).eq("finding_id", finding.id).eq("user_id", user.id);
+      if (noteCountError) throw noteCountError;
+      if ((noteCount || 0) >= 100) return send(res, 429, { error: "The beta limit is 100 notes per finding." });
       const { data, error } = await supabaseAdmin.from("research_notes")
         .insert({ finding_id: finding.id, project_id: finding.project_id, user_id: user.id, content })
         .select("id,finding_id,project_id,content,created_at").single();
