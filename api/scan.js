@@ -3,6 +3,7 @@ import net from "node:net";
 import http from "node:http";
 import https from "node:https";
 import { Readable } from "node:stream";
+import { timingSafeEqual } from "node:crypto";
 import { createPinnedLookup } from "./_lib/pinned-lookup.js";
 import { isPublicIP } from "./_lib/public-ip.js";
 import { readTextLimited } from "./_lib/read-limited.js";
@@ -24,6 +25,16 @@ const supabaseAdmin =
         }
       )
     : null;
+function hasValidMonitoringWorkerSecret(req) {
+  const expected = process.env.CRON_SECRET;
+  const supplied = req.headers["x-sentinel-monitor-worker"];
+  if (!expected || typeof supplied !== "string") return false;
+  const expectedBytes = Buffer.from(expected);
+  const suppliedBytes = Buffer.from(supplied);
+  return expectedBytes.length === suppliedBytes.length &&
+    timingSafeEqual(expectedBytes, suppliedBytes);
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -59,25 +70,27 @@ if (
       });
     }
 
-    const { data: rateAllowed, error: rateError } =
-  await supabaseAdmin.rpc("check_scan_rate_limit", {
-    p_ip_address: clientIP,
-    p_window_start: rateWindowStart,
-    p_rate_limit: RATE_LIMIT
-  });
-
-if (rateError) {
-  console.error("Rate limit check failed:", rateError);
-  return res.status(500).json({
-    error: "Unable to process scan request safely."
-  });
-}
-
-if (!rateAllowed) {
-  return res.status(429).json({
-    error: "Scan limit reached. Please try again later."
-  });
-}
+    if (!hasValidMonitoringWorkerSecret(req)) {
+      const { data: rateAllowed, error: rateError } =
+    await supabaseAdmin.rpc("check_scan_rate_limit", {
+      p_ip_address: clientIP,
+      p_window_start: rateWindowStart,
+      p_rate_limit: RATE_LIMIT
+    });
+  
+  if (rateError) {
+    console.error("Rate limit check failed:", rateError);
+    return res.status(500).json({
+      error: "Unable to process scan request safely."
+    });
+  }
+  
+  if (!rateAllowed) {
+    return res.status(429).json({
+      error: "Scan limit reached. Please try again later."
+    });
+  }
+    }
 
     let authenticatedUser = null;
     const authorization = req.headers.authorization || "";
