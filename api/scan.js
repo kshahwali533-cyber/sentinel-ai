@@ -6,6 +6,7 @@ import { Readable } from "node:stream";
 import { createPinnedLookup } from "./_lib/pinned-lookup.js";
 import { isPublicIP } from "./_lib/public-ip.js";
 import { readTextLimited } from "./_lib/read-limited.js";
+import { calculateScanScore } from "./_lib/scan-score.js";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin =
@@ -2854,49 +2855,15 @@ for (
     }
 
     // SCORE — Conservative Security Configuration Score
-    const totalChecks = checks.length;
-
-    const passed = checks.filter(
-      c => c.status === "PASS"
-    ).length;
-
-    const warnings = checks.filter(
-      c => c.status === "WARNING"
-    ).length;
-
-    const informational = checks.filter(
-      c => c.status === "INFO"
-    ).length;
-
-    // INFO findings are neutral and must not dilute the score.
-    // PASS checks earn points; WARNING checks earn no points.
-    const scoredChecks = passed + warnings;
-    let score = 0;
-
-    if (scoredChecks > 0) {
-      score = Math.round(
-        (passed / scoredChecks) * 100
-      );
-    }
-
-    score = Math.max(
-      0,
-      Math.min(100, score)
-    );
-
-    let riskLevel = "Low";
-
-    if (
-      score < 50 ||
-      warnings >= 5
-    ) {
-      riskLevel = "High";
-    } else if (
-      score < 75 ||
-      warnings >= 2
-    ) {
-      riskLevel = "Medium";
-    }
+    const scoreResult = calculateScanScore(checks);
+    const {
+      totalChecks,
+      passed,
+      warnings,
+      informational,
+      score,
+      riskLevel
+    } = scoreResult;
 
     const scanId =
       "SA-" +
