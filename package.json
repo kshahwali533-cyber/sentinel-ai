@@ -1,6 +1,10 @@
 {
+  "name": "sentinel-ai",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "dependencies": {
-    "@supabase/supabase-js": "^2.50.0"
+    "@supabase/supabase-js": "2.119.0"
   }
 }
