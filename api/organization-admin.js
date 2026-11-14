@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { normalizeOrganizationPolicy } from "./_lib/organization-policies.js";
 
 const admin = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
   ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
@@ -62,15 +63,16 @@ export default async function handler(req, res) {
 
     if (body.action === "update_policy") {
       if (membership.role !== "owner") return reply(res, 403, { error: "Only the workspace owner can change security policies." });
-      for (const key of ["allow_member_invites", "allow_asset_sharing", "audit_export_enabled"]) {
-        if (typeof body[key] !== "boolean") return reply(res, 400, { error: "All workspace policy settings must be true or false." });
+      let normalizedPolicy;
+      try {
+        normalizedPolicy = normalizeOrganizationPolicy(body);
+      } catch (error) {
+        return reply(res, 400, { error: error.message });
       }
       const now = new Date().toISOString();
       const { data, error } = await admin.from("organization_policies").upsert({
         organization_id: orgId,
-        allow_member_invites: body.allow_member_invites,
-        allow_asset_sharing: body.allow_asset_sharing,
-        audit_export_enabled: body.audit_export_enabled,
+        ...normalizedPolicy,
         updated_by: user.id,
         updated_at: now
       }).select("allow_member_invites,allow_asset_sharing,audit_export_enabled,updated_at").single();
