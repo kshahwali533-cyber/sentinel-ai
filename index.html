@@ -699,6 +699,7 @@
     <a href="#monitoring">Monitoring</a>
     <a href="#intelligence">Intelligence</a>
     <a href="#research">Research</a>
+    <a href="#teams">Teams</a>
     <a href="#mission">Mission</a>
   </nav>
 
@@ -1138,6 +1139,40 @@
 </section>
 
 
+<section id="teams">
+
+  <h2 class="section-title">Team Workspaces</h2>
+
+  <div class="history">
+    <p class="message">
+      Create a private workspace, invite collaborators by email, assign roles, and review an organization audit trail.
+      Invitations are shared manually until verified email delivery is configured.
+    </p>
+    <div class="notice">
+      Beta roles: Owner, Admin, Member, and Analyst. Workspace data is isolated by organization membership.
+      Invitation links expire after seven days.
+    </div>
+    <div id="organizationStatus" class="message">Sign in to manage team workspaces.</div>
+
+    <div class="analytics-panel">
+      <h3>Create a workspace</h3>
+      <input id="organizationName" type="text" maxlength="100" placeholder="Organization or team name">
+      <button type="button" onclick="createOrganization()">Create Workspace</button>
+    </div>
+
+    <div class="analytics-panel">
+      <h3>Accept an invitation</h3>
+      <input id="organizationInviteToken" type="text" maxlength="64" placeholder="Paste your 64-character invitation token">
+      <button type="button" onclick="acceptOrganizationInvitation()">Accept Invitation</button>
+      <div id="organizationInvitations"></div>
+    </div>
+
+    <div id="organizationList"></div>
+  </div>
+
+</section>
+
+
 <section id="mission">
 
   <div class="mission">
@@ -1291,6 +1326,7 @@ if (error) {
       await loadMonitoringDashboard();
       await loadAnalyticsDashboard();
       await loadResearchWorkspace();
+      await loadOrganizationWorkspace();
 
     } else {
       authStatus.className = "notice";
@@ -1339,6 +1375,14 @@ if (error) {
       }
       const analyticsWarnings = document.getElementById("analyticsWarnings");
       if (analyticsWarnings) analyticsWarnings.textContent = "Log in to view recurring warnings.";
+
+      const organizationStatus = document.getElementById("organizationStatus");
+      if (organizationStatus) {
+        organizationStatus.className = "notice";
+        organizationStatus.textContent = "Log in to manage team workspaces.";
+      }
+      const organizationList = document.getElementById("organizationList");
+      if (organizationList) organizationList.innerHTML = "";
 
       const monitorStatus = document.getElementById("monitorStatus");
       if (monitorStatus) {
@@ -4578,6 +4622,225 @@ async function markMonitoringAlertRead(alertId) {
     const status = document.getElementById("monitorStatus");
     status.className = "error";
     status.textContent = error?.message || "Unable to update this alert.";
+  }
+}
+
+
+/* =========================
+   TEAM WORKSPACES
+========================= */
+
+async function organizationRequest(payload = null) {
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  const token = data?.session?.access_token;
+  if (!token) throw new Error("Please log in to use team workspaces.");
+  const response = await fetch("/api/organizations", {
+    method: payload ? "POST" : "GET",
+    headers: {
+      "Authorization": "Bearer " + token,
+      ...(payload ? { "Content-Type": "application/json" } : {})
+    },
+    ...(payload ? { body: JSON.stringify(payload) } : {})
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Workspace request failed.");
+  return result;
+}
+
+let organizationWorkspaceData = { organizations: [], invitations: [] };
+
+function renderOrganizationWorkspace(data) {
+  organizationWorkspaceData = data;
+  const list = document.getElementById("organizationList");
+  const invitations = document.getElementById("organizationInvitations");
+  if (invitations) {
+    invitations.innerHTML = (data.invitations || []).length
+      ? data.invitations.map(invite => `
+        <div class="monitoring-site">
+          <strong>${escapeHTML(invite.organizations?.name || "Team workspace")}</strong>
+          <div class="monitoring-meta">${escapeHTML(invite.email)} · ${escapeHTML(invite.role)} · Expires ${escapeHTML(monitoringDate(invite.expires_at))}</div>
+        </div>
+      `).join("")
+      : '<div class="empty-history">No pending invitations for your account.</div>';
+  }
+  if (!list) return;
+  const orgs = data.organizations || [];
+  list.innerHTML = orgs.length ? orgs.map(org => {
+    const canManage = ["owner", "admin"].includes(org.my_role);
+    const members = (org.members || []).map(member => `
+      <div class="monitoring-run">
+        <div><strong>${escapeHTML(member.user_id)}</strong></div>
+        <div class="monitoring-meta">${escapeHTML(member.role)} · Joined ${escapeHTML(monitoringDate(member.joined_at))}</div>
+        ${org.my_role === "owner" && member.role !== "owner" ? `
+          <div class="monitoring-actions">
+            <select id="orgRole-${escapeHTML(org.id)}-${escapeHTML(member.user_id)}">
+              <option value="admin" ${member.role === "admin" ? "selected" : ""}>Admin</option>
+              <option value="member" ${member.role === "member" ? "selected" : ""}>Member</option>
+              <option value="analyst" ${member.role === "analyst" ? "selected" : ""}>Analyst</option>
+            </select>
+            <button class="secondary-button" type="button" onclick="changeOrganizationRole('${escapeHTML(org.id)}','${escapeHTML(member.user_id)}')">Save Role</button>
+            <button class="secondary-button" type="button" onclick="removeOrganizationMember('${escapeHTML(org.id)}','${escapeHTML(member.user_id)}')">Remove</button>
+          </div>
+        ` : ""}
+      </div>
+    `).join("");
+    const inviteRows = (org.invitations || []).map(invite => `
+      <div class="monitoring-meta">${escapeHTML(invite.email)} · ${escapeHTML(invite.role)} · Expires ${escapeHTML(monitoringDate(invite.expires_at))}</div>
+      <button class="secondary-button" type="button" onclick="revokeOrganizationInvitation('${escapeHTML(org.id)}','${escapeHTML(invite.id)}')">Revoke invitation</button>
+    `).join("");
+    const auditRows = (org.audit_events || []).slice(0, 10).map(event => `
+      <div class="monitoring-meta">${escapeHTML(event.event_type)} · ${escapeHTML(monitoringDate(event.created_at))}</div>
+    `).join("");
+    return `
+      <div class="monitoring-site">
+        <h3>${escapeHTML(org.name)}</h3>
+        <div class="monitoring-meta">Workspace: ${escapeHTML(org.slug)} · Your role: ${escapeHTML(org.my_role)} · Status: ${escapeHTML(org.status)}</div>
+        <h4>Members (${(org.members || []).length})</h4>
+        ${members || '<div class="monitoring-meta">No members yet.</div>'}
+        ${canManage ? `
+          <div class="analytics-panel">
+            <h4>Invite a collaborator</h4>
+            <input id="orgInviteEmail-${escapeHTML(org.id)}" type="email" maxlength="254" placeholder="collaborator@example.com">
+            <select id="orgInviteRole-${escapeHTML(org.id)}">
+              <option value="member">Member</option>
+              <option value="analyst">Analyst</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button type="button" onclick="inviteOrganizationMember('${escapeHTML(org.id)}')">Create Invitation</button>
+            <div id="orgInviteResult-${escapeHTML(org.id)}"></div>
+          </div>
+          <h4>Pending invitations</h4>
+          ${inviteRows || '<div class="monitoring-meta">No pending invitations.</div>'}
+          <h4>Recent audit events</h4>
+          ${auditRows || '<div class="monitoring-meta">No audit events yet.</div>'}
+        ` : ""}
+      </div>
+    `;
+  }).join("") : '<div class="empty-history">No team workspaces yet. Create one to get started.</div>';
+}
+
+async function loadOrganizationWorkspace() {
+  const status = document.getElementById("organizationStatus");
+  if (!status) return;
+  try {
+    const data = await organizationRequest();
+    renderOrganizationWorkspace(data);
+    status.className = "success";
+    status.textContent = "Team workspace ready. Membership and invitations are private to your account.";
+  } catch (error) {
+    status.className = "notice";
+    status.textContent = error?.message || "Log in to manage team workspaces.";
+    const list = document.getElementById("organizationList");
+    if (list) list.innerHTML = "";
+  }
+}
+
+async function createOrganization() {
+  const input = document.getElementById("organizationName");
+  const status = document.getElementById("organizationStatus");
+  try {
+    const result = await organizationRequest({ action: "create", name: input.value.trim() });
+    input.value = "";
+    await loadOrganizationWorkspace();
+    status.className = "success";
+    status.textContent = "Workspace created. You are its owner.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to create workspace.";
+  }
+}
+
+async function acceptOrganizationInvitation(tokenValue) {
+  const input = document.getElementById("organizationInviteToken");
+  const token = (tokenValue || input?.value || "").trim();
+  const status = document.getElementById("organizationStatus");
+  try {
+    await organizationRequest({ action: "accept_invitation", token });
+    if (input) input.value = "";
+    await loadOrganizationWorkspace();
+    status.className = "success";
+    status.textContent = "Invitation accepted. The workspace is now available in your account.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to accept this invitation.";
+  }
+}
+
+async function inviteOrganizationMember(organizationId) {
+  const emailInput = document.getElementById("orgInviteEmail-" + organizationId);
+  const roleInput = document.getElementById("orgInviteRole-" + organizationId);
+  const resultNode = document.getElementById("orgInviteResult-" + organizationId);
+  try {
+    const result = await organizationRequest({
+      action: "invite",
+      organizationId,
+      email: emailInput.value.trim(),
+      role: roleInput.value
+    });
+    const inviteUrl = location.origin + "/?org_invite=" + encodeURIComponent(result.token) + "#teams";
+    resultNode.innerHTML = `
+      <div class="notice">
+        Invitation created. Share this link privately with ${escapeHTML(result.invitation.email)}.
+        It expires in seven days. Email is not sent automatically.
+        <code class="monitoring-code">${escapeHTML(inviteUrl)}</code>
+        <button type="button" onclick="copyOrganizationInvite('${escapeHTML(inviteUrl)}')">Copy Invitation Link</button>
+      </div>
+    `;
+    emailInput.value = "";
+    await loadOrganizationWorkspace();
+  } catch (error) {
+    resultNode.className = "error";
+    resultNode.textContent = error?.message || "Unable to create invitation.";
+  }
+}
+
+async function copyOrganizationInvite(value) {
+  try {
+    await navigator.clipboard.writeText(value);
+    const status = document.getElementById("organizationStatus");
+    status.className = "success";
+    status.textContent = "Invitation link copied.";
+  } catch {
+    const status = document.getElementById("organizationStatus");
+    status.className = "notice";
+    status.textContent = "Copy was blocked by the browser. Select and copy the invitation link above.";
+  }
+}
+
+async function changeOrganizationRole(organizationId, userId) {
+  const role = document.getElementById("orgRole-" + organizationId + "-" + userId)?.value;
+  try {
+    await organizationRequest({ action: "change_role", organizationId, userId, role });
+    await loadOrganizationWorkspace();
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to change member role.";
+  }
+}
+
+async function removeOrganizationMember(organizationId, userId) {
+  if (!confirm("Remove this member from the workspace?")) return;
+  try {
+    await organizationRequest({ action: "remove_member", organizationId, userId });
+    await loadOrganizationWorkspace();
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to remove member.";
+  }
+}
+
+async function revokeOrganizationInvitation(organizationId, invitationId) {
+  if (!confirm("Revoke this pending invitation?")) return;
+  try {
+    await organizationRequest({ action: "revoke_invitation", organizationId, invitationId });
+    await loadOrganizationWorkspace();
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to revoke invitation.";
   }
 }
 
