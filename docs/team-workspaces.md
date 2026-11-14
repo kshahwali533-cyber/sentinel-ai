@@ -48,3 +48,13 @@
 - The organization asset table has RLS enabled; authenticated clients have SELECT only; writes use the authenticated server API and service-role credentials.
 - Audit events record asset sharing/removal.
 - Unverified domains and assets owned by non-members cannot be shared.
+
+## Workspace security policies and audit export
+
+- Workspace owners can disable new invitations, verified-asset sharing, or audit exports.
+- The server API enforces these controls; hiding a UI button is not treated as authorization.
+- Admins can export the latest 1,000 audit events as JSON when the owner has enabled audit export.
+- Policy changes and audit exports create audit events.
+- Policy rows are visible to workspace members through RLS; writes are server-side only.
+- These are first-version workspace controls, not SSO/SCIM or a complete enterprise compliance system.
+- Automated event retention/purge is not claimed; backup and retention behavior still needs a documented operational policy.

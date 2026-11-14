@@ -35,6 +35,10 @@ export default async function handler(req, res) {
       .select("role").eq("organization_id", orgId).eq("user_id", user.id).maybeSingle();
     if (membershipError) throw membershipError;
     if (!membership) return reply(res, 404, { error: "Workspace not found." });
+    const { data: workspacePolicy, error: workspacePolicyError } = await admin.from("organization_policies")
+      .select("allow_asset_sharing").eq("organization_id", orgId).maybeSingle();
+    if (workspacePolicyError) throw workspacePolicyError;
+    const assetSharingEnabled = workspacePolicy?.allow_asset_sharing !== false;
 
     if (req.method === "GET") {
       const { data: members, error: membersError } = await admin.from("organization_members")
@@ -57,13 +61,15 @@ export default async function handler(req, res) {
       return reply(res, 200, {
         assets: shared.data || [],
         available_assets: (available.data || []).filter((item) => !sharedIds.has(item.id)),
-        can_manage: ["owner", "admin"].includes(membership.role)
+        can_manage: ["owner", "admin"].includes(membership.role),
+        sharing_enabled: assetSharingEnabled
       });
     }
 
     if (!["owner", "admin"].includes(membership.role)) {
       return reply(res, 403, { error: "Only workspace owners and admins can manage shared assets." });
     }
+    if (!assetSharingEnabled) return reply(res, 403, { error: "Asset sharing is disabled by the workspace owner." });
     if (body.action === "share") {
       const siteId = typeof body.monitoringSiteId === "string" ? body.monitoringSiteId : "";
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(siteId)) {

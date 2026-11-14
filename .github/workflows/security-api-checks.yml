@@ -18,6 +18,7 @@ on:
       - feature/team-workspaces-20261114
       - db/team-workspace-advisor-hardening-20261114
       - feature/team-asset-sharing-20261114
+      - feature/enterprise-policy-controls-20261114
   push:
     branches:
       - security/pin-validated-dns-connection
@@ -32,6 +33,9 @@ on:
       - feature/research-workspace-20261114
       - feature/vulnerability-intelligence-20261114
       - feature/team-workspaces-20261114
+      - db/team-workspace-advisor-hardening-20261114
+      - feature/team-asset-sharing-20261114
+      - feature/enterprise-policy-controls-20261114
 
 jobs:
   syntax-and-ssrf-guard:
@@ -49,48 +53,13 @@ jobs:
       - name: Install locked production dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Validate API JavaScript syntax
+      - name: Validate JavaScript syntax and run unit tests
         run: |
-          node --check api/scan.js
-          node --check api/organizations.js
-          node --check api/organization-assets.js
-          node --check api/_lib/team-assets.js
-          node --check test/team-assets.test.js
-          node --check api/_lib/organizations.js
-          node --check test/organizations.test.js test/team-assets.test.js
-          node --check api/monitoring.js
-          node --check api/monitoring-run.js
-          node --check api/_lib/monitoring.js
-          node --check api/_lib/finding-validation.js
-          node --check api/analytics.js
-          node --check api/research.js
-          node --check api/intelligence.js
-          node --check api/_lib/vulnerability-intelligence.js
-          node --check api/_lib/research-validation.js
-          node --check test/scan-analytics.test.js
-          node --check test/research-validation.test.js
-          node --check test/vulnerability-intelligence.test.js
-          node --check test/organizations.test.js
-          node --check api/_lib/scan-analytics.js
-          node --check test/monitoring.test.js
-          node --check test/finding-validation.test.js
-          node --check test/scan-analytics.test.js
-          node --check api/assistant.js
-          node --check api/report.js
-          node --check api/_lib/pinned-lookup.js
-          node --check api/_lib/public-ip.js
-          node --check api/_lib/read-limited.js
-          node --check api/_lib/scan-score.js
-          node --check test/public-ip.test.js
-          node --check test/read-limited.test.js
-          node --check test/pinned-lookup.test.js
-          node --check api/_lib/security-evidence.js
-          node --check test/security-evidence.test.js
-          node --check test/report-ui.test.js
-          node --check test/restricted-target.test.js
-          node --check test/scan-score.test.js
-          node --check test/report-api.test.js
-          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js test/restricted-target.test.js test/scan-score.test.js test/report-api.test.js test/monitoring.test.js test/finding-validation.test.js test/scan-analytics.test.js test/research-validation.test.js test/vulnerability-intelligence.test.js test/organizations.test.js
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find api test -type f -name '*.js' -print0)
+          node --test test/*.test.js
 
       - name: Verify scanner uses pinned DNS connections
         run: |
@@ -120,6 +89,7 @@ jobs:
 
           console.log("Pinned DNS connection guard checks passed.");
           NODE
+
       - name: Validate Vercel security response headers
         run: |
           node --input-type=module <<'NODE'

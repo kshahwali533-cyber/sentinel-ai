@@ -4700,6 +4700,7 @@ function renderOrganizationWorkspace(data) {
         ${members || '<div class="monitoring-meta">No members yet.</div>'}
         <h4>Shared verified assets</h4>
         <div id="orgAssets-${escapeHTML(org.id)}" class="monitoring-meta">Loading shared assets...</div>
+        <div id="orgAdmin-${escapeHTML(org.id)}" class="monitoring-meta">Loading workspace settings...</div>
         ${canManage ? `
           <div class="analytics-panel">
             <h4>Invite a collaborator</h4>
@@ -4720,7 +4721,97 @@ function renderOrganizationWorkspace(data) {
       </div>
     `;
   }).join("") : '<div class="empty-history">No team workspaces yet. Create one to get started.</div>';
-  orgs.forEach((org) => loadOrganizationAssets(org.id));
+  orgs.forEach((org) => {
+    loadOrganizationAssets(org.id);
+    loadOrganizationAdmin(org.id);
+  });
+}
+
+async function organizationAdminRequest(organizationId, payload = null) {
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  const token = data?.session?.access_token;
+  if (!token) throw new Error("Please log in to manage workspace policies.");
+  const response = await fetch("/api/organization-admin" + (payload ? "" : "?organizationId=" + encodeURIComponent(organizationId)), {
+    method: payload ? "POST" : "GET",
+    headers: {
+      "Authorization": "Bearer " + token,
+      ...(payload ? { "Content-Type": "application/json" } : {})
+    },
+    ...(payload ? { body: JSON.stringify({ ...payload, organizationId }) } : {})
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Workspace administration request failed.");
+  return result;
+}
+
+async function loadOrganizationAdmin(organizationId) {
+  const node = document.getElementById("orgAdmin-" + organizationId);
+  if (!node) return;
+  try {
+    const data = await organizationAdminRequest(organizationId);
+    const p = data.policy || {};
+    const ownerControls = data.can_manage ? `
+      <label><input id="orgPolicyInvites-${escapeHTML(organizationId)}" type="checkbox" ${p.allow_member_invites ? "checked" : ""}> Allow new member invitations</label>
+      <label><input id="orgPolicyAssets-${escapeHTML(organizationId)}" type="checkbox" ${p.allow_asset_sharing ? "checked" : ""}> Allow sharing verified assets</label>
+      <label><input id="orgPolicyAudit-${escapeHTML(organizationId)}" type="checkbox" ${p.audit_export_enabled ? "checked" : ""}> Allow audit log exports</label>
+      <button type="button" onclick="saveOrganizationPolicy('${escapeHTML(organizationId)}')">Save Security Policies</button>
+    ` : "";
+    const canExport = ["owner", "admin"].includes(data.my_role) && p.audit_export_enabled;
+    node.innerHTML = `
+      <div class="analytics-panel">
+        <h4>Workspace Security Policies</h4>
+        <div class="monitoring-meta">Only the owner can change these controls. Last update: ${escapeHTML(monitoringDate(p.updated_at))}</div>
+        ${ownerControls || `<div class="monitoring-meta">Invitations: ${p.allow_member_invites ? "Enabled" : "Disabled"} · Asset sharing: ${p.allow_asset_sharing ? "Enabled" : "Disabled"} · Audit exports: ${p.audit_export_enabled ? "Enabled" : "Disabled"}</div>`}
+        ${canExport ? `<button class="secondary-button" type="button" onclick="exportOrganizationAudit('${escapeHTML(organizationId)}')">Export Audit Log (JSON)</button>` : ""}
+      </div>
+    `;
+  } catch (error) {
+    node.className = "error";
+    node.textContent = error?.message || "Unable to load workspace policies.";
+  }
+}
+
+async function saveOrganizationPolicy(organizationId) {
+  const getChecked = (id) => Boolean(document.getElementById(id)?.checked);
+  try {
+    await organizationAdminRequest(organizationId, {
+      action: "update_policy",
+      allow_member_invites: getChecked("orgPolicyInvites-" + organizationId),
+      allow_asset_sharing: getChecked("orgPolicyAssets-" + organizationId),
+      audit_export_enabled: getChecked("orgPolicyAudit-" + organizationId)
+    });
+    await loadOrganizationAdmin(organizationId);
+    const status = document.getElementById("organizationStatus");
+    status.className = "success";
+    status.textContent = "Workspace security policies saved.";
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to save workspace policies.";
+  }
+}
+
+async function exportOrganizationAudit(organizationId) {
+  try {
+    const data = await organizationAdminRequest(organizationId, { action: "export_audit" });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "sentinel-workspace-audit-" + organizationId + ".json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    const status = document.getElementById("organizationStatus");
+    status.className = "success";
+    status.textContent = "Audit log export created.";
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to export audit log.";
+  }
 }
 
 async function organizationAssetRequest(organizationId, payload = null) {
@@ -4758,14 +4849,14 @@ async function loadOrganizationAssets(organizationId) {
         </div>
       `;
     }).join("") : '<div class="monitoring-meta">No verified assets are shared with this workspace yet.</div>';
-    const selectHtml = data.can_manage && available.length ? `
+    const selectHtml = data.can_manage && data.sharing_enabled && available.length ? `
       <div class="analytics-panel">
         <select id="orgAssetSelect-${escapeHTML(organizationId)}">
           ${available.map((asset) => `<option value="${escapeHTML(asset.id)}">${escapeHTML(asset.hostname || asset.url)}</option>`).join("")}
         </select>
         <button type="button" onclick="shareOrganizationAsset('${escapeHTML(organizationId)}')">Share verified asset</button>
       </div>
-    ` : data.can_manage ? '<div class="monitoring-meta">No other verified member-owned assets are available to share.</div>' : "";
+    ` : data.can_manage && !data.sharing_enabled ? '<div class="monitoring-meta">Asset sharing is disabled by the workspace owner.</div>' : data.can_manage ? '<div class="monitoring-meta">No other verified member-owned assets are available to share.</div>' : "";
     node.innerHTML = sharedHtml + selectHtml;
   } catch (error) {
     node.className = "error";
