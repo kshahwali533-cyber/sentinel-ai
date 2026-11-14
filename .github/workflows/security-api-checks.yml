@@ -1,0 +1,110 @@
+name: Sentinel AI security API checks
+
+on:
+  pull_request:
+    branches:
+      - main
+      - security/pin-validated-dns-connection
+      - integration/sentinel-evidence-2026-11
+      - fix/professional-report-mobile-blank-2026-11
+      - fix/restricted-target-scan-guard-2026-11
+      - sentinel/release-candidate-2026-11-14
+      - security/response-headers-hardening-2026-11
+  push:
+    branches:
+      - security/pin-validated-dns-connection
+      - integration/sentinel-evidence-2026-11
+      - fix/professional-report-mobile-blank-2026-11
+      - fix/restricted-target-scan-guard-2026-11
+      - sentinel/release-candidate-2026-11-14
+      - security/response-headers-hardening-2026-11
+
+jobs:
+  syntax-and-ssrf-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install locked production dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Validate API JavaScript syntax
+        run: |
+          node --check api/scan.js
+          node --check api/assistant.js
+          node --check api/report.js
+          node --check api/_lib/pinned-lookup.js
+          node --check api/_lib/public-ip.js
+          node --check api/_lib/read-limited.js
+          node --check api/_lib/scan-score.js
+          node --check test/public-ip.test.js
+          node --check test/read-limited.test.js
+          node --check test/pinned-lookup.test.js
+          node --check api/_lib/security-evidence.js
+          node --check test/security-evidence.test.js
+          node --check test/report-ui.test.js
+          node --check test/restricted-target.test.js
+          node --check test/scan-score.test.js
+          node --check test/report-api.test.js
+          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js test/restricted-target.test.js test/scan-score.test.js test/report-api.test.js
+
+      - name: Verify scanner uses pinned DNS connections
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const source = fs.readFileSync("api/scan.js", "utf8");
+
+          if (/\bfetch\s*\(/.test(source)) {
+            throw new Error("Unpinned fetch() calls remain in api/scan.js.");
+          }
+
+          const helper = fs.readFileSync("api/_lib/pinned-lookup.js", "utf8");
+
+          if (!source.includes("lookup: createPinnedLookup(hostname, pinned)") ||
+              !helper.includes("return (lookupHostname, lookupOptions, callback)")) {
+            throw new Error("Pinned DNS lookup callback is missing.");
+          }
+
+          if (!source.includes("validation.addresses")) {
+            throw new Error("Validated DNS addresses are not passed to the request.");
+          }
+
+          if (!source.includes("servername: net.isIP(hostname) ? undefined : hostname")) {
+            throw new Error("HTTPS hostname verification/SNI configuration is missing.");
+          }
+
+          console.log("Pinned DNS connection guard checks passed.");
+          NODE
+      - name: Validate Vercel security response headers
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const config = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
+          const route = config.headers?.find((item) => item.source === "/(.*)");
+          const headers = new Map((route?.headers || []).map((item) => [item.key.toLowerCase(), item.value]));
+
+          for (const [name, expected] of [
+            ["x-content-type-options", "nosniff"],
+            ["x-frame-options", "DENY"],
+            ["referrer-policy", "strict-origin-when-cross-origin"]
+          ]) {
+            if (headers.get(name) !== expected) {
+              throw new Error(`Missing or incorrect ${name} response header.`);
+            }
+          }
+
+          if (!headers.has("content-security-policy-report-only")) {
+            throw new Error("CSP must remain in report-only mode until browser compatibility is verified.");
+          }
+
+          console.log("Vercel security response header configuration passed.");
+          NODE

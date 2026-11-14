@@ -1,17 +1,27 @@
 import dns from "node:dns/promises";
 import net from "node:net";
+import http from "node:http";
+import https from "node:https";
+import { Readable } from "node:stream";
+import { createPinnedLookup } from "./_lib/pinned-lookup.js";
+import { isPublicIP } from "./_lib/public-ip.js";
+import { readTextLimited } from "./_lib/read-limited.js";
+import { calculateScanScore } from "./_lib/scan-score.js";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false
-    }
-  }
-);
+const supabaseAdmin =
+  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false
+          }
+        }
+      )
+    : null;
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -41,6 +51,12 @@ if (
         Math.floor(Date.now() / RATE_WINDOW_MS) *
           RATE_WINDOW_MS
       ).toISOString();
+    if (!supabaseAdmin) {
+      return res.status(503).json({
+        error: "Scan service is temporarily unavailable."
+      });
+    }
+
     const { data: rateAllowed, error: rateError } =
   await supabaseAdmin.rpc("check_scan_rate_limit", {
     p_ip_address: clientIP,
@@ -138,211 +154,6 @@ if (target.port) {
      * ---------------------------------------------------------
      */
 
-    function ipv4ToNumber(ip) {
-      const parts = ip.split(".").map(Number);
-
-      if (
-        parts.length !== 4 ||
-        parts.some(
-          part =>
-            !Number.isInteger(part) ||
-            part < 0 ||
-            part > 255
-        )
-      ) {
-        return null;
-      }
-
-      return (
-        parts[0] * 256 ** 3 +
-        parts[1] * 256 ** 2 +
-        parts[2] * 256 +
-        parts[3]
-      );
-    }
-
-    function isPrivateIPv4(ip) {
-      const value = ipv4ToNumber(ip);
-
-      if (value === null) {
-        return false;
-      }
-
-      const first = Number(ip.split(".")[0]);
-      const second = Number(ip.split(".")[1]);
-
-      return (
-        first === 10 ||
-        first === 127 ||
-        (first === 169 && second === 254) ||
-        (first === 172 && second >= 16 && second <= 31) ||
-        (first === 192 && second === 168) ||
-        (first === 100 && second >= 64 && second <= 127) ||
-        (first === 0)
-      );
-    }
-
-    function expandIPv6(ip) {
-      let address = ip.toLowerCase();
-
-      if (address.includes("%")) {
-        address = address.split("%")[0];
-      }
-
-      if (address.includes(".")) {
-        const lastColon = address.lastIndexOf(":");
-        const ipv4Part = address.slice(lastColon + 1);
-        const ipv4Value = ipv4ToNumber(ipv4Part);
-
-        if (ipv4Value !== null) {
-          const high = ((ipv4Value >>> 16) & 0xffff)
-            .toString(16)
-            .padStart(4, "0");
-
-          const low = (ipv4Value & 0xffff)
-            .toString(16)
-            .padStart(4, "0");
-
-          address =
-            address.slice(0, lastColon + 1) +
-            high +
-            ":" +
-            low;
-        }
-      }
-
-      const halves = address.split("::");
-
-      if (halves.length > 2) {
-        return null;
-      }
-
-      let left = halves[0]
-        ? halves[0].split(":").filter(Boolean)
-        : [];
-
-      let right = halves[1]
-        ? halves[1].split(":").filter(Boolean)
-        : [];
-
-      if (halves.length === 1) {
-        if (left.length !== 8) {
-          return null;
-        }
-      } else {
-        const missing = 8 - left.length - right.length;
-
-        if (missing < 1) {
-          return null;
-        }
-
-        left = [
-          ...left,
-          ...Array(missing).fill("0"),
-          ...right
-        ];
-      }
-
-      if (left.length !== 8) {
-        return null;
-      }
-
-      if (
-        left.some(
-          part =>
-            !/^[0-9a-f]{1,4}$/i.test(part)
-        )
-      ) {
-        return null;
-      }
-
-      return left.map(part =>
-        parseInt(part, 16)
-      );
-    }
-
-    function isPrivateIPv6(ip) {
-      const groups = expandIPv6(ip);
-
-      if (!groups) {
-        return false;
-      }
-
-      /*
-       * ::1 loopback
-       */
-      const isLoopback =
-        groups.every((value, index) =>
-          index === 7
-            ? value === 1
-            : value === 0
-        );
-
-      if (isLoopback) {
-        return true;
-      }
-
-      /*
-       * :: unspecified
-       */
-      const isUnspecified =
-        groups.every(value => value === 0);
-
-      if (isUnspecified) {
-        return true;
-      }
-
-      /*
-       * fc00::/7 — Unique Local Addresses
-       */
-      if ((groups[0] & 0xfe00) === 0xfc00) {
-        return true;
-      }
-
-      /*
-       * fe80::/10 — Link Local
-       */
-      if ((groups[0] & 0xffc0) === 0xfe80) {
-        return true;
-      }
-
-      /*
-       * IPv4-mapped IPv6:
-       * ::ffff:192.168.x.x
-       * ::ffff:127.x.x.x
-       */
-      if (
-        groups.length === 8 &&
-        groups[0] === 0 &&
-        groups[1] === 0 &&
-        groups[2] === 0 &&
-        groups[3] === 0 &&
-        groups[4] === 0 &&
-        groups[5] === 0xffff
-      ) {
-        const mappedIPv4 =
-          `${groups[6] >> 8}.${groups[6] & 255}.${groups[7] >> 8}.${groups[7] & 255}`;
-
-        return isPrivateIPv4(mappedIPv4);
-      }
-
-      return false;
-    }
-
-    function isPrivateIP(ip) {
-      const family = net.isIP(ip);
-
-      if (family === 4) {
-        return isPrivateIPv4(ip);
-      }
-
-      if (family === 6) {
-        return isPrivateIPv6(ip);
-      }
-
-      return false;
-    }
-
     async function validateTargetURL(urlObject) {
       if (
         !["http:", "https:"].includes(
@@ -368,7 +179,7 @@ if (target.port) {
       }
 
       const hostname =
-        urlObject.hostname.toLowerCase();
+        urlObject.hostname.toLowerCase().replace(/^\[|\]$/g, "");
 if (!hostname) {
   return {
     safe: false,
@@ -425,7 +236,7 @@ if (!hostname) {
        * Direct IP address.
        */
       if (net.isIP(hostname)) {
-        if (isPrivateIP(hostname)) {
+        if (!isPublicIP(hostname)) {
           return {
             safe: false,
             reason:
@@ -434,7 +245,8 @@ if (!hostname) {
         }
 
         return {
-          safe: true
+          safe: true,
+          addresses: [{ address: hostname, family: net.isIP(hostname) }]
         };
       }
 
@@ -442,8 +254,10 @@ if (!hostname) {
        * Resolve hostname and inspect every returned address.
        * If ANY resolved address is private/local, block it.
        */
+      let resolved;
+
       try {
-        const resolved =
+        resolved =
           await dns.lookup(hostname, {
             all: true,
             verbatim: true
@@ -458,7 +272,7 @@ if (!hostname) {
         }
 
         for (const entry of resolved) {
-          if (isPrivateIP(entry.address)) {
+          if (!isPublicIP(entry.address)) {
             return {
               safe: false,
               reason:
@@ -475,17 +289,12 @@ if (!hostname) {
       }
 
       return {
-        safe: true
+        safe: true,
+        addresses: resolved.map(entry => ({
+          address: entry.address,
+          family: entry.family || net.isIP(entry.address)
+        }))
       };
-    }
-
-    const initialValidation =
-      await validateTargetURL(target);
-
-    if (!initialValidation.safe) {
-      return res.status(400).json({
-        error: initialValidation.reason
-      });
     }
 
     /*
@@ -493,6 +302,106 @@ if (!hostname) {
      * SAFE FETCH WITH MANUAL REDIRECT VALIDATION
      * ---------------------------------------------------------
      */
+
+
+    /*
+     * Connect only to an IP address that was resolved and validated
+     * immediately above. The custom lookup callback prevents Node's
+     * HTTP client from performing a second DNS lookup at connect time.
+     */
+    async function requestPinned(urlObject, validatedAddresses, options = {}) {
+      if (!Array.isArray(validatedAddresses) || validatedAddresses.length === 0) {
+        throw new Error("No validated destination addresses are available.");
+      }
+
+      const normalizeHost = value => {
+        const normalized = String(value).toLowerCase();
+        return normalized.startsWith("[") && normalized.endsWith("]")
+          ? normalized.slice(1, -1)
+          : normalized;
+      };
+      const hostname = normalizeHost(urlObject.hostname);
+      const pinned = validatedAddresses[0];
+      const pinnedFamily = net.isIP(pinned.address);
+
+      if (!pinnedFamily || pinnedFamily !== pinned.family || !isPublicIP(pinned.address)) {
+        throw new Error("The validated destination address is not safe.");
+      }
+
+      const transport = urlObject.protocol === "https:" ? https : http;
+
+      return await new Promise((resolve, reject) => {
+        let settled = false;
+        const timeoutMs = options.timeout || 15000;
+
+        const request = transport.request({
+          protocol: urlObject.protocol,
+          hostname,
+          port: urlObject.port || undefined,
+          path: `${urlObject.pathname}${urlObject.search}`,
+          method: options.method || "GET",
+          headers: options.headers || {},
+          servername: net.isIP(hostname) ? undefined : hostname,
+          // Never let the transport resolve this hostname again after validation.
+          lookup: createPinnedLookup(hostname, pinned)
+        }, incoming => {
+          try {
+            const responseHeaders = new Headers();
+
+            for (const [name, value] of Object.entries(incoming.headers)) {
+              if (value === undefined) continue;
+
+              if (Array.isArray(value)) {
+                for (const item of value) {
+                  responseHeaders.append(name, String(item));
+                }
+              } else {
+                responseHeaders.set(name, String(value));
+              }
+            }
+
+            const status = incoming.statusCode || 502;
+            const body = [204, 205, 304].includes(status)
+              ? null
+              : Readable.toWeb(incoming);
+
+            const response = new Response(body, {
+              status,
+              statusText: incoming.statusMessage,
+              headers: responseHeaders
+            });
+
+            settled = true;
+            clearTimeout(timeout);
+            resolve(response);
+          } catch (error) {
+            clearTimeout(timeout);
+            incoming.destroy(error);
+
+            if (!settled) {
+              settled = true;
+              reject(error);
+            }
+          }
+        });
+
+        const timeout = setTimeout(() => {
+          const error = new Error("The website took too long to respond.");
+          error.name = "AbortError";
+          request.destroy(error);
+        }, timeoutMs);
+
+        request.on("error", error => {
+          clearTimeout(timeout);
+
+          if (!settled) {
+            reject(error);
+          }
+        });
+
+        request.end();
+      });
+    }
 
     async function safeFetch(startURL, options = {}) {
       let currentURL =
@@ -517,35 +426,11 @@ if (!hostname) {
           throw error;
         }
 
-        const controller =
-          new AbortController();
-
-        const timeout =
-          setTimeout(
-            () => controller.abort(),
-            options.timeout || 15000
-          );
-
-        let response;
-
-        try {
-          response = await fetch(
-            currentURL.href,
-            {
-              method:
-                options.method || "GET",
-              redirect: "manual",
-              signal: controller.signal,
-              headers:
-                options.headers || {}
-            }
-          );
-        } catch (error) {
-          clearTimeout(timeout);
-          throw error;
-        }
-
-        clearTimeout(timeout);
+        const response = await requestPinned(
+          currentURL,
+          validation.addresses,
+          options
+        );
 
         /*
          * Handle redirects manually so every redirect
@@ -614,6 +499,7 @@ if (!hostname) {
             throw error;
           }
 
+          await response.body?.cancel();
           currentURL = nextURL;
           continue;
         }
@@ -690,6 +576,20 @@ if (!hostname) {
 
     const response =
       mainResult.response;
+
+    // A 401/403 response is not a reliable representation of the
+    // protected page. Do not calculate or save a misleading security score.
+    if ([401, 403].includes(response.status)) {
+      await response.body?.cancel();
+
+      return res.status(422).json({
+        code: "TARGET_ACCESS_RESTRICTED",
+        error:
+          "The target website returned HTTP " +
+          response.status +
+          " (access restricted). Sentinel AI cannot verify the page security headers or produce a reliable score. If this is a Vercel Preview deployment, its deployment protection may be blocking server-side scanning. Test a publicly accessible authorized URL or use an approved temporary test access method."
+      });
+    }
 const contentLength =
   Number(response.headers.get("content-length") || 0);
 
@@ -719,13 +619,15 @@ if (
       name,
       status,
       message,
-      fix = ""
+      fix = "",
+      evidence = null
     ) {
       checks.push({
         name,
         status,
         message,
-        ...(fix ? { fix } : {})
+        ...(fix ? { fix } : {}),
+        ...(evidence ? { evidence } : {})
       });
     }
 
@@ -781,7 +683,13 @@ if (
         "HSTS",
         "WARNING",
         "HSTS header was not detected.",
-        "Enable Strict-Transport-Security with an appropriate max-age."
+        "Enable Strict-Transport-Security with an appropriate max-age.",
+        {
+          source: "HTTP response header",
+          signal: "strict-transport-security",
+          observed: "Header not present",
+          expected: "Strict-Transport-Security with max-age of at least 31536000 seconds"
+        }
       );
     }
 
@@ -796,7 +704,13 @@ if (
         "Content Security Policy",
         "WARNING",
         "Content-Security-Policy was not detected.",
-        "Add a carefully configured Content-Security-Policy header."
+        "Add a carefully configured Content-Security-Policy header.",
+        {
+          source: "HTTP response header",
+          signal: "content-security-policy",
+          observed: "Header not present",
+          expected: "A site-specific Content-Security-Policy header"
+        }
       );
     } else if (
       /'unsafe-inline'/i.test(csp) ||
@@ -835,7 +749,13 @@ if (
         "Clickjacking Protection",
         "WARNING",
         "No clear clickjacking protection was detected.",
-        "Add X-Frame-Options or CSP frame-ancestors."
+        "Add X-Frame-Options or CSP frame-ancestors.",
+        {
+          source: "HTTP response headers",
+          signal: "x-frame-options / content-security-policy frame-ancestors",
+          observed: `X-Frame-Options: ${xFrame || "not present"}; CSP frame-ancestors: ${frameAncestors ? "present" : "not present"}`,
+          expected: "X-Frame-Options or a Content-Security-Policy frame-ancestors directive"
+        }
       );
     }
 
@@ -861,7 +781,13 @@ if (
         "X-Content-Type-Options",
         "WARNING",
         "X-Content-Type-Options: nosniff was not detected.",
-        "Add X-Content-Type-Options: nosniff."
+        "Add X-Content-Type-Options: nosniff.",
+        {
+          source: "HTTP response header",
+          signal: "x-content-type-options",
+          observed: xContentType || "Header not present",
+          expected: "X-Content-Type-Options: nosniff"
+        }
       );
     }
 
@@ -1332,6 +1258,8 @@ if (
     "controlled-discovery"
   );
         }
+
+        await discoveryResponse.body?.cancel();
       } catch {
         // Ignore unavailable or blocked paths.
       }
@@ -1350,10 +1278,13 @@ if (
 ) {
   try {
     html =
-      await response.text();
+      await readTextLimited(response, MAX_RESPONSE_SIZE);
   } catch {
     html = "";
+    await response.body?.cancel().catch(() => {});
   }
+} else {
+  await response.body?.cancel().catch(() => {});
 }
 
 if (html) {
@@ -1653,6 +1584,8 @@ const discoveredSurface =
             "controlled-parameter-discovery"
           );
         }
+
+        await discoveryResponse.body?.cancel();
       } catch {
         // Ignore unavailable or blocked parameterized paths.
       }
@@ -2244,6 +2177,7 @@ for (
       !scriptResponse ||
       !scriptResponse.ok
     ) {
+      await scriptResponse?.body?.cancel();
       continue;
     }
 
@@ -2263,11 +2197,12 @@ for (
       scriptContentLength >
       5 * 1024 * 1024
     ) {
+      await scriptResponse.body?.cancel();
       continue;
     }
 
     const scriptContent =
-      await scriptResponse.text();
+      await readTextLimited(scriptResponse, 5 * 1024 * 1024);
 
     if (!scriptContent) {
       continue;
@@ -2853,6 +2788,8 @@ for (
           "Consider publishing /.well-known/security.txt."
         );
       }
+
+      await securityResponse.body?.cancel();
     } catch {
       addCheck(
         "Security.txt",
@@ -2907,6 +2844,8 @@ for (
           "Robots.txt availability could not be confirmed."
         );
       }
+
+      await robotsResponse.body?.cancel();
     } catch {
       addCheck(
         "Robots.txt",
@@ -2916,49 +2855,15 @@ for (
     }
 
     // SCORE — Conservative Security Configuration Score
-    const totalChecks = checks.length;
-
-    const passed = checks.filter(
-      c => c.status === "PASS"
-    ).length;
-
-    const warnings = checks.filter(
-      c => c.status === "WARNING"
-    ).length;
-
-    const informational = checks.filter(
-      c => c.status === "INFO"
-    ).length;
-
-    // INFO findings are neutral and must not dilute the score.
-    // PASS checks earn points; WARNING checks earn no points.
-    const scoredChecks = passed + warnings;
-    let score = 0;
-
-    if (scoredChecks > 0) {
-      score = Math.round(
-        (passed / scoredChecks) * 100
-      );
-    }
-
-    score = Math.max(
-      0,
-      Math.min(100, score)
-    );
-
-    let riskLevel = "Low";
-
-    if (
-      score < 50 ||
-      warnings >= 5
-    ) {
-      riskLevel = "High";
-    } else if (
-      score < 75 ||
-      warnings >= 2
-    ) {
-      riskLevel = "Medium";
-    }
+    const scoreResult = calculateScanScore(checks);
+    const {
+      totalChecks,
+      passed,
+      warnings,
+      informational,
+      score,
+      riskLevel
+    } = scoreResult;
 
     const scanId =
       "SA-" +

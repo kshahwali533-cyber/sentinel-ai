@@ -2122,7 +2122,7 @@ function displayScanResults(data) {
         <br><br>
 
         ${discoveredSurface.length}
-        public resources discovered.
+        candidate public paths identified (availability is checked separately).
 
         ${
           surfaceFindings.length > 0
@@ -2138,7 +2138,7 @@ function displayScanResults(data) {
               <br><br>
 
               <strong>
-                Discovered Resources
+                Candidate Resources (not all confirmed available)
               </strong>
 
               <ul>
@@ -2587,6 +2587,20 @@ if (surfaceFindings.length > 0) {
             )}
 
           </div>
+
+          ${
+            check.evidence
+              ? `
+                <div class="message evidence">
+                  <strong>Evidence:</strong>
+                  ${escapeHTML(check.evidence.source || "Scanner observation")}
+                  ${check.evidence.signal ? " — " + escapeHTML(check.evidence.signal) : ""}
+                  ${check.evidence.observed ? "<br>Observed: " + escapeHTML(check.evidence.observed) : ""}
+                  ${check.evidence.expected ? "<br>Expected: " + escapeHTML(check.evidence.expected) : ""}
+                </div>
+              `
+              : ""
+          }
 
 
           ${
@@ -3177,580 +3191,154 @@ trackSentinelEvent("ai_mentor_used");
 async function generateProfessionalReport(button) {
 
   if (!latestScan) {
-
-    alert(
-      "Please run a security scan first."
-    );
-
+    alert("Please run a security scan first.");
     return;
-
   }
-
-
-  const reportWindow =
-    window.open(
-      "",
-      "_blank"
-    );
-
-
-  if (!reportWindow) {
-
-    alert(
-      "Please allow pop-ups for Sentinel AI."
-    );
-
-    return;
-
-  }
-
 
   if (button) {
-
     button.disabled = true;
-
-    button.textContent =
-      "📄 Generating Report...";
-
+    button.textContent = "📄 Generating Report...";
   }
 
-
-  const reportChecks =
-    Array.isArray(
-      latestScan.checks
-    )
+  try {
+    const reportChecks = Array.isArray(latestScan.checks)
       ? latestScan.checks
       : [];
 
-
-  reportWindow.document.write(`
-
-    <!DOCTYPE html>
-
-    <html lang="en">
-
-    <head>
-
-      <meta charset="UTF-8">
-
-      <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-      >
-
-      <title>
-        Sentinel AI Security Report
-      </title>
-
-      <style>
-
-        body {
-
-          font-family:
-            Arial,
-            sans-serif;
-
-          background:
-            #07111f;
-
-          color:
-            #ffffff;
-
-          line-height:
-            1.6;
-
-          max-width:
-            900px;
-
-          margin:
-            auto;
-
-          padding:
-            25px;
-
-        }
-
-        .header,
-        .box,
-        .finding {
-
-          background:
-            #0b1d31;
-
-          border:
-            1px solid #24415e;
-
-          border-radius:
-            14px;
-
-          padding:
-            20px;
-
-          margin-bottom:
-            18px;
-
-        }
-
-        h1,
-        h2,
-        h3 {
-
-          color:
-            #38bdf8;
-
-        }
-
-        .score {
-
-          font-size:
-            52px;
-
-          font-weight:
-            bold;
-
-          color:
-            #38bdf8;
-
-        }
-
-        .finding {
-
-          border-left:
-            4px solid #facc15;
-
-        }
-
-        .print-button {
-
-          width:
-            100%;
-
-          padding:
-            14px;
-
-          margin-bottom:
-            20px;
-
-          border:
-            none;
-
-          border-radius:
-            8px;
-
-          background:
-            #38bdf8;
-
-          color:
-            #06111f;
-
-          font-size:
-            16px;
-
-          font-weight:
-            bold;
-
-        }
-
-        .small {
-
-          color:
-            #8295aa;
-
-          font-size:
-            13px;
-
-        }
-
-        @media print {
-
-          body {
-
-            background:
-              white;
-
-            color:
-              black;
-
-          }
-
-          .print-button {
-
-            display:
-              none;
-
-          }
-
-          .header,
-          .box,
-          .finding {
-
-            background:
-              white;
-
-            color:
-              black;
-
-            box-shadow:
-              none;
-
-          }
-
-          h1,
-          h2,
-          h3 {
-
-            color:
-              black;
-
-          }
-
-        }
-
-      </style>
-
-    </head>
-
-    <body>
-
-      <button
-        class="print-button"
-        onclick="window.print()"
-      >
-        📄 Print / Save as PDF
-      </button>
-
-
-      <div class="header">
-
-        <h1>
-          🛡️ Sentinel AI
-        </h1>
-
-        <h2>
-          Professional Security-Awareness Report
-        </h2>
-
-        <p>
-          <strong>Website:</strong>
-          ${escapeHTML(
-            latestScan.website ||
-            latestScan.finalUrl ||
-            ""
-          )}
-        </p>
-
-        <p>
-          <strong>Scan ID:</strong>
-          ${escapeHTML(
-            latestScan.scanId ||
-            "N/A"
-          )}
-        </p>
-
-        <p>
-          <strong>Generated:</strong>
-          ${escapeHTML(
-            new Date().toLocaleString()
-          )}
-        </p>
-
-        <div class="score">
-
-          ${escapeHTML(
-            Number(
-              latestScan.score ??
-              latestScan.securityScore ??
-              0
-            )
-          )}/100
-
-        </div>
-
-        <p>
-          <strong>Risk Level:</strong>
-          ${escapeHTML(
-            latestScan.riskLevel ||
-            "Unknown"
-          )}
-        </p>
-
-      </div>
-
-
-      <div class="box">
-
-        <h2>
-          📊 Executive Summary
-        </h2>
-
-        <p>
-          <strong>Total Checks:</strong>
-          ${reportChecks.length}
-        </p>
-
-        <p>
-          <strong>Passed:</strong>
-          ${
-            reportChecks.filter(
-              c => c.status === "PASS"
-            ).length
-          }
-        </p>
-
-        <p>
-          <strong>Warnings:</strong>
-          ${
-            reportChecks.filter(
-              c => c.status === "WARNING"
-            ).length
-          }
-        </p>
-
-        <p>
-          <strong>Informational:</strong>
-          ${
-            reportChecks.filter(
-              c => c.status === "INFO"
-            ).length
-          }
-        </p>
-
-      </div>
-
-
-      <div class="box">
-
-        <h2>
-          🎯 Security Findings
-        </h2>
-
-        ${
-          reportChecks
-            .map(
-              check => `
-
-                <div class="finding">
-
-                  <h3>
-                    ${escapeHTML(
-                      check.name ||
-                      "Security Check"
-                    )}
-                  </h3>
-
-                  <p>
-                    <strong>Status:</strong>
-                    ${escapeHTML(
-                      check.status ||
-                      "INFO"
-                    )}
-                  </p>
-
-                  <p>
-                    ${escapeHTML(
-                      check.message ||
-                      ""
-                    )}
-                  </p>
-
-                  ${
-                    check.fix
-                      ? `
-
-                        <p>
-
-                          <strong>
-                            🔧 Recommended Fix:
-                          </strong>
-
-                          <br>
-
-                          ${escapeHTML(
-                            check.fix
-                          )}
-
-                        </p>
-
-                      `
-                      : ""
-                  }
-
-                </div>
-
-              `
-            )
-            .join("")
-        }
-
-      </div>
-
-
-      <div class="box">
-
-        <h2>
-          🚀 Recommended Action Plan
-        </h2>
-
-        <ol>
-
-          <li>
-            Review all WARNING findings.
-          </li>
-
-          <li>
-            Apply the recommended defensive fixes.
-          </li>
-
-          <li>
-            Re-scan the website after making changes.
-          </li>
-
-          <li>
-            Compare the new security score.
-          </li>
-
-          <li>
-            Continue monitoring security configuration.
-          </li>
-
-        </ol>
-
-      </div>
-
-
-      <div class="box">
-
-        <h2>
-          ⚠️ Limitations
-        </h2>
-
-        <p>
-          Sentinel AI checks publicly observable
-          HTTPS and security configuration signals.
-        </p>
-
-        <p>
-          It does not perform exploitation or
-          unauthorized penetration testing.
-        </p>
-
-        <p>
-          A complete professional security assessment
-          may require additional application,
-          infrastructure and manual testing.
-        </p>
-
-      </div>
-
-
-      <div class="box">
-
-        <h2>
-          🛡️ Disclaimer
-        </h2>
-
-        <p>
-          Sentinel AI provides automated
-          security-awareness checks and defensive
-          guidance. This report is not a complete
-          penetration test, vulnerability assessment
-          or professional security audit.
-        </p>
-
-      </div>
-
-
-      <p class="small">
-
-        Sentinel AI · AI Cybersecurity Scanner &
-        Security Education Platform
-
-      </p>
-
-    </body>
-
-    </html>
-
-  `);
-
-
-  reportWindow.document.close();
-trackSentinelEvent("report_generated");
-
-  try {
-
-    const response =
-      await fetch(
-        "/api/report",
-        {
-
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body: JSON.stringify({
-
-            website:
-              latestScan.website ||
-              latestScan.finalUrl ||
-              "",
-
-            securityScore:
-              Number(
-                latestScan.score ??
-                latestScan.securityScore ??
-                0
-              ),
-
-            riskLevel:
-              latestScan.riskLevel ||
-              "Unknown",
-
-            checks:
-              reportChecks,
-
-            scanId:
-              latestScan.scanId ||
-              ""
-
-          })
-
-        }
-      );
-
-
-    if (!response.ok) {
-
-      console.error(
-        "Report API returned an error."
-      );
-
+    const response = await fetch("/api/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        website: latestScan.website || latestScan.finalUrl || "",
+        securityScore: Number(latestScan.score ?? latestScan.securityScore ?? 0),
+        riskLevel: latestScan.riskLevel || "Unknown",
+        checks: reportChecks,
+        scanId: latestScan.scanId || ""
+      })
+    });
+
+    let payload = {};
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error("The report service returned an unreadable response.");
     }
 
+    if (!response.ok || !payload.success || !payload.report) {
+      throw new Error(payload.error || "The report could not be generated.");
+    }
+
+    const report = payload.report;
+    const summary = report.executiveSummary || {};
+    const safe = value => escapeHTML(value == null ? "" : String(value));
+
+    const findingsHTML = reportChecks.map(check => {
+      const evidence = check.evidence && typeof check.evidence === "object"
+        ? `
+          <p><strong>Evidence source:</strong> ${safe(check.evidence.source || "Not supplied")}</p>
+          <p><strong>Observed:</strong> ${safe(check.evidence.observed || "Not supplied")}</p>
+          <p><strong>Expected:</strong> ${safe(check.evidence.expected || "Not supplied")}</p>
+        `
+        : "";
+
+      return `
+        <article class="finding">
+          <h3>${safe(check.name || check.title || "Security Check")}</h3>
+          <p><strong>Status:</strong> ${safe(check.status || "INFO")}</p>
+          <p>${safe(check.message || check.description || "")}</p>
+          ${check.fix || check.recommendation
+            ? `<p><strong>Recommended fix:</strong> ${safe(check.fix || check.recommendation)}</p>`
+            : ""}
+          ${evidence}
+        </article>
+      `;
+    }).join("");
+
+    const priorityHTML = (report.priorityFindings || []).map(item => `
+      <li>
+        <strong>${safe(item.title)}</strong> — ${safe(item.message)}
+        <p><strong>Recommended fix:</strong> ${safe(item.fix)}</p>
+      </li>
+    `).join("");
+
+    const reportHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sentinel AI Professional Security Report</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0 auto; padding: 20px; max-width: 900px; background: #07111f; color: #eef6ff; font: 15px/1.65 Arial, sans-serif; }
+  header, section, .finding { background: #0b1d31; border: 1px solid #24415e; border-radius: 12px; padding: 18px; margin: 0 0 16px; overflow-wrap: anywhere; }
+  h1, h2, h3 { color: #38bdf8; }
+  .score { font-size: 42px; font-weight: 700; }
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .stat { background: #102941; border-radius: 8px; padding: 12px; }
+  .print { width: 100%; border: 0; border-radius: 8px; padding: 14px; margin-bottom: 16px; background: #38bdf8; color: #06111f; font-weight: 700; font-size: 16px; }
+  @media print { body { background: #fff; color: #111; } header, section, .finding { background: #fff; color: #111; break-inside: avoid; } h1,h2,h3 { color: #111; } .print { display: none; } }
+</style>
+</head>
+<body>
+<button class="print" onclick="window.print()">Print / Save as PDF</button>
+<header>
+  <h1>🛡️ Sentinel AI</h1>
+  <h2>Professional Security-Awareness Report</h2>
+  <p><strong>Website:</strong> ${safe(report.website)}</p>
+  <p><strong>Scan ID:</strong> ${safe(report.scanId || "N/A")}</p>
+  <p><strong>Generated:</strong> ${safe(report.generatedAt)}</p>
+  <div class="score">${safe(report.securityScore)}/100</div>
+  <p><strong>Risk level:</strong> ${safe(report.riskLevel)}</p>
+</header>
+<section>
+  <h2>Executive Summary</h2>
+  <div class="stats">
+    <div class="stat"><strong>Total checks</strong><br>${safe(summary.totalChecks ?? 0)}</div>
+    <div class="stat"><strong>Passed</strong><br>${safe(summary.passed ?? 0)}</div>
+    <div class="stat"><strong>Warnings</strong><br>${safe(summary.warnings ?? 0)}</div>
+    <div class="stat"><strong>Informational</strong><br>${safe(summary.informational ?? 0)}</div>
+    <div class="stat"><strong>Evidence-backed findings</strong><br>${safe(summary.evidenceBackedFindings ?? 0)}</div>
+    <div class="stat"><strong>Priority issues</strong><br>${safe(summary.priorityIssues ?? 0)}</div>
+  </div>
+</section>
+<section>
+  <h2>Priority Recommendations</h2>
+  ${priorityHTML ? `<ol>${priorityHTML}</ol>` : "<p>No priority warnings were returned by the report service.</p>"}
+</section>
+<section>
+  <h2>Detailed Security Checks</h2>
+  ${findingsHTML || "<p>No scan checks were available.</p>"}
+</section>
+<section>
+  <h2>Next Steps</h2>
+  <ol>${(report.nextSteps || []).map(step => `<li>${safe(step)}</li>`).join("")}</ol>
+</section>
+<section>
+  <h2>Limitations and Disclaimer</h2>
+  <p>${safe(report.disclaimer)}</p>
+  <p>Sentinel AI checks publicly observable security signals. This report is not a substitute for a complete professional security assessment.</p>
+</section>
+<p>Sentinel AI · AI Cybersecurity Scanner &amp; Security Education Platform</p>
+</body>
+</html>`;
+
+    const reportBlob = new Blob([reportHTML], { type: "text/html;charset=utf-8" });
+    const reportUrl = URL.createObjectURL(reportBlob);
+
+    trackSentinelEvent("report_generated");
+    window.location.assign(reportUrl);
 
   } catch (error) {
-
-    console.error(
-      "Report API Error:",
-      error
-    );
-
+    console.error("Professional Report Error:", error);
+    alert(error && error.message
+      ? "Report generation failed: " + error.message
+      : "Report generation failed. Please try again.");
   } finally {
-
     if (button) {
-
       button.disabled = false;
-
-      button.textContent =
-        "📄 Generate Professional Security Report";
-
+      button.textContent = "📄 Generate Professional Security Report";
     }
-
   }
-
 }
 
 
