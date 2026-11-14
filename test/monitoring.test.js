@@ -4,7 +4,9 @@ import {
   normalizeMonitoringTarget,
   riskRank,
   warningNames,
-  buildMonitoringAlert
+  buildMonitoringAlert,
+  isValidMonitoringWorkerSecret,
+  fetchMonitoringScan
 } from "../api/_lib/monitoring.js";
 
 test("monitoring accepts standard public HTTPS domains and removes fragments", () => {
@@ -69,4 +71,45 @@ test("minor score changes below ten points do not alert by themselves", () => {
   const baseline = { score: 80, riskLevel: "Low", checks: [] };
   const current = { score: 75, riskLevel: "Low", checks: [] };
   assert.equal(buildMonitoringAlert(baseline, current), null);
+});
+
+test("monitoring worker secret comparison accepts only exact non-empty secrets", () => {
+  assert.equal(isValidMonitoringWorkerSecret("secret-value", "secret-value"), true);
+  assert.equal(isValidMonitoringWorkerSecret("secret-value", "other-secret"), false);
+  assert.equal(isValidMonitoringWorkerSecret("", "secret-value"), false);
+  assert.equal(isValidMonitoringWorkerSecret("secret-value", ""), false);
+  assert.equal(isValidMonitoringWorkerSecret(["secret-value"], "secret-value"), false);
+});
+
+test("monitoring scan retries one transient upstream failure and succeeds", async () => {
+  let calls = 0;
+  const fakeFetch = async (_url, options) => {
+    calls += 1;
+    assert.equal(options.headers["x-sentinel-monitor-worker"], "cron-secret");
+    if (calls === 1) return { ok: false, status: 503, json: async () => ({}) };
+    return { ok: true, status: 200, json: async () => ({ score: 82, riskLevel: "Low" }) };
+  };
+  const result = await fetchMonitoringScan(
+    fakeFetch,
+    "https://sentinel.example/api/scan",
+    "https://owned.example",
+    "cron-secret",
+    { wait: async () => {} }
+  );
+  assert.equal(calls, 2);
+  assert.equal(result.attempts, 2);
+  assert.equal(result.scan.score, 82);
+});
+
+test("monitoring scan does not retry permanent client errors", async () => {
+  let calls = 0;
+  const fakeFetch = async () => {
+    calls += 1;
+    return { ok: false, status: 403, json: async () => ({}) };
+  };
+  await assert.rejects(
+    fetchMonitoringScan(fakeFetch, "https://sentinel.example/api/scan", "https://owned.example", "cron-secret", { wait: async () => {} }),
+    /MONITORING_SCAN_HTTP_403/
+  );
+  assert.equal(calls, 1);
 });
