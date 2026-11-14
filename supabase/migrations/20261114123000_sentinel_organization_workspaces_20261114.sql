@@ -62,20 +62,31 @@ grant all on public.organization_members to service_role;
 grant all on public.organization_invitations to service_role;
 grant all on public.organization_audit_events to service_role;
 
+create or replace function public.is_organization_member(p_organization_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog
+as $function$
+  select exists (
+    select 1
+    from public.organization_members m
+    where m.organization_id = p_organization_id
+      and m.user_id = (select auth.uid())
+  );
+$function$;
+
+revoke all on function public.is_organization_member(uuid) from public, anon;
+grant execute on function public.is_organization_member(uuid) to authenticated, service_role;
+
 create policy "Members can view their organizations"
   on public.organizations for select to authenticated
-  using (exists (
-    select 1 from public.organization_members m
-    where m.organization_id = id and m.user_id = (select auth.uid())
-  ));
+  using (public.is_organization_member(id));
 
 create policy "Members can view organization membership"
   on public.organization_members for select to authenticated
-  using (exists (
-    select 1 from public.organization_members mine
-    where mine.organization_id = organization_id
-      and mine.user_id = (select auth.uid())
-  ));
+  using (public.is_organization_member(organization_id));
 
 create policy "Invited users can view their invitations"
   on public.organization_invitations for select to authenticated
@@ -83,8 +94,4 @@ create policy "Invited users can view their invitations"
 
 create policy "Members can view organization audit events"
   on public.organization_audit_events for select to authenticated
-  using (exists (
-    select 1 from public.organization_members mine
-    where mine.organization_id = organization_id
-      and mine.user_id = (select auth.uid())
-  ));
+  using (public.is_organization_member(organization_id));
