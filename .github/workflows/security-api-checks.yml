@@ -19,6 +19,7 @@ on:
       - db/team-workspace-advisor-hardening-20261114
       - feature/team-asset-sharing-20261114
       - feature/enterprise-policy-controls-20261114
+      - feature/usage-metering-20261114
   push:
     branches:
       - security/pin-validated-dns-connection
