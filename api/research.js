@@ -1,4 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
+import {
+  normalizeResearchText as textField,
+  isValidResearchId as validId,
+  sanitizeResearchAssetUrl,
+  normalizeResearchEndpointPath as normalizeEndpointPath,
+  normalizeResearchEvidence as normalizeEvidence
+} from "./_lib/research-validation.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -12,48 +19,6 @@ const FINDING_SELECT =
 
 function send(res, status, body) {
   return res.status(status).json(body);
-}
-
-function textField(value, max, required = false) {
-  if (typeof value !== "string") return required ? null : "";
-  const text = value.trim();
-  if ((required && !text) || text.length > max) return null;
-  return text;
-}
-
-function validId(value) {
-  return typeof value === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
-
-function normalizeEndpointPath(value, assetUrl) {
-  if (typeof value !== "string" || value.length > 1024) return null;
-  const path = value.trim();
-  if (!path.startsWith("/") || path.startsWith("//") || /[\r\n\\]/.test(path)) return null;
-  try {
-    const base = new URL(assetUrl);
-    const target = new URL(path, base);
-    if (target.origin !== base.origin || target.protocol !== "https:") return null;
-    return target.pathname.slice(0, 1024);
-  } catch {
-    return null;
-  }
-}
-
-function normalizeEvidence(value) {
-  if (value == null) return [];
-  if (!Array.isArray(value) || value.length > 10) return null;
-  const evidence = [];
-  for (const item of value) {
-    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
-    const source = textField(item.source, 120);
-    const signal = textField(item.signal, 160);
-    const observed = textField(item.observed, 2000);
-    const expected = textField(item.expected, 1000);
-    if (source === null || signal === null || observed === null || expected === null) return null;
-    evidence.push({ source, signal, observed, expected });
-  }
-  return evidence;
 }
 
 async function getUser(req) {
@@ -95,9 +60,16 @@ export default async function handler(req, res) {
       ]);
       const failure = [projects.error, assets.error, findings.error, notes.error].find(Boolean);
       if (failure) throw failure;
+      const verifiedAssets = (assets.data || []).map((asset) => ({
+        id: asset.id,
+        hostname: asset.hostname,
+        url: sanitizeResearchAssetUrl(asset.url),
+        status: asset.status,
+        verified_at: asset.verified_at
+      })).filter((asset) => asset.url);
       return send(res, 200, {
         projects: projects.data || [],
-        verified_assets: assets.data || [],
+        verified_assets: verifiedAssets,
         findings: findings.data || [],
         notes: notes.data || []
       });
@@ -179,7 +151,7 @@ export default async function handler(req, res) {
           site_id: asset.id,
           user_id: user.id,
           asset_hostname: asset.hostname,
-          asset_url: asset.url,
+          asset_url: sanitizeResearchAssetUrl(asset.url),
           title,
           severity,
           status: "new",
