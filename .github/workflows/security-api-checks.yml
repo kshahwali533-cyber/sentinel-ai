@@ -14,6 +14,7 @@ on:
       - feature/finding-evidence-20261114
       - feature/scan-analytics-20261114
       - feature/research-workspace-20261114
+      - feature/vulnerability-intelligence-20261114
   push:
     branches:
       - security/pin-validated-dns-connection
@@ -26,6 +27,7 @@ on:
       - feature/finding-evidence-20261114
       - feature/scan-analytics-20261114
       - feature/research-workspace-20261114
+      - feature/vulnerability-intelligence-20261114
 
 jobs:
   syntax-and-ssrf-guard:
@@ -52,9 +54,12 @@ jobs:
           node --check api/_lib/finding-validation.js
           node --check api/analytics.js
           node --check api/research.js
+          node --check api/intelligence.js
+          node --check api/_lib/vulnerability-intelligence.js
           node --check api/_lib/research-validation.js
           node --check test/scan-analytics.test.js
           node --check test/research-validation.test.js
+          node --check test/vulnerability-intelligence.test.js
           node --check api/_lib/scan-analytics.js
           node --check test/monitoring.test.js
           node --check test/finding-validation.test.js
@@ -74,7 +79,7 @@ jobs:
           node --check test/restricted-target.test.js
           node --check test/scan-score.test.js
           node --check test/report-api.test.js
-          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js test/restricted-target.test.js test/scan-score.test.js test/report-api.test.js test/monitoring.test.js test/finding-validation.test.js test/scan-analytics.test.js test/research-validation.test.js
+          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js test/restricted-target.test.js test/scan-score.test.js test/report-api.test.js test/monitoring.test.js test/finding-validation.test.js test/scan-analytics.test.js test/research-validation.test.js test/vulnerability-intelligence.test.js
 
       - name: Verify scanner uses pinned DNS connections
         run: |
