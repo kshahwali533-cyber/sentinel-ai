@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 import net from "node:net";
 
 export function normalizeMonitoringTarget(value) {
@@ -73,4 +75,55 @@ export function buildMonitoringAlert(previous, current) {
       new_warnings: newWarnings.slice(0, 20)
     }
   };
+}
+
+export function isValidMonitoringWorkerSecret(provided, expected) {
+  if (typeof expected !== "string" || !expected ||
+      typeof provided !== "string" || !provided) return false;
+  const expectedBytes = Buffer.from(expected);
+  const providedBytes = Buffer.from(provided);
+  return expectedBytes.length === providedBytes.length &&
+    timingSafeEqual(expectedBytes, providedBytes);
+}
+
+export async function fetchMonitoringScan(
+  fetchImpl,
+  scanUrl,
+  targetUrl,
+  secret,
+  options = {}
+) {
+  const timeoutMs = Number.isInteger(options.timeoutMs) ? options.timeoutMs : 45000;
+  const wait = typeof options.wait === "function"
+    ? options.wait
+    : (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  let lastError = null;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetchImpl(scanUrl, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-sentinel-monitor-worker": secret
+        },
+        body: JSON.stringify({ url: targetUrl }),
+        signal: AbortSignal.timeout(timeoutMs)
+      });
+      const scan = await response.json().catch(() => ({}));
+      if (response.ok && Number.isFinite(Number(scan.score ?? scan.securityScore))) {
+        return { scan, attempts: attempt + 1 };
+      }
+      const retryable = response.status === 429 || response.status >= 500;
+      lastError = new Error("MONITORING_SCAN_HTTP_" + response.status);
+      if (!retryable) throw lastError;
+    } catch (error) {
+      if (error?.message?.startsWith("MONITORING_SCAN_HTTP_") &&
+          error?.retryable === false) throw error;
+      lastError = error;
+    }
+    if (attempt === 0) await wait(1000);
+  }
+
+  throw lastError || new Error("MONITORING_SCAN_FAILED");
 }
