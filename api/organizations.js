@@ -96,7 +96,7 @@ export default async function handler(req, res) {
 
       const { data: pending, error: pendingError } = await supabaseAdmin.from("organization_invitations")
         .select("id,organization_id,email,role,expires_at,created_at,organizations(name,slug)")
-        .ilike("email", user.email).is("accepted_at", null)
+        .eq("email", user.email.toLowerCase()).is("accepted_at", null)
         .gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(20);
       if (pendingError) throw pendingError;
       return send(res, 200, { organizations, invitations: pending || [] });
@@ -121,6 +121,9 @@ export default async function handler(req, res) {
     }
 
     if (action === "accept_invitation") {
+      if (!user.email_confirmed_at && !user.confirmed_at) {
+        return send(res, 403, { error: "Verify your account email before accepting a team invitation." });
+      }
       const token = typeof body.token === "string" ? body.token.trim() : "";
       if (!/^[a-f0-9]{64}$/.test(token)) return send(res, 400, { error: "Invitation token is invalid." });
       const { data, error } = await supabaseAdmin.rpc("accept_organization_invitation", {
