@@ -3,14 +3,13 @@ import net from "node:net";
 import http from "node:http";
 import https from "node:https";
 import { Readable } from "node:stream";
-import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 import { createPinnedLookup } from "./_lib/pinned-lookup.js";
 import { isPublicIP } from "./_lib/public-ip.js";
 import { readTextLimited } from "./_lib/read-limited.js";
 import { calculateScanScore } from "./_lib/scan-score.js";
 import { createCheckEvidence } from "./_lib/finding-validation.js";
 import { createClient } from "@supabase/supabase-js";
-import { getUsageMonthStart, hasScanAllowance } from "./_lib/usage-metering.js";
+import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -32,6 +31,8 @@ export default async function handler(req, res) {
       error: "Method not allowed."
     });
   }
+
+  let scanReservationId = null;
 
   try {
     const body = req.body || {};
@@ -100,7 +101,7 @@ if (
 
       const { data: entitlement, error: entitlementError } = await supabaseAdmin
         .from("account_entitlements")
-        .select("status,monthly_scan_limit")
+        .select("status")
         .eq("user_id", authenticatedUser.id)
         .maybeSingle();
       if (entitlementError) {
@@ -109,23 +110,6 @@ if (
       }
       if (entitlement?.status === "suspended") {
         return res.status(403).json({ error: "Scanning is disabled for this account." });
-      }
-
-      const now = new Date();
-      const monthStart = getUsageMonthStart(now);
-      const { count: monthlyScans, error: usageCountError } = await supabaseAdmin
-        .from("usage_events")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", authenticatedUser.id)
-        .eq("event_type", "scan.completed")
-        .gte("occurred_at", monthStart);
-      if (usageCountError) {
-        console.error("Monthly scan usage lookup failed:", usageCountError);
-        return res.status(503).json({ error: "Account usage could not be checked safely." });
-      }
-      const scanLimit = entitlement?.monthly_scan_limit ?? 100;
-      if (!hasScanAllowance(monthlyScans || 0, scanLimit)) {
-        return res.status(429).json({ error: "Your monthly beta scan allowance has been reached." });
       }
     }
 
@@ -656,6 +640,21 @@ if (
       "The website response is too large to scan safely."
   });
 }
+    if (authenticatedUser) {
+      const { data: reservationId, error: reservationError } = await supabaseAdmin.rpc(
+        "reserve_scan_allowance",
+        { p_user_id: authenticatedUser.id }
+      );
+      if (reservationError) {
+        console.error("Atomic scan allowance reservation failed:", reservationError);
+        return res.status(503).json({ error: "Account usage could not be reserved safely. Please try again." });
+      }
+      if (!reservationId) {
+        return res.status(429).json({ error: "Your monthly beta scan allowance has been reached." });
+      }
+      scanReservationId = reservationId;
+    }
+
     const finalTarget =
       mainResult.finalURL;
 
@@ -2934,20 +2933,28 @@ for (
         .toString(36)
         .substring(2, 7);
 
-    if (authenticatedUser) {
-      const { error: usageInsertError } = await supabaseAdmin.from("usage_events").insert({
-        user_id: authenticatedUser.id,
-        event_type: "scan.completed",
-        resource_host: new URL(finalURL).hostname,
-        metadata: {
-          score,
-          risk_level: riskLevel,
-          check_count: totalChecks
+    if (scanReservationId) {
+      const { data: usageRecorded, error: usageCompleteError } = await supabaseAdmin.rpc(
+        "complete_scan_allowance",
+        {
+          p_reservation_id: scanReservationId,
+          p_resource_host: new URL(finalURL).hostname,
+          p_metadata: {
+            score,
+            risk_level: riskLevel,
+            check_count: totalChecks
+          }
         }
-      });
-      if (usageInsertError) {
-        console.error("Scan usage event could not be recorded:", usageInsertError);
+      );
+      if (usageCompleteError || usageRecorded !== true) {
+        console.error("Atomic scan usage completion failed:", usageCompleteError || "Reservation was not found.");
+        await supabaseAdmin.rpc("cancel_scan_allowance", {
+          p_reservation_id: scanReservationId
+        });
+        scanReservationId = null;
+        return res.status(503).json({ error: "Scan usage could not be recorded safely. Please try again." });
       }
+      scanReservationId = null;
     }
 
     return res.status(200).json({
@@ -2974,6 +2981,16 @@ for (
     });
 
   } catch (error) {
+    if (scanReservationId && supabaseAdmin) {
+      const { error: cancelError } = await supabaseAdmin.rpc("cancel_scan_allowance", {
+        p_reservation_id: scanReservationId
+      });
+      if (cancelError) {
+        console.error("Atomic scan allowance cancellation failed:", cancelError);
+      }
+      scanReservationId = null;
+    }
+
     console.error(
       "Sentinel AI scan error:",
       error
