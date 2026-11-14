@@ -9,6 +9,7 @@ import { readTextLimited } from "./_lib/read-limited.js";
 import { calculateScanScore } from "./_lib/scan-score.js";
 import { createCheckEvidence } from "./_lib/finding-validation.js";
 import { createClient } from "@supabase/supabase-js";
+import { getUsageMonthStart, hasScanAllowance } from "./_lib/usage-metering.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -107,7 +108,7 @@ if (!rateAllowed) {
       }
 
       const now = new Date();
-      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+      const monthStart = getUsageMonthStart(now);
       const { count: monthlyScans, error: usageCountError } = await supabaseAdmin
         .from("usage_events")
         .select("id", { count: "exact", head: true })
@@ -119,7 +120,7 @@ if (!rateAllowed) {
         return res.status(503).json({ error: "Account usage could not be checked safely." });
       }
       const scanLimit = entitlement?.monthly_scan_limit ?? 100;
-      if ((monthlyScans || 0) >= scanLimit) {
+      if (!hasScanAllowance(monthlyScans || 0, scanLimit)) {
         return res.status(429).json({ error: "Your monthly beta scan allowance has been reached." });
       }
     }
