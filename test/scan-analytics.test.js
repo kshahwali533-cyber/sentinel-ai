@@ -80,3 +80,14 @@ test("null database scores are not treated as zero", () => {
   assert.equal(result.valid_score_count, 0);
   assert.equal(result.average_score, null);
 });
+
+test("trend stays unavailable until two complete five-scan windows exist", () => {
+  const rows = Array.from({ length: 6 }, (_, i) => ({
+    website: "https://site.example",
+    security_score: 80 + i,
+    risk_level: "Low",
+    created_at: new Date(now - i * 60_000).toISOString(),
+    checks: []
+  }));
+  assert.equal(aggregateScanAnalytics(rows, now).trend.direction, "insufficient_data");
+});
