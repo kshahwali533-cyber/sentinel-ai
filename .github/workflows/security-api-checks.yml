@@ -22,6 +22,7 @@ on:
       - feature/usage-metering-20261114
   push:
     branches:
+      - fix/atomic-scan-allowance-2026-11
       - security/pin-validated-dns-connection
       - integration/sentinel-evidence-2026-11
       - fix/professional-report-mobile-blank-2026-11
