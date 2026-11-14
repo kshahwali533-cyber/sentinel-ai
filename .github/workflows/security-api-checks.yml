@@ -8,11 +8,16 @@ on:
       - integration/sentinel-evidence-2026-11
       - fix/professional-report-mobile-blank-2026-11
       - fix/restricted-target-scan-guard-2026-11
+      - sentinel/release-candidate-2026-11-14
+      - security/response-headers-hardening-2026-11
   push:
     branches:
       - security/pin-validated-dns-connection
       - integration/sentinel-evidence-2026-11
       - fix/professional-report-mobile-blank-2026-11
+      - fix/restricted-target-scan-guard-2026-11
+      - sentinel/release-candidate-2026-11-14
+      - security/response-headers-hardening-2026-11
 
 jobs:
   syntax-and-ssrf-guard:
@@ -34,6 +39,7 @@ jobs:
           node --check api/_lib/pinned-lookup.js
           node --check api/_lib/public-ip.js
           node --check api/_lib/read-limited.js
+          node --check api/_lib/scan-score.js
           node --check test/public-ip.test.js
           node --check test/read-limited.test.js
           node --check test/pinned-lookup.test.js
@@ -41,7 +47,8 @@ jobs:
           node --check test/security-evidence.test.js
           node --check test/report-ui.test.js
           node --check test/restricted-target.test.js
-          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js test/restricted-target.test.js
+          node --check test/scan-score.test.js
+          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js test/restricted-target.test.js test/scan-score.test.js
 
       - name: Verify scanner uses pinned DNS connections
         run: |
@@ -70,4 +77,29 @@ jobs:
           }
 
           console.log("Pinned DNS connection guard checks passed.");
+          NODE
+      - name: Validate Vercel security response headers
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const config = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
+          const route = config.headers?.find((item) => item.source === "/(.*)");
+          const headers = new Map((route?.headers || []).map((item) => [item.key.toLowerCase(), item.value]));
+
+          for (const [name, expected] of [
+            ["x-content-type-options", "nosniff"],
+            ["x-frame-options", "DENY"],
+            ["referrer-policy", "strict-origin-when-cross-origin"]
+          ]) {
+            if (headers.get(name) !== expected) {
+              throw new Error(`Missing or incorrect ${name} response header.`);
+            }
+          }
+
+          if (!headers.has("content-security-policy-report-only")) {
+            throw new Error("CSP must remain in report-only mode until browser compatibility is verified.");
+          }
+
+          console.log("Vercel security response header configuration passed.");
           NODE
