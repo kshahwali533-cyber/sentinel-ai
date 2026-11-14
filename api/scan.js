@@ -3,7 +3,7 @@ import net from "node:net";
 import http from "node:http";
 import https from "node:https";
 import { Readable } from "node:stream";
-import { timingSafeEqual } from "node:crypto";
+import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 import { createPinnedLookup } from "./_lib/pinned-lookup.js";
 import { isPublicIP } from "./_lib/public-ip.js";
 import { readTextLimited } from "./_lib/read-limited.js";
@@ -25,15 +25,6 @@ const supabaseAdmin =
         }
       )
     : null;
-function hasValidMonitoringWorkerSecret(req) {
-  const expected = process.env.CRON_SECRET;
-  const supplied = req.headers["x-sentinel-monitor-worker"];
-  if (!expected || typeof supplied !== "string") return false;
-  const expectedBytes = Buffer.from(expected);
-  const suppliedBytes = Buffer.from(supplied);
-  return expectedBytes.length === suppliedBytes.length &&
-    timingSafeEqual(expectedBytes, suppliedBytes);
-}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -70,7 +61,7 @@ if (
       });
     }
 
-    if (!hasValidMonitoringWorkerSecret(req)) {
+    if (!isValidMonitoringWorkerSecret(req.headers["x-sentinel-monitor-worker"], process.env.CRON_SECRET)) {
       const { data: rateAllowed, error: rateError } =
     await supabaseAdmin.rpc("check_scan_rate_limit", {
       p_ip_address: clientIP,
