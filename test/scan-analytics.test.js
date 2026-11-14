@@ -72,3 +72,11 @@ test("invalid scores and malformed website URLs are ignored safely", () => {
   assert.equal(result.unique_domains, 0);
   assert.equal(result.valid_score_count, 0);
 });
+
+test("null database scores are not treated as zero", () => {
+  const result = aggregateScanAnalytics([
+    { website: "https://site.example", security_score: null, risk_level: "Unknown", created_at: "2026-11-14T10:00:00Z", checks: [] }
+  ], now);
+  assert.equal(result.valid_score_count, 0);
+  assert.equal(result.average_score, null);
+});
