@@ -1,4 +1,10 @@
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
+import {
+  normalizeOrganizationName,
+  slugifyOrganizationName,
+  hashOrganizationInviteToken,
+  isValidOrganizationInviteEmail
+} from "./_lib/organizations.js";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin =
@@ -19,26 +25,6 @@ async function getUser(req) {
   const { data, error } = await supabaseAdmin.auth.getUser(token);
   if (error || !data?.user?.id || !data.user.email) return null;
   return data.user;
-}
-
-function normalizeName(value) {
-  if (typeof value !== "string" || value.trim().length < 2 || value.trim().length > 100) {
-    throw new Error("Workspace name must contain 2 to 100 characters.");
-  }
-  return value.trim();
-}
-
-function slugify(value) {
-  const slug = value.toLowerCase().normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 48);
-  return slug.length >= 2 ? slug : "team-workspace";
-}
-
-function hashToken(value) {
-  return createHash("sha256").update(value).digest("hex");
 }
 
 async function membership(orgId, userId) {
@@ -121,8 +107,8 @@ export default async function handler(req, res) {
     const orgId = typeof body.organizationId === "string" ? body.organizationId : "";
 
     if (action === "create") {
-      const name = normalizeName(body.name);
-      const slug = slugify(name) + "-" + randomBytes(3).toString("hex");
+      const name = normalizeOrganizationName(body.name);
+      const slug = slugifyOrganizationName(name) + "-" + randomBytes(3).toString("hex");
       const { data, error } = await supabaseAdmin.rpc("create_organization_with_owner", {
         p_user_id: user.id, p_name: name, p_slug: slug
       });
@@ -134,13 +120,13 @@ export default async function handler(req, res) {
       const token = typeof body.token === "string" ? body.token.trim() : "";
       if (!/^[a-f0-9]{64}$/.test(token)) return send(res, 400, { error: "Invitation token is invalid." });
       const { data, error } = await supabaseAdmin.rpc("accept_organization_invitation", {
-        p_user_id: user.id, p_email: user.email, p_token_hash: hashToken(token)
+        p_user_id: user.id, p_email: user.email, p_token_hash: hashOrganizationInviteToken(token)
       });
       if (error) return send(res, 409, { error: "This invitation is invalid, expired, or belongs to another email address." });
       return send(res, 200, { accepted: true, organizationId: data });
     }
 
-    if (!orgId) return send(res, 400, { error: "A workspace ID is required." });
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orgId)) return send(res, 400, { error: "A valid workspace ID is required." });
     const actor = await membership(orgId, user.id);
     if (!actor) return send(res, 404, { error: "Workspace not found." });
 
@@ -156,7 +142,7 @@ export default async function handler(req, res) {
         organization_id: orgId,
         email,
         role,
-        token_hash: hashToken(token),
+        token_hash: hashOrganizationInviteToken(token),
         invited_by: user.id,
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       }).select("id,email,role,expires_at").single();
