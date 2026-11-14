@@ -139,6 +139,12 @@ export default async function handler(req, res) {
 
     if (action === "invite") {
       if (!["owner", "admin"].includes(actor.role)) return send(res, 403, { error: "Only workspace owners and admins can invite members." });
+      const { data: workspacePolicy, error: workspacePolicyError } = await supabaseAdmin.from("organization_policies")
+        .select("allow_member_invites").eq("organization_id", orgId).maybeSingle();
+      if (workspacePolicyError) throw workspacePolicyError;
+      if (workspacePolicy && !workspacePolicy.allow_member_invites) {
+        return send(res, 403, { error: "New invitations are disabled by the workspace owner." });
+      }
       const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
       const role = ["admin", "member", "analyst"].includes(body.role) ? body.role : "member";
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
