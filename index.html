@@ -4122,7 +4122,14 @@ async function exportResearchProject(projectId) {
     status.className = "success";
     status.textContent = "Project report copied. You can paste it into your disclosure report.";
   } catch {
-    alert("Clipboard access is unavailable in this browser. Open the project on a secure browser or copy the report from the project export.");
+    const manualCopy = prompt("Copy your Sentinel AI research report:", markdown);
+    const status = document.getElementById("researchStatus");
+    if (status) {
+      status.className = manualCopy === null ? "notice" : "success";
+      status.textContent = manualCopy === null
+        ? "Report export was cancelled."
+        : "Report text is ready to copy from the prompt.";
+    }
   }
 }
 
