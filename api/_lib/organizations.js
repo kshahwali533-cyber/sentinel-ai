@@ -12,7 +12,7 @@ export function slugifyOrganizationName(value) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 48);
+    .slice(0, 41);
   return slug.length >= 2 ? slug : "team-workspace";
 }
 
