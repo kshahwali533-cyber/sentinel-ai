@@ -74,7 +74,7 @@ export function aggregateScanAnalytics(rows, now = Date.now()) {
   const latestFive = sorted.slice(0, 5).map((row) => safeScore(row?.security_score)).filter((value) => value !== null);
   const previousFive = sorted.slice(5, 10).map((row) => safeScore(row?.security_score)).filter((value) => value !== null);
   let trend = { direction: "insufficient_data", change: null, latest_average: null, previous_average: null };
-  if (latestFive.length >= 3 && previousFive.length >= 3) {
+  if (latestFive.length === 5 && previousFive.length === 5) {
     const latestAverage = average(latestFive);
     const previousAverage = average(previousFive);
     const change = Math.round((latestAverage - previousAverage) * 10) / 10;
