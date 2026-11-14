@@ -18,6 +18,7 @@ on:
       - feature/team-workspaces-20261114
       - db/team-workspace-advisor-hardening-20261114
       - feature/team-asset-sharing-20261114
+      - feature/enterprise-policy-controls-20261114
   push:
     branches:
       - security/pin-validated-dns-connection
@@ -54,8 +55,11 @@ jobs:
           node --check api/scan.js
           node --check api/organizations.js
           node --check api/organization-assets.js
+          node --check api/organization-admin.js
+          node --check api/_lib/organization-policies.js
+          node --check test/organization-policies.test.js
           node --check api/_lib/team-assets.js
-          node --check test/team-assets.test.js
+          node --check test/team-assets.test.js test/organization-policies.test.js
           node --check api/_lib/organizations.js
           node --check test/organizations.test.js test/team-assets.test.js
           node --check api/monitoring.js
