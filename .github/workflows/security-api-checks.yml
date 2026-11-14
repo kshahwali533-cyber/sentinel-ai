@@ -11,6 +11,7 @@ on:
       - sentinel/release-candidate-2026-11-14
       - security/response-headers-hardening-2026-11
       - feature/monitoring-foundation-20261114
+      - feature/finding-evidence-20261114
   push:
     branches:
       - security/pin-validated-dns-connection
