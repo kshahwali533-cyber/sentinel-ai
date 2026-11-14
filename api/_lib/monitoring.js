@@ -116,6 +116,7 @@ export async function fetchMonitoringScan(
       }
       const retryable = response.status === 429 || response.status >= 500;
       lastError = new Error("MONITORING_SCAN_HTTP_" + response.status);
+      lastError.retryable = retryable;
       if (!retryable) throw lastError;
     } catch (error) {
       if (error?.message?.startsWith("MONITORING_SCAN_HTTP_") &&
