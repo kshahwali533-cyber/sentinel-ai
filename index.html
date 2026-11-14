@@ -4724,6 +4724,14 @@ async function loadOrganizationWorkspace() {
   const status = document.getElementById("organizationStatus");
   if (!status) return;
   try {
+    const inviteFromLink = new URLSearchParams(location.search).get("org_invite");
+    if (inviteFromLink) {
+      history.replaceState(null, "", location.pathname + location.hash);
+      const tokenInput = document.getElementById("organizationInviteToken");
+      if (tokenInput) tokenInput.value = inviteFromLink;
+      await acceptOrganizationInvitation(inviteFromLink);
+      return;
+    }
     const data = await organizationRequest();
     renderOrganizationWorkspace(data);
     status.className = "success";
