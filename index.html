@@ -3948,6 +3948,7 @@ function renderVulnerabilityIntelligence(result) {
     </div>
   ` : "";
 
+  const affectedProducts = Array.isArray(cve.affected_products) ? cve.affected_products : [];
   const cpe = Array.isArray(cve.cpe_matches) ? cve.cpe_matches : [];
   const references = Array.isArray(cve.references) ? cve.references : [];
   const weaknesses = Array.isArray(cve.weaknesses) ? cve.weaknesses : [];
@@ -3967,6 +3968,14 @@ function renderVulnerabilityIntelligence(result) {
       ${kevEntry}
       <h4>Weakness classifications</h4>
       <p>${weaknesses.length ? weaknesses.map(value => '<span class="intel-chip">' + escapeHTML(value) + '</span>').join("") : "No CWE classification supplied."}</p>
+      <h4>NVD affected product/version data</h4>
+      ${affectedProducts.length ? affectedProducts.map(item => `
+        <div class="monitoring-run">
+          <strong>${escapeHTML(item.vendor)} · ${escapeHTML(item.product)}</strong>
+          <div class="intel-meta">Version: ${escapeHTML(item.version || "Not specified")} · Less than: ${escapeHTML(item.less_than || "Not specified")} · Type: ${escapeHTML(item.version_type || "Unknown")} · Source status: ${escapeHTML(item.status)}</div>
+          ${item.changes?.length ? '<div class="intel-meta">Version changes: ' + item.changes.map(change => escapeHTML(change.at) + ' → ' + escapeHTML(change.status)).join(" · ") + '</div>' : ""}
+        </div>
+      `).join("") : "<p>No affected product/version data supplied in the NVD record.</p>"}
       <h4>NVD affected-product criteria</h4>
       ${cpe.length ? cpe.map(item => `
         <div class="monitoring-run">
