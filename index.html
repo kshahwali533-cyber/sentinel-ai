@@ -3328,6 +3328,9 @@ async function askSecurityMentor(index) {
 
   try {
 
+    const { data: mentorAuth } = await supabaseClient.auth.getSession();
+    const mentorAccessToken = mentorAuth?.session?.access_token;
+
     const response =
       await fetch(
         "/api/assistant",
@@ -3336,8 +3339,8 @@ async function askSecurityMentor(index) {
           method: "POST",
 
           headers: {
-            "Content-Type":
-              "application/json"
+            "Content-Type": "application/json",
+            ...(mentorAccessToken ? { "Authorization": "Bearer " + mentorAccessToken } : {})
           },
 
           body: JSON.stringify({
