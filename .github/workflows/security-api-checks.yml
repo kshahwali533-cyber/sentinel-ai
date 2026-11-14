@@ -21,6 +21,9 @@ on:
       - fix/restricted-target-scan-guard-2026-11
       - sentinel/release-candidate-2026-11-14
       - security/response-headers-hardening-2026-11
+      - feature/monitoring-foundation-20261114
+      - feature/finding-evidence-20261114
+      - feature/scan-analytics-20261114
 
 jobs:
   syntax-and-ssrf-guard:
