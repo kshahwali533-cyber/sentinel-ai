@@ -17,6 +17,38 @@ function appOrigin(req) {
   return "https://" + host;
 }
 
+async function scanWithOneRetry(origin, targetUrl, secret) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch(origin + "/api/scan", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-sentinel-monitor-worker": secret
+        },
+        body: JSON.stringify({ url: targetUrl }),
+        signal: AbortSignal.timeout(45000)
+      });
+      const scan = await response.json().catch(() => ({}));
+      if (response.ok && Number.isFinite(Number(scan.score ?? scan.securityScore))) {
+        return { scan, attempts: attempt + 1 };
+      }
+      const retryable = response.status === 429 || response.status >= 500;
+      lastError = new Error("MONITORING_SCAN_HTTP_" + response.status);
+      if (!retryable) throw lastError;
+    } catch (error) {
+      lastError = error;
+      if (error?.message?.startsWith("MONITORING_SCAN_HTTP_") &&
+          !/_(429|5\\d\\d)$/.test(error.message)) {
+        throw error;
+      }
+    }
+    if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw lastError || new Error("MONITORING_SCAN_FAILED");
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
@@ -30,7 +62,7 @@ export default async function handler(req, res) {
   if (!supabaseAdmin) return res.status(503).json({ error: "Monitoring worker is not configured." });
 
   let claimed = [];
-  const summary = { claimed: 0, succeeded: 0, failed: 0, alerts: 0 };
+  const summary = { claimed: 0, succeeded: 0, failed: 0, alerts: 0, retries: 0 };
   try {
     const { data, error } = await supabaseAdmin.rpc("claim_due_monitoring_sites", { p_limit: 3 });
     if (error) throw error;
@@ -47,16 +79,9 @@ export default async function handler(req, res) {
         if (runError) throw runError;
         runId = run.id;
 
-        const response = await fetch(origin + "/api/scan", {
-          method: "POST",
-          headers: { "content-type": "application/json", "x-sentinel-monitor-worker": "1" },
-          body: JSON.stringify({ url: site.target_url }),
-          signal: AbortSignal.timeout(90000)
-        });
-        const scan = await response.json().catch(() => ({}));
-        if (!response.ok || !Number.isFinite(Number(scan.score ?? scan.securityScore))) {
-          throw new Error("SCAN_FAILED");
-        }
+        const scanResult = await scanWithOneRetry(origin, site.target_url, secret);
+        const scan = scanResult.scan;
+        summary.retries += Math.max(0, scanResult.attempts - 1);
 
         const score = Math.max(0, Math.min(100, Math.round(Number(scan.score ?? scan.securityScore))));
         const riskLevel = String(scan.riskLevel || "Unknown").slice(0, 40);
