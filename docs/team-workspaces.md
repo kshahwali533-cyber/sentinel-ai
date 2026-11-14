@@ -39,3 +39,12 @@
 - This is the first private team workspace layer, not full enterprise identity management.
 - SSO, SCIM, centralized policy controls, organization-wide asset sharing, billing entitlements, and email delivery remain separate work.
 - The module remains on the integration candidate until automated and manual validation passes.
+
+## Shared verified assets
+
+- Owners/admins can share a verified monitoring site with a workspace only when the site's owner is already a current workspace member.
+- All workspace members can view shared asset metadata; only owners/admins can add or remove shares.
+- Shared assets are references to the original monitoring site, not copies. Pausing or removing the original site affects the shared reference.
+- The organization asset table has RLS enabled; authenticated clients have SELECT only; writes use the authenticated server API and service-role credentials.
+- Audit events record asset sharing/removal.
+- Unverified domains and assets owned by non-members cannot be shared.
