@@ -59,28 +59,19 @@ export default async function handler(req, res) {
         }
 
         const score = Math.max(0, Math.min(100, Math.round(Number(scan.score ?? scan.securityScore))));
-        const alert = buildMonitoringAlert(site.prior_result, scan);
+        const riskLevel = String(scan.riskLevel || "Unknown").slice(0, 40);
+        const snapshot = {
+          website: String(scan.website || scan.finalUrl || site.target_url).slice(0, 2048),
+          score,
+          securityScore: score,
+          riskLevel,
+          checks: (Array.isArray(scan.checks) ? scan.checks : []).slice(0, 100).map((check) => ({
+            name: String(check?.name || check?.title || "Security check").slice(0, 120),
+            status: String(check?.status || "INFO").slice(0, 20)
+          }))
+        };
+        const alert = buildMonitoringAlert(site.prior_result, snapshot);
         const now = new Date().toISOString();
-        const { error: updateRunError } = await supabaseAdmin.from("monitoring_runs")
-          .update({
-            status: "succeeded",
-            score,
-            risk_level: String(scan.riskLevel || "Unknown").slice(0, 40),
-            result: scan,
-            finished_at: now
-          }).eq("id", runId);
-        if (updateRunError) throw updateRunError;
-
-        const { error: updateSiteError } = await supabaseAdmin.from("monitoring_sites")
-          .update({
-            last_scan_at: now,
-            last_score: score,
-            last_risk_level: String(scan.riskLevel || "Unknown").slice(0, 40),
-            last_result: scan,
-            next_scan_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            updated_at: now
-          }).eq("id", site.site_id);
-        if (updateSiteError) throw updateSiteError;
 
         if (alert) {
           const { error: alertError } = await supabaseAdmin.from("monitoring_alerts")
@@ -88,6 +79,28 @@ export default async function handler(req, res) {
           if (alertError) throw alertError;
           summary.alerts += 1;
         }
+
+        const { error: updateSiteError } = await supabaseAdmin.from("monitoring_sites")
+          .update({
+            last_scan_at: now,
+            last_score: score,
+            last_risk_level: riskLevel,
+            last_result: snapshot,
+            next_scan_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            updated_at: now
+          }).eq("id", site.site_id);
+        if (updateSiteError) throw updateSiteError;
+
+        const { error: updateRunError } = await supabaseAdmin.from("monitoring_runs")
+          .update({
+            status: "succeeded",
+            score,
+            risk_level: riskLevel,
+            result: snapshot,
+            finished_at: now
+          }).eq("id", runId);
+        if (updateRunError) throw updateRunError;
+
         summary.succeeded += 1;
       } catch (error) {
         console.error("Monitoring site run failed:", site.site_id, error);
