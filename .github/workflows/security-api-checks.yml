@@ -33,13 +33,15 @@ jobs:
           node --check api/_lib/pinned-lookup.js
           node --check api/_lib/public-ip.js
           node --check api/_lib/read-limited.js
+          node --check api/_lib/scan-score.js
           node --check test/public-ip.test.js
           node --check test/read-limited.test.js
+          node --check test/scan-score.test.js
           node --check test/pinned-lookup.test.js
           node --check api/_lib/security-evidence.js
           node --check test/security-evidence.test.js
           node --check test/report-ui.test.js
-          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js
+          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js test/scan-score.test.js
 
       - name: Verify scanner uses pinned DNS connections
         run: |
