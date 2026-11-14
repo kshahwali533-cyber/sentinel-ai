@@ -2,7 +2,7 @@
   "name": "sentinel-ai",
   "type": "module",
   "engines": {
-    "node": ">=22.0.0"
+    "node": "24.x"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.119.0"
