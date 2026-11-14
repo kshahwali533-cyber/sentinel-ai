@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     const body = req.body;
 
     let authenticatedUser = null;
-    const authorization = req.headers.authorization || "";
+    const authorization = req.headers?.authorization || "";
     if (authorization) {
       const accessToken = typeof authorization === "string" && authorization.startsWith("Bearer ")
         ? authorization.slice(7).trim()
