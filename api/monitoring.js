@@ -66,7 +66,7 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const [sites, alerts, runs] = await Promise.all([
         supabaseAdmin.from("monitoring_sites")
-          .select("id,url,hostname,status,verified_at,next_scan_at,last_scan_at,last_score,last_risk_level,created_at")
+          .select("id,url,hostname,status,verification_token,verified_at,next_scan_at,last_scan_at,last_score,last_risk_level,created_at")
           .eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
         supabaseAdmin.from("monitoring_alerts")
           .select("id,site_id,alert_type,severity,title,message,details,is_read,created_at")
