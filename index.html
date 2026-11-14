@@ -476,6 +476,57 @@
       font-size: 14px;
     }
 
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .analytics-card,
+    .analytics-panel {
+      padding: 16px;
+      border-radius: 10px;
+      background: #07111f;
+      border: 1px solid #18304a;
+      overflow-wrap: anywhere;
+    }
+
+    .analytics-card span {
+      display: block;
+      color: #a9b8c9;
+      font-size: 13px;
+    }
+
+    .analytics-card strong {
+      display: block;
+      color: #38bdf8;
+      font-size: 27px;
+      line-height: 1.35;
+      margin-top: 5px;
+    }
+
+    .analytics-panel {
+      margin-top: 12px;
+    }
+
+    .analytics-panel h3 {
+      color: #bae6fd;
+      margin: 10px 0 5px;
+    }
+
+    .analytics-warning {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid #18304a;
+    }
+
+    .analytics-warning:last-child {
+      border-bottom: 0;
+    }
+
     .monitoring-site,
     .monitoring-alert,
     .monitoring-run {
@@ -567,6 +618,7 @@
   <nav>
     <a href="#features">Features</a>
     <a href="#scanner">Scanner</a>
+    <a href="#analytics">Analytics</a>
     <a href="#history">History</a>
     <a href="#monitoring">Monitoring</a>
     <a href="#mission">Mission</a>
@@ -844,6 +896,35 @@
 </section>
 
 
+<section id="analytics">
+
+  <h2 class="section-title">Security Analytics</h2>
+
+  <div class="history">
+    <p class="message">A private summary of your latest 200 cloud scans. Analytics are calculated from your own account history.</p>
+    <div id="analyticsStatus" class="notice">Sign in to view your security analytics.</div>
+
+    <div class="analytics-grid">
+      <div class="analytics-card"><span>Scans analyzed</span><strong id="analyticsTotal">—</strong></div>
+      <div class="analytics-card"><span>Average score</span><strong id="analyticsAverage">—</strong></div>
+      <div class="analytics-card"><span>High / critical risk</span><strong id="analyticsHighRisk">—</strong></div>
+      <div class="analytics-card"><span>Scans in 7 days</span><strong id="analyticsRecent">—</strong></div>
+      <div class="analytics-card"><span>Unique domains</span><strong id="analyticsDomains">—</strong></div>
+    </div>
+
+    <div class="analytics-panel">
+      <h3>Risk distribution</h3>
+      <p id="analyticsRisk">Sign in to view your risk distribution.</p>
+      <h3>Score trend</h3>
+      <p id="analyticsTrend">A trend appears after enough scans are available.</p>
+      <h3>Recurring warnings</h3>
+      <div id="analyticsWarnings" class="message">No warning data loaded.</div>
+    </div>
+  </div>
+
+</section>
+
+
 <section id="history">
 
   <h2 class="section-title">
@@ -1061,6 +1142,7 @@ if (error) {
 
       await loadSupabaseHistory();
       await loadMonitoringDashboard();
+      await loadAnalyticsDashboard();
 
     } else {
       authStatus.className = "notice";
@@ -1083,6 +1165,14 @@ if (error) {
         historyStatus.textContent =
           "📱 Local history is active. Log in to enable cloud history.";
       }
+
+      const analyticsStatus = document.getElementById("analyticsStatus");
+      if (analyticsStatus) {
+        analyticsStatus.className = "notice";
+        analyticsStatus.textContent = "Log in to view your private scan analytics.";
+      }
+      const analyticsWarnings = document.getElementById("analyticsWarnings");
+      if (analyticsWarnings) analyticsWarnings.textContent = "Log in to view recurring warnings.";
 
       const monitorStatus = document.getElementById("monitorStatus");
       if (monitorStatus) {
@@ -3649,6 +3739,85 @@ async function clearScanHistory() {
 
   await clearSupabaseHistory();
 
+}
+
+
+/* =========================
+   PRIVATE SCAN ANALYTICS
+========================= */
+
+async function loadAnalyticsDashboard() {
+  const status = document.getElementById("analyticsStatus");
+  if (!status) return;
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    const token = data?.session?.access_token;
+    if (!token) throw new Error("Log in to view your private scan analytics.");
+
+    const response = await fetch("/api/analytics", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "Analytics could not be loaded.");
+
+    const analytics = payload.analytics || {};
+    const setText = (id, value) => {
+      const node = document.getElementById(id);
+      if (node) node.textContent = value;
+    };
+
+    setText("analyticsTotal", String(analytics.total_scans ?? 0));
+    setText("analyticsAverage", analytics.average_score == null ? "—" : analytics.average_score + "/100");
+    setText("analyticsHighRisk", String(analytics.high_risk_scans ?? 0));
+    setText("analyticsRecent", String(analytics.scans_last_7_days ?? 0));
+    setText("analyticsDomains", String(analytics.unique_domains ?? 0));
+
+    const risks = analytics.risk_breakdown || {};
+    setText("analyticsRisk",
+      "Critical: " + (risks.critical || 0) +
+      " · High: " + (risks.high || 0) +
+      " · Medium: " + (risks.medium || 0) +
+      " · Low: " + (risks.low || 0) +
+      " · Unknown: " + (risks.unknown || 0)
+    );
+
+    const trend = analytics.trend || {};
+    let trendText = "Not enough scan history to calculate a trend yet.";
+    if (trend.direction && trend.direction !== "insufficient_data") {
+      const change = Number(trend.change || 0);
+      const sign = change > 0 ? "+" : "";
+      const direction = trend.direction === "improving"
+        ? "Improving"
+        : trend.direction === "declining" ? "Declining" : "Stable";
+      trendText = direction + " · " + sign + change +
+        " points comparing the latest five scans with the previous five.";
+    }
+    setText("analyticsTrend", trendText);
+
+    const warnings = Array.isArray(analytics.recurring_warnings)
+      ? analytics.recurring_warnings
+      : [];
+    const warningsNode = document.getElementById("analyticsWarnings");
+    if (warningsNode) {
+      warningsNode.innerHTML = warnings.length
+        ? warnings.map(item =>
+            '<div class="analytics-warning"><span>' +
+            escapeHTML(item.name || "Security warning") +
+            '</span><strong>' + escapeHTML(item.count) + ' scans</strong></div>'
+          ).join("")
+        : "No recurring warning patterns found in the analyzed scans.";
+    }
+
+    status.className = analytics.total_scans ? "success" : "notice";
+    status.textContent = analytics.total_scans
+      ? "Private analytics loaded from your latest " + (analytics.records_analyzed || 0) + " cloud scans."
+      : "No cloud scans yet. Run a scan while signed in to begin your analytics history.";
+  } catch (error) {
+    status.className = "notice";
+    status.textContent = error?.message || "Sign in to view your private scan analytics.";
+  }
 }
 
 
