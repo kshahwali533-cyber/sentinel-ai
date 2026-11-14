@@ -9,6 +9,7 @@ import { readTextLimited } from "./_lib/read-limited.js";
 import { calculateScanScore } from "./_lib/scan-score.js";
 import { createCheckEvidence } from "./_lib/finding-validation.js";
 import { createClient } from "@supabase/supabase-js";
+import { getUsageMonthStart, hasScanAllowance } from "./_lib/usage-metering.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -77,6 +78,53 @@ if (!rateAllowed) {
     error: "Scan limit reached. Please try again later."
   });
 }
+
+    let authenticatedUser = null;
+    const authorization = req.headers.authorization || "";
+    if (authorization) {
+      const accessToken = typeof authorization === "string" && authorization.startsWith("Bearer ")
+        ? authorization.slice(7).trim()
+        : "";
+      if (!accessToken) {
+        return res.status(401).json({ error: "Invalid authentication header." });
+      }
+      const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(accessToken);
+      if (authError || !authData?.user?.id) {
+        return res.status(401).json({ error: "Your session is invalid. Please sign in again." });
+      }
+      authenticatedUser = authData.user;
+
+      const { data: entitlement, error: entitlementError } = await supabaseAdmin
+        .from("account_entitlements")
+        .select("status,monthly_scan_limit")
+        .eq("user_id", authenticatedUser.id)
+        .maybeSingle();
+      if (entitlementError) {
+        console.error("Usage entitlement lookup failed:", entitlementError);
+        return res.status(503).json({ error: "Account usage could not be checked safely." });
+      }
+      if (entitlement?.status === "suspended") {
+        return res.status(403).json({ error: "Scanning is disabled for this account." });
+      }
+
+      const now = new Date();
+      const monthStart = getUsageMonthStart(now);
+      const { count: monthlyScans, error: usageCountError } = await supabaseAdmin
+        .from("usage_events")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", authenticatedUser.id)
+        .eq("event_type", "scan.completed")
+        .gte("occurred_at", monthStart);
+      if (usageCountError) {
+        console.error("Monthly scan usage lookup failed:", usageCountError);
+        return res.status(503).json({ error: "Account usage could not be checked safely." });
+      }
+      const scanLimit = entitlement?.monthly_scan_limit ?? 100;
+      if (!hasScanAllowance(monthlyScans || 0, scanLimit)) {
+        return res.status(429).json({ error: "Your monthly beta scan allowance has been reached." });
+      }
+    }
+
     const website =
       typeof body.url === "string"
         ? body.url.trim()
@@ -2881,6 +2929,22 @@ for (
       Math.random()
         .toString(36)
         .substring(2, 7);
+
+    if (authenticatedUser) {
+      const { error: usageInsertError } = await supabaseAdmin.from("usage_events").insert({
+        user_id: authenticatedUser.id,
+        event_type: "scan.completed",
+        resource_host: new URL(finalURL).hostname,
+        metadata: {
+          score,
+          risk_level: riskLevel,
+          check_count: totalChecks
+        }
+      });
+      if (usageInsertError) {
+        console.error("Scan usage event could not be recorded:", usageInsertError);
+      }
+    }
 
     return res.status(200).json({
       website: finalURL,
