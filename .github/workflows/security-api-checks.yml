@@ -7,6 +7,7 @@ on:
       - security/pin-validated-dns-connection
       - integration/sentinel-evidence-2026-11
       - fix/professional-report-mobile-blank-2026-11
+      - fix/restricted-target-scan-guard-2026-11
   push:
     branches:
       - security/pin-validated-dns-connection
@@ -39,7 +40,8 @@ jobs:
           node --check api/_lib/security-evidence.js
           node --check test/security-evidence.test.js
           node --check test/report-ui.test.js
-          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js
+          node --check test/restricted-target.test.js
+          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js test/restricted-target.test.js
 
       - name: Verify scanner uses pinned DNS connections
         run: |
