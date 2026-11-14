@@ -655,6 +655,7 @@ if (
       scanReservationId = reservationId;
     }
 
+    try {
     const finalTarget =
       mainResult.finalURL;
 
@@ -2979,6 +2980,17 @@ for (
         informational
       }
     });
+    } finally {
+      if (scanReservationId && supabaseAdmin) {
+        const { error: cancelError } = await supabaseAdmin.rpc("cancel_scan_allowance", {
+          p_reservation_id: scanReservationId
+        });
+        if (cancelError) {
+          console.error("Atomic scan allowance cancellation failed:", cancelError);
+        }
+        scanReservationId = null;
+      }
+    }
 
   } catch (error) {
     if (scanReservationId && supabaseAdmin) {
