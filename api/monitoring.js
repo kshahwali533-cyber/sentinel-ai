@@ -1,5 +1,5 @@
 import dns from "node:dns/promises";
-import net from "node:net";
+import { normalizeMonitoringTarget } from "./_lib/monitoring.js";
 import { randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
@@ -12,35 +12,6 @@ const supabaseAdmin =
 
 function send(res, status, body) {
   return res.status(status).json(body);
-}
-
-function normalizeTarget(value) {
-  if (typeof value !== "string" || value.length > 2048) {
-    throw new Error("Enter a valid HTTPS website address.");
-  }
-
-  let parsed;
-  try {
-    parsed = new URL(value.trim());
-  } catch {
-    throw new Error("Enter a valid HTTPS website address.");
-  }
-
-  const hostname = parsed.hostname.toLowerCase().replace(/\.$/, "");
-  if (
-    parsed.protocol !== "https:" ||
-    parsed.username ||
-    parsed.password ||
-    parsed.port ||
-    net.isIP(hostname) ||
-    !hostname.includes(".") ||
-    /(^|\.)(localhost|local|internal|test|invalid|example)$/.test(hostname)
-  ) {
-    throw new Error("Monitoring requires a public HTTPS domain on its standard port.");
-  }
-
-  parsed.hash = "";
-  return { url: parsed.toString(), hostname };
 }
 
 async function getUser(req) {
@@ -89,7 +60,7 @@ export default async function handler(req, res) {
     const siteId = typeof body.siteId === "string" ? body.siteId : "";
 
     if (action === "add") {
-      const target = normalizeTarget(body.url);
+      const target = normalizeMonitoringTarget(body.url);
       const { count, error: countError } = await supabaseAdmin
         .from("monitoring_sites").select("id", { count: "exact", head: true })
         .eq("user_id", user.id);
