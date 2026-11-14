@@ -2836,7 +2836,11 @@ for (
       addCheck(
         "Robots.txt",
         "INFO",
-        "Robots    // SCORE — Conservative Security Configuration Score
+        "Robots.txt could not be checked."
+      );
+    }
+
+    // SCORE — Conservative Security Configuration Score
     const scoreResult = calculateScanScore(checks);
     const {
       totalChecks,
@@ -2846,11 +2850,6 @@ for (
       score,
       riskLevel
     } = scoreResult;
-
-  warnings >= 2
-    ) {
-      riskLevel = "Medium";
-    }
 
     const scanId =
       "SA-" +
