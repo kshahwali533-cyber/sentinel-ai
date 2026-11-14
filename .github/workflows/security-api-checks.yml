@@ -16,6 +16,7 @@ on:
       - feature/research-workspace-20261114
       - feature/vulnerability-intelligence-20261114
       - feature/team-workspaces-20261114
+      - db/team-workspace-advisor-hardening-20261114
   push:
     branches:
       - security/pin-validated-dns-connection
