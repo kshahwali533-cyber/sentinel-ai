@@ -36,13 +36,11 @@ async function scanWithOneRetry(origin, targetUrl, secret) {
       }
       const retryable = response.status === 429 || response.status >= 500;
       lastError = new Error("MONITORING_SCAN_HTTP_" + response.status);
+      lastError.retryable = retryable;
       if (!retryable) throw lastError;
     } catch (error) {
       lastError = error;
-      if (error?.message?.startsWith("MONITORING_SCAN_HTTP_") &&
-          !/_(429|5\\d\\d)$/.test(error.message)) {
-        throw error;
-      }
+      if (error?.retryable === false) throw error;
     }
     if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 1000));
   }
