@@ -7,6 +7,7 @@ import { createPinnedLookup } from "./_lib/pinned-lookup.js";
 import { isPublicIP } from "./_lib/public-ip.js";
 import { readTextLimited } from "./_lib/read-limited.js";
 import { calculateScanScore } from "./_lib/scan-score.js";
+import { createCheckEvidence } from "./_lib/finding-validation.js";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin =
@@ -622,12 +623,20 @@ if (
       fix = "",
       evidence = null
     ) {
+      const observedEvidence = evidence || createCheckEvidence({
+        name,
+        headers,
+        finalTarget,
+        responseStatus: response.status,
+        contentType: headers.get("content-type")
+      });
+
       checks.push({
         name,
         status,
         message,
         ...(fix ? { fix } : {}),
-        ...(evidence ? { evidence } : {})
+        ...(observedEvidence ? { evidence: observedEvidence } : {})
       });
     }
 
