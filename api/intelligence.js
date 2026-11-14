@@ -64,6 +64,8 @@ async function loadNvdCve(cveId) {
   if (cacheError) throw cacheError;
 
   const now = Date.now();
+  await supabaseAdmin.from("vulnerability_cache")
+    .delete().lt("expires_at", new Date(now - 24 * 60 * 60 * 1000).toISOString());
   const hasCache = Boolean(cached?.data);
   const fresh = hasCache && Date.parse(cached.expires_at) > now;
   if (fresh) return { data: cached.data, fetchedAt: cached.fetched_at, stale: false };
