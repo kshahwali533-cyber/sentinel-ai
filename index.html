@@ -2278,6 +2278,9 @@ trackEvent(
 
   try {
 
+    const { data: scanAuth } = await supabaseClient.auth.getSession();
+    const scanAccessToken = scanAuth?.session?.access_token;
+
     const response =
       await fetch(
         "/api/scan",
@@ -2286,8 +2289,8 @@ trackEvent(
           method: "POST",
 
           headers: {
-            "Content-Type":
-              "application/json"
+            "Content-Type": "application/json",
+            ...(scanAccessToken ? { "Authorization": "Bearer " + scanAccessToken } : {})
           },
 
           body: JSON.stringify({
@@ -3601,9 +3604,14 @@ async function generateProfessionalReport(button) {
       ? latestScan.checks
       : [];
 
+    const { data: reportAuth } = await supabaseClient.auth.getSession();
+    const reportAccessToken = reportAuth?.session?.access_token;
     const response = await fetch("/api/report", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(reportAccessToken ? { "Authorization": "Bearer " + reportAccessToken } : {})
+      },
       body: JSON.stringify({
         website: latestScan.website || latestScan.finalUrl || "",
         securityScore: Number(latestScan.score ?? latestScan.securityScore ?? 0),
