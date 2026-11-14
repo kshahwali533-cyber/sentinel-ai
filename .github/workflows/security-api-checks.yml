@@ -117,8 +117,8 @@ jobs:
           set -euo pipefail
           user_id="11111111-1111-4111-8111-111111111111"
 
-          # Session A deliberately holds the exact per-user transaction lock.
-          # Session B starts while A holds it, then waits for A to reserve the final slot.
+          # Session A holds the per-user transaction lock before reserving.
+          # Session B starts while A holds it and must wait for the final slot.
           (psql -U postgres -X -qAt -v ON_ERROR_STOP=1 -c "
             BEGIN;
             SELECT pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('$user_id', 0));
@@ -129,7 +129,6 @@ jobs:
           pid_a=$!
 
           sleep 0.2
-
           (psql -U postgres -X -qAt -v ON_ERROR_STOP=1 -c "
             SELECT COALESCE(public.reserve_scan_allowance('$user_id'::uuid)::text, 'NULL');
           " > /tmp/reservation-b.txt) &
@@ -138,116 +137,9 @@ jobs:
           wait "$pid_a"
           wait "$pid_b"
 
-          result_a="$(grep -E '^(NULL|[0-9a-f-]{36})        run: |
-          node --input-type=module <<'NODE'
-          import fs from "node:fs";
-
-          const source = fs.readFileSync("api/scan.js", "utf8");
-
-          if (/\bfetch\s*\(/.test(source)) {
-            throw new Error("Unpinned fetch() calls remain in api/scan.js.");
-          }
-
-          const helper = fs.readFileSync("api/_lib/pinned-lookup.js", "utf8");
-
-          if (!source.includes("lookup: createPinnedLookup(hostname, pinned)") ||
-              !helper.includes("return (lookupHostname, lookupOptions, callback)")) {
-            throw new Error("Pinned DNS lookup callback is missing.");
-          }
-
-          if (!source.includes("validation.addresses")) {
-            throw new Error("Validated DNS addresses are not passed to the request.");
-          }
-
-          if (!source.includes("servername: net.isIP(hostname) ? undefined : hostname")) {
-            throw new Error("HTTPS hostname verification/SNI configuration is missing.");
-          }
-
-          console.log("Pinned DNS connection guard checks passed.");
-          NODE
-
-      - name: Validate Vercel security response headers
-        run: |
-          node --input-type=module <<'NODE'
-          import fs from "node:fs";
-
-          const config = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
-          const route = config.headers?.find((item) => item.source === "/(.*)");
-          const headers = new Map((route?.headers || []).map((item) => [item.key.toLowerCase(), item.value]));
-
-          for (const [name, expected] of [
-            ["x-content-type-options", "nosniff"],
-            ["x-frame-options", "DENY"],
-            ["referrer-policy", "strict-origin-when-cross-origin"]
-          ]) {
-            if (headers.get(name) !== expected) {
-              throw new Error(`Missing or incorrect ${name} response header.`);
-            }
-          }
-
-          if (!headers.has("content-security-policy-report-only")) {
-            throw new Error("CSP must remain in report-only mode until browser compatibility is verified.");
-          }
-
-          console.log("Vercel security response header configuration passed.");
-          NODE
- /tmp/reservation-a.txt | tail -n 1)"
-          result_b="$(grep -E '^(NULL|[0-9a-f-]{36})        run: |
-          node --input-type=module <<'NODE'
-          import fs from "node:fs";
-
-          const source = fs.readFileSync("api/scan.js", "utf8");
-
-          if (/\bfetch\s*\(/.test(source)) {
-            throw new Error("Unpinned fetch() calls remain in api/scan.js.");
-          }
-
-          const helper = fs.readFileSync("api/_lib/pinned-lookup.js", "utf8");
-
-          if (!source.includes("lookup: createPinnedLookup(hostname, pinned)") ||
-              !helper.includes("return (lookupHostname, lookupOptions, callback)")) {
-            throw new Error("Pinned DNS lookup callback is missing.");
-          }
-
-          if (!source.includes("validation.addresses")) {
-            throw new Error("Validated DNS addresses are not passed to the request.");
-          }
-
-          if (!source.includes("servername: net.isIP(hostname) ? undefined : hostname")) {
-            throw new Error("HTTPS hostname verification/SNI configuration is missing.");
-          }
-
-          console.log("Pinned DNS connection guard checks passed.");
-          NODE
-
-      - name: Validate Vercel security response headers
-        run: |
-          node --input-type=module <<'NODE'
-          import fs from "node:fs";
-
-          const config = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
-          const route = config.headers?.find((item) => item.source === "/(.*)");
-          const headers = new Map((route?.headers || []).map((item) => [item.key.toLowerCase(), item.value]));
-
-          for (const [name, expected] of [
-            ["x-content-type-options", "nosniff"],
-            ["x-frame-options", "DENY"],
-            ["referrer-policy", "strict-origin-when-cross-origin"]
-          ]) {
-            if (headers.get(name) !== expected) {
-              throw new Error(`Missing or incorrect ${name} response header.`);
-            }
-          }
-
-          if (!headers.has("content-security-policy-report-only")) {
-            throw new Error("CSP must remain in report-only mode until browser compatibility is verified.");
-          }
-
-          console.log("Vercel security response header configuration passed.");
-          NODE
- /tmp/reservation-b.txt | tail -n 1)"
-
-          if [[ "$result_a" == "NULL" || "$result_b" != "NULL" ]]; then
+          result_a="$(awk 'NF { value = $0 } END { print value }' /tmp/reservation-a.txt)"
+          result_b="$(awk 'NF { value = $0 } END { print value }' /tmp/reservation-b.txt)"
+          if [[ ! "$result_a" =~ ^[0-9a-f-]{36}$ || "$result_b" != "NULL" ]]; then
             echo "Expected session A to reserve the final slot and session B to be rejected."
             echo "Session A: $result_a"
             echo "Session B: $result_b"
@@ -256,7 +148,6 @@ jobs:
 
           cancel_result="$(psql -U postgres -X -qAt -v ON_ERROR_STOP=1 -c "SELECT public.cancel_scan_allowance('$result_a'::uuid);")"
           remaining="$(psql -U postgres -X -qAt -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM private.scan_usage_reservations;")"
-
           if [[ "$cancel_result" != "t" || "$remaining" != "0" ]]; then
             echo "Reservation cleanup failed: cancel=$cancel_result remaining=$remaining"
             exit 1
@@ -264,7 +155,6 @@ jobs:
 
           echo "Concurrent final-slot test passed: one reservation granted, one rejected, cleanup complete."
           BASH
-
       - name: Verify scanner uses pinned DNS connections
         run: |
           node --input-type=module <<'NODE'
