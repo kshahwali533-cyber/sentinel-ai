@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { buildMonitoringAlert } from "./_lib/monitoring.js";
+import { buildMonitoringAlert, fetchMonitoringScan } from "./_lib/monitoring.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -17,35 +17,6 @@ function appOrigin(req) {
   return "https://" + host;
 }
 
-async function scanWithOneRetry(origin, targetUrl, secret) {
-  let lastError = null;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      const response = await fetch(origin + "/api/scan", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-sentinel-monitor-worker": secret
-        },
-        body: JSON.stringify({ url: targetUrl }),
-        signal: AbortSignal.timeout(45000)
-      });
-      const scan = await response.json().catch(() => ({}));
-      if (response.ok && Number.isFinite(Number(scan.score ?? scan.securityScore))) {
-        return { scan, attempts: attempt + 1 };
-      }
-      const retryable = response.status === 429 || response.status >= 500;
-      lastError = new Error("MONITORING_SCAN_HTTP_" + response.status);
-      lastError.retryable = retryable;
-      if (!retryable) throw lastError;
-    } catch (error) {
-      lastError = error;
-      if (error?.retryable === false) throw error;
-    }
-    if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
-  throw lastError || new Error("MONITORING_SCAN_FAILED");
-}
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -77,7 +48,12 @@ export default async function handler(req, res) {
         if (runError) throw runError;
         runId = run.id;
 
-        const scanResult = await scanWithOneRetry(origin, site.target_url, secret);
+        const scanResult = await fetchMonitoringScan(
+          fetch,
+          origin + "/api/scan",
+          site.target_url,
+          secret
+        );
         const scan = scanResult.scan;
         summary.retries += Math.max(0, scanResult.attempts - 1);
 
