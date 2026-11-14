@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { isVerifiedMemberAsset } from "./_lib/team-assets.js";
 
 const admin = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
   ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
@@ -76,16 +77,17 @@ export default async function handler(req, res) {
       const { data: owner, error: ownerError } = await admin.from("organization_members")
         .select("user_id").eq("organization_id", orgId).eq("user_id", site.user_id).maybeSingle();
       if (ownerError) throw ownerError;
-      if (!owner) return reply(res, 403, { error: "Only assets owned by a current workspace member can be shared." });
+      if (!owner || !isVerifiedMemberAsset(site, [owner.user_id])) return reply(res, 403, { error: "Only verified assets owned by a current workspace member can be shared." });
       const { data, error } = await admin.from("organization_assets")
         .insert({ organization_id: orgId, monitoring_site_id: site.id, added_by: user.id })
         .select("id,monitoring_site_id,created_at").single();
       if (error?.code === "23505") return reply(res, 409, { error: "This asset is already shared with the workspace." });
       if (error) throw error;
-      await admin.from("organization_audit_events").insert({
+      const { error: auditError } = await admin.from("organization_audit_events").insert({
         organization_id: orgId, actor_user_id: user.id, target_user_id: site.user_id,
         event_type: "asset.shared", details: { hostname: site.hostname }
       });
+      if (auditError) console.error("Team asset audit event failed:", auditError);
       return reply(res, 201, { asset: data });
     }
 
