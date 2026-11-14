@@ -38,6 +38,10 @@ jobs:
       - name: Validate API JavaScript syntax
         run: |
           node --check api/scan.js
+          node --check api/monitoring.js
+          node --check api/monitoring-run.js
+          node --check api/_lib/monitoring.js
+          node --check test/monitoring.test.js
           node --check api/assistant.js
           node --check api/report.js
           node --check api/_lib/pinned-lookup.js
@@ -53,7 +57,7 @@ jobs:
           node --check test/restricted-target.test.js
           node --check test/scan-score.test.js
           node --check test/report-api.test.js
-          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js test/restricted-target.test.js test/scan-score.test.js test/report-api.test.js
+          node --test test/pinned-lookup.test.js test/public-ip.test.js test/read-limited.test.js test/security-evidence.test.js test/report-ui.test.js test/restricted-target.test.js test/scan-score.test.js test/report-api.test.js test/monitoring.test.js
 
       - name: Verify scanner uses pinned DNS connections
         run: |
