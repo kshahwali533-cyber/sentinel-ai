@@ -121,7 +121,7 @@ export function createCheckEvidence({ name, headers, finalTarget, responseStatus
     return {
       source: "HTTP response header",
       signal: "content-type",
-      observed: contentType || readHeader(headers, "content-type"),
+      observed: String(contentType || readHeader(headers, "content-type")).slice(0, 500),
       expected: "A content type matching the returned resource"
     };
   }
