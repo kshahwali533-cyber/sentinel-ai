@@ -107,6 +107,10 @@ export default async function handler(req, res) {
     const orgId = typeof body.organizationId === "string" ? body.organizationId : "";
 
     if (action === "create") {
+      const { count, error: countError } = await supabaseAdmin.from("organization_members")
+        .select("organization_id", { count: "exact", head: true }).eq("user_id", user.id);
+      if (countError) throw countError;
+      if ((count || 0) >= 3) return send(res, 429, { error: "The beta limit is three workspaces per account." });
       const name = normalizeOrganizationName(body.name);
       const slug = slugifyOrganizationName(name) + "-" + randomBytes(3).toString("hex");
       const { data, error } = await supabaseAdmin.rpc("create_organization_with_owner", {
@@ -136,6 +140,16 @@ export default async function handler(req, res) {
       const role = ["admin", "member", "analyst"].includes(body.role) ? body.role : "member";
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
         return send(res, 400, { error: "Enter a valid invitation email address." });
+      }
+      const [{ count: memberCount, error: memberCountError }, { count: inviteCount, error: inviteCountError }] = await Promise.all([
+        supabaseAdmin.from("organization_members").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
+        supabaseAdmin.from("organization_invitations").select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId).is("accepted_at", null).gt("expires_at", new Date().toISOString())
+      ]);
+      if (memberCountError) throw memberCountError;
+      if (inviteCountError) throw inviteCountError;
+      if ((memberCount || 0) >= 20 || (inviteCount || 0) >= 10) {
+        return send(res, 429, { error: "The beta limit is 20 workspace members and 10 pending invitations." });
       }
       const token = randomBytes(32).toString("hex");
       const { data, error } = await supabaseAdmin.from("organization_invitations").insert({
