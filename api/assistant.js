@@ -1,3 +1,4 @@
+import { normalizeMentorInput, normalizeMentorResponse } from "./_lib/mentor-validation.js";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin =
@@ -64,11 +65,14 @@ export default async function handler(req, res) {
       });
     }
 
-    const finding =
-      typeof body.finding === "string"
-        ? body.finding.trim()
-        : "";
+    const mentorInput = normalizeMentorInput(body);
+    if (!mentorInput) {
+      return res.status(400).json({
+        error: "Invalid AI Mentor request. Check the finding and website URL."
+      });
+    }
 
+    const finding = mentorInput.finding;
     const allowedSeverities = [
       "Critical",
       "High",
@@ -77,33 +81,10 @@ export default async function handler(req, res) {
       "Info",
       "Unknown"
     ];
-
-    const requestedSeverity =
-      typeof body.severity === "string"
-        ? body.severity.trim()
-        : "Unknown";
-
-    const severity =
-      allowedSeverities.includes(requestedSeverity)
-        ? requestedSeverity
-        : "Unknown";
-
-    const website =
-      typeof body.website === "string"
-        ? body.website.trim()
-        : "";
-
-    if (!finding || finding.length > 160) {
-      return res.status(400).json({
-        error: "A valid security finding is required."
-      });
-    }
-
-    if (website.length > 2048) {
-      return res.status(400).json({
-        error: "Website value is too long."
-      });
-    }
+    const severity = mentorInput.severity;
+    const website = mentorInput.website;
+    const status = mentorInput.status;
+    const evidence = mentorInput.evidence;
 
     const apiKey = process.env.OPENAI_API_KEY;
 
@@ -511,23 +492,16 @@ Do not provide exploitation instructions or invent facts about the website.`
             aiResult.steps.every(step => typeof step === "string") &&
             typeof aiResult.verification === "string";
 
-          if (validAssistant) {
+          const normalizedAssistant = validAssistant
+            ? normalizeMentorResponse(aiResult, mentorInput)
+            : null;
+
+          if (normalizedAssistant) {
             await recordMentorUsage(true);
             return res.status(200).json({
               success: true,
               aiPowered: true,
-              assistant: {
-                title: aiResult.title.slice(0, 160),
-                severity:
-                  allowedSeverities.includes(aiResult.severity)
-                    ? aiResult.severity
-                    : severity,
-                explanation: aiResult.explanation.slice(0, 2000),
-                why_it_matters: aiResult.why_it_matters.slice(0, 2000),
-                defensive_action: aiResult.defensive_action.slice(0, 2000),
-                steps: aiResult.steps.map(step => step.slice(0, 500)),
-                verification: aiResult.verification.slice(0, 2000)
-              }
+              assistant: normalizedAssistant
             });
           }
         }
