@@ -48,7 +48,7 @@ export function getMonitoringAppOrigin({ productionUrl, forwardedHost } = {}) {
   const host = typeof productionUrl === "string" && productionUrl.trim()
     ? productionUrl.trim()
     : forwardedHost;
-  if (typeof host !== "string" || !/^[a-z0-9.-]+(?::\\d+)?$/i.test(host)) {
+  if (typeof host !== "string" || !/^[a-z0-9.-]+(?::\d+)?$/i.test(host)) {
     throw new Error("Application host is unavailable.");
   }
   return "https://" + host;
