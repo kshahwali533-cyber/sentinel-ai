@@ -93,3 +93,44 @@ test("AI Security Mentor bounds website input and normalizes severity", async ()
     }
   }
 });
+
+
+test("AI Security Mentor gives non-alarmist fallback for passing checks", async () => {
+  const previousKey = process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+  try {
+    const result = await invoke({
+      finding: "HSTS",
+      severity: "Low",
+      status: "PASS",
+      message: "Strict-Transport-Security is present.",
+      website: "https://example.com"
+    });
+    assert.equal(result.statusCode, 200);
+    assert.equal(result.payload.assistant.status, "PASS");
+    assert.match(result.payload.assistant.why_it_matters, /does not prove/i);
+  } finally {
+    if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = previousKey;
+  }
+});
+
+test("AI Security Mentor treats informational fallback as an observation, not a confirmed vulnerability", async () => {
+  const previousKey = process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+  try {
+    const result = await invoke({
+      finding: "HTTP Response Status",
+      severity: "Info",
+      status: "INFO",
+      message: "HTTP 200 returned.",
+      website: "https://example.com"
+    });
+    assert.equal(result.statusCode, 200);
+    assert.equal(result.payload.assistant.status, "INFO");
+    assert.match(result.payload.assistant.why_it_matters, /additional review is appropriate/i);
+  } finally {
+    if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = previousKey;
+  }
+});
