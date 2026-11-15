@@ -17,6 +17,7 @@
   >
 
   <script defer src="/_vercel/insights/script.js"></script>
+  <script defer src="/sentinel-actions.js"></script>
 <script>
   
   function trackSentinelEvent(eventName, eventData = {}) {
@@ -749,7 +750,7 @@
 
   <button
     type="button"
-    onclick="togglePassword()"
+    data-action="toggle-password"
     style="
       position:absolute;
       right:8px;
@@ -771,7 +772,7 @@
 <button
   type="button"
   class="secondary-button"
-  onclick="resetPassword()"
+  data-action="reset-password"
 >
   🔑 Forgot Password?
 </button>
@@ -780,7 +781,7 @@
 
         <button
           type="button"
-          onclick="signUpUser()"
+          data-action="sign-up-user"
         >
           Create Account
         </button>
@@ -788,7 +789,7 @@
         <button
           class="secondary-button"
           type="button"
-          onclick="signInUser()"
+          data-action="sign-in-user"
         >
           Log In
         </button>
@@ -817,7 +818,7 @@
 
   <button
     type="button"
-    onclick="updatePassword()"
+    data-action="update-password"
   >
     Update Password
   </button>
@@ -833,7 +834,7 @@
       <button
         class="secondary-button"
         type="button"
-        onclick="signOutUser()"
+        data-action="sign-out-user"
       >
         Log Out
       </button>
@@ -964,7 +965,7 @@
     <button
       id="scanButton"
       type="button"
-      onclick="runSecurityScan()"
+      data-action="run-security-scan"
     >
       🛡️ Start Security Check
     </button>
@@ -1026,7 +1027,7 @@
     <button
       class="secondary-button"
       type="button"
-      onclick="clearScanHistory()"
+      data-action="clear-scan-history"
     >
       🗑️ Clear My Scan History
     </button>
@@ -1055,7 +1056,7 @@
       placeholder="https://yourdomain.com"
       autocomplete="url"
     >
-    <button type="button" onclick="addMonitoringSite()">
+    <button type="button" data-action="add-monitoring-site">
       Add Website to Monitoring
     </button>
     <div id="monitorStatus" class="message">
@@ -1082,7 +1083,7 @@
     </p>
     <div id="intelStatus" class="notice">Sign in to search trusted vulnerability sources.</div>
     <input id="intelCveInput" type="text" maxlength="32" placeholder="CVE-2021-44228">
-    <button type="button" onclick="lookupVulnerability()">Look Up CVE</button>
+    <button type="button" data-action="lookup-vulnerability">Look Up CVE</button>
     <div id="intelResults"></div>
   </div>
 
@@ -1104,7 +1105,7 @@
       <h3>Create a research project</h3>
       <input id="researchProjectName" type="text" maxlength="120" placeholder="Project name">
       <textarea id="researchProjectDescription" rows="2" maxlength="1000" placeholder="Short project description (optional)"></textarea>
-      <button type="button" onclick="createResearchProject()">Create Project</button>
+      <button type="button" data-action="create-research-project">Create Project</button>
       <div id="researchProjects"></div>
     </div>
 
@@ -1130,7 +1131,7 @@
       <textarea id="researchFindingImpact" rows="2" maxlength="3000" placeholder="Potential impact (optional)"></textarea>
       <textarea id="researchFindingRemediation" rows="2" maxlength="3000" placeholder="Recommended remediation (optional)"></textarea>
       <textarea id="researchFindingEvidence" rows="2" maxlength="2000" placeholder="Evidence / observation (optional)"></textarea>
-      <button type="button" onclick="createResearchFinding()">Save Finding</button>
+      <button type="button" data-action="create-research-finding">Save Finding</button>
     </div>
 
     <h3 style="margin-top:24px;">Finding Register</h3>
@@ -1158,13 +1159,13 @@
     <div class="analytics-panel">
       <h3>Create a workspace</h3>
       <input id="organizationName" type="text" maxlength="100" placeholder="Organization or team name">
-      <button type="button" onclick="createOrganization()">Create Workspace</button>
+      <button type="button" data-action="create-organization">Create Workspace</button>
     </div>
 
     <div class="analytics-panel">
       <h3>Accept an invitation</h3>
       <input id="organizationInviteToken" type="text" maxlength="64" placeholder="Paste your 64-character invitation token">
-      <button type="button" onclick="acceptOrganizationInvitation()">Accept Invitation</button>
+      <button type="button" data-action="accept-organization-invitation">Accept Invitation</button>
       <div id="organizationInvitations"></div>
     </div>
 
@@ -2971,7 +2972,7 @@ if (surfaceFindings.length > 0) {
             <button
               class="mentor-button"
               type="button"
-              onclick="askSecurityMentor(${index})"
+              data-action="ask-security-mentor" data-index="${index}"
             >
 
               🤖 Explain & Fix with AI Security Mentor
@@ -3229,7 +3230,7 @@ if (surfaceFindings.length > 0) {
 
       <button
         type="button"
-        onclick="generateProfessionalReport(this)"
+        data-action="generate-professional-report"
       >
 
         📄 Generate Professional Security Report
@@ -3255,7 +3256,7 @@ if (surfaceFindings.length > 0) {
     <button
       class="secondary-button"
       type="button"
-      onclick="runSecurityScan(true)"
+      data-action="run-security-scan" data-rescan="true"
     >
 
       🔄 Re-scan This Website
@@ -3705,6 +3706,7 @@ async function generateProfessionalReport(button) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sentinel AI Professional Security Report</title>
+<script defer src="${safe(window.location.origin)}/sentinel-actions.js"></script>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0 auto; padding: 20px; max-width: 900px; background: #07111f; color: #eef6ff; font: 15px/1.65 Arial, sans-serif; }
@@ -3718,7 +3720,7 @@ async function generateProfessionalReport(button) {
 </style>
 </head>
 <body>
-<button class="print" onclick="window.print()">Print / Save as PDF</button>
+<button class="print" data-action="print-report">Print / Save as PDF</button>
 <header>
   <h1>🛡️ Sentinel AI</h1>
   <h2>Professional Security-Awareness Report</h2>
@@ -4180,9 +4182,9 @@ function renderResearchWorkspace(data) {
           <div class="research-meta">${escapeHTML(project.status)} · ${count} finding(s)</div>
           ${project.description ? '<p>' + escapeHTML(project.description) + '</p>' : ""}
           <div class="research-actions">
-            <button class="secondary-button" type="button" onclick="exportResearchProject('${escapeHTML(project.id)}')">Copy Report</button>
-            <button class="secondary-button" type="button" onclick="setResearchProjectStatus('${escapeHTML(project.id)}','${project.status === "active" ? "archived" : "active"}')">${project.status === "active" ? "Archive" : "Reopen"}</button>
-            <button class="secondary-button" type="button" onclick="deleteResearchProject('${escapeHTML(project.id)}')">Delete</button>
+            <button class="secondary-button" type="button" data-action="export-research-project" data-project-id="${escapeHTML(project.id)}">Copy Report</button>
+            <button class="secondary-button" type="button" data-action="set-research-project-status" data-project-id="${escapeHTML(project.id)}" data-status="${project.status === "active" ? "archived" : "active"}">${project.status === "active" ? "Archive" : "Reopen"}</button>
+            <button class="secondary-button" type="button" data-action="delete-research-project" data-project-id="${escapeHTML(project.id)}">Delete</button>
           </div>
         </div>
       `;
@@ -4205,7 +4207,7 @@ function renderResearchWorkspace(data) {
             ? '<div class="research-meta"><strong>Evidence:</strong> ' + escapeHTML(finding.evidence.map(item => item.observed).join(" · ")) + '</div>'
             : ""}
           <label for="researchStatus-${escapeHTML(finding.id)}">Finding status</label>
-          <select id="researchStatus-${escapeHTML(finding.id)}" onchange="updateResearchFindingStatus('${escapeHTML(finding.id)}',this.value)">
+          <select id="researchStatus-${escapeHTML(finding.id)}" data-action="update-research-finding-status" data-finding-id="${escapeHTML(finding.id)}">
             ${["new","triaged","accepted","remediating","resolved","false_positive"].map(status =>
               '<option value="' + status + '"' + (finding.status === status ? " selected" : "") + '>' + status.replace("_"," ") + '</option>'
             ).join("")}
@@ -4215,8 +4217,8 @@ function renderResearchWorkspace(data) {
             ${findingNotes.map(note => '<p class="research-meta">' + escapeHTML(note.content) + '</p>').join("")}
             <textarea id="researchNote-${escapeHTML(finding.id)}" rows="2" maxlength="5000" placeholder="Add a private research note"></textarea>
             <div class="research-actions">
-              <button class="secondary-button" type="button" onclick="addResearchNote('${escapeHTML(finding.id)}')">Add Note</button>
-              <button class="secondary-button" type="button" onclick="deleteResearchFinding('${escapeHTML(finding.id)}')">Delete Finding</button>
+              <button class="secondary-button" type="button" data-action="add-research-note" data-finding-id="${escapeHTML(finding.id)}">Add Note</button>
+              <button class="secondary-button" type="button" data-action="delete-research-finding" data-finding-id="${escapeHTML(finding.id)}">Delete Finding</button>
             </div>
           </div>
         </div>
@@ -4532,7 +4534,7 @@ function renderMonitoringDashboard(data) {
           <code class="monitoring-code">${escapeHTML("_sentinel-ai-verification." + site.hostname)}</code>
           <div class="monitoring-meta">Record value</div>
           <code class="monitoring-code">${escapeHTML("sentinel-ai-verification=" + site.verification_token)}</code>
-          <button class="secondary-button" type="button" onclick="verifyMonitoringSite('${escapeHTML(site.id)}')">Verify DNS Record</button>
+          <button class="secondary-button" type="button" data-action="verify-monitoring-site" data-site-id="${escapeHTML(site.id)}">Verify DNS Record</button>
         </div>
       ` : "";
       return `
@@ -4545,9 +4547,9 @@ function renderMonitoringDashboard(data) {
           ${verification}
           <div class="monitoring-actions">
             ${active
-              ? `<button class="secondary-button" type="button" onclick="changeMonitoringSite('${escapeHTML(site.id)}','pause')">Pause</button>`
-              : (!pending ? `<button type="button" onclick="changeMonitoringSite('${escapeHTML(site.id)}','resume')">Resume</button>` : "")}
-            <button class="secondary-button" type="button" onclick="removeMonitoringSite('${escapeHTML(site.id)}')">Remove</button>
+              ? `<button class="secondary-button" type="button" data-action="change-monitoring-site" data-site-id="${escapeHTML(site.id)}" data-site-action="pause">Pause</button>`
+              : (!pending ? `<button type="button" data-action="change-monitoring-site" data-site-id="${escapeHTML(site.id)}" data-site-action="resume">Resume</button>` : "")}
+            <button class="secondary-button" type="button" data-action="remove-monitoring-site" data-site-id="${escapeHTML(site.id)}">Remove</button>
           </div>
         </div>
       `;
@@ -4561,7 +4563,7 @@ function renderMonitoringDashboard(data) {
         <h4>${escapeHTML(alert.title)}</h4>
         <div class="monitoring-meta">${escapeHTML(alert.severity)} · ${escapeHTML(monitoringDate(alert.created_at))} · ${alert.is_read ? "Read" : "Unread"}</div>
         <p>${escapeHTML(alert.message)}</p>
-        ${alert.is_read ? "" : `<button class="secondary-button" type="button" onclick="markMonitoringAlertRead('${escapeHTML(alert.id)}')">Mark as read</button>`}
+        ${alert.is_read ? "" : `<button class="secondary-button" type="button" data-action="mark-monitoring-alert-read" data-alert-id="${escapeHTML(alert.id)}">Mark as read</button>`}
       </div>
     `).join("") : '<div class="empty-history">No security-change alerts yet. A first scan creates the baseline.</div>';
   }
@@ -4771,15 +4773,15 @@ function renderOrganizationWorkspace(data) {
               <option value="member" ${member.role === "member" ? "selected" : ""}>Member</option>
               <option value="analyst" ${member.role === "analyst" ? "selected" : ""}>Analyst</option>
             </select>
-            <button class="secondary-button" type="button" onclick="changeOrganizationRole('${escapeHTML(org.id)}','${escapeHTML(member.user_id)}')">Save Role</button>
-            <button class="secondary-button" type="button" onclick="removeOrganizationMember('${escapeHTML(org.id)}','${escapeHTML(member.user_id)}')">Remove</button>
+            <button class="secondary-button" type="button" data-action="change-organization-role" data-organization-id="${escapeHTML(org.id)}" data-user-id="${escapeHTML(member.user_id)}">Save Role</button>
+            <button class="secondary-button" type="button" data-action="remove-organization-member" data-organization-id="${escapeHTML(org.id)}" data-user-id="${escapeHTML(member.user_id)}">Remove</button>
           </div>
         ` : ""}
       </div>
     `).join("");
     const inviteRows = (org.invitations || []).map(invite => `
       <div class="monitoring-meta">${escapeHTML(invite.email)} · ${escapeHTML(invite.role)} · Expires ${escapeHTML(monitoringDate(invite.expires_at))}</div>
-      <button class="secondary-button" type="button" onclick="revokeOrganizationInvitation('${escapeHTML(org.id)}','${escapeHTML(invite.id)}')">Revoke invitation</button>
+      <button class="secondary-button" type="button" data-action="revoke-organization-invitation" data-organization-id="${escapeHTML(org.id)}" data-invitation-id="${escapeHTML(invite.id)}">Revoke invitation</button>
     `).join("");
     const auditRows = (org.audit_events || []).slice(0, 10).map(event => `
       <div class="monitoring-meta">${escapeHTML(event.event_type)} · ${escapeHTML(monitoringDate(event.created_at))}</div>
@@ -4802,7 +4804,7 @@ function renderOrganizationWorkspace(data) {
               <option value="analyst">Analyst</option>
               <option value="admin">Admin</option>
             </select>
-            <button type="button" onclick="inviteOrganizationMember('${escapeHTML(org.id)}')">Create Invitation</button>
+            <button type="button" data-action="invite-organization-member" data-organization-id="${escapeHTML(org.id)}">Create Invitation</button>
             <div id="orgInviteResult-${escapeHTML(org.id)}"></div>
           </div>
           <h4>Pending invitations</h4>
@@ -4847,7 +4849,7 @@ async function loadOrganizationAdmin(organizationId) {
       <label><input id="orgPolicyInvites-${escapeHTML(organizationId)}" type="checkbox" ${p.allow_member_invites ? "checked" : ""}> Allow new member invitations</label>
       <label><input id="orgPolicyAssets-${escapeHTML(organizationId)}" type="checkbox" ${p.allow_asset_sharing ? "checked" : ""}> Allow sharing verified assets</label>
       <label><input id="orgPolicyAudit-${escapeHTML(organizationId)}" type="checkbox" ${p.audit_export_enabled ? "checked" : ""}> Allow audit log exports</label>
-      <button type="button" onclick="saveOrganizationPolicy('${escapeHTML(organizationId)}')">Save Security Policies</button>
+      <button type="button" data-action="save-organization-policy" data-organization-id="${escapeHTML(organizationId)}">Save Security Policies</button>
     ` : "";
     const canExport = ["owner", "admin"].includes(data.my_role) && p.audit_export_enabled;
     node.innerHTML = `
@@ -4855,7 +4857,7 @@ async function loadOrganizationAdmin(organizationId) {
         <h4>Workspace Security Policies</h4>
         <div class="monitoring-meta">Only the owner can change these controls. Last update: ${escapeHTML(monitoringDate(p.updated_at))}</div>
         ${ownerControls || `<div class="monitoring-meta">Invitations: ${p.allow_member_invites ? "Enabled" : "Disabled"} · Asset sharing: ${p.allow_asset_sharing ? "Enabled" : "Disabled"} · Audit exports: ${p.audit_export_enabled ? "Enabled" : "Disabled"}</div>`}
-        ${canExport ? `<button class="secondary-button" type="button" onclick="exportOrganizationAudit('${escapeHTML(organizationId)}')">Export Audit Log (JSON)</button>` : ""}
+        ${canExport ? `<button class="secondary-button" type="button" data-action="export-organization-audit" data-organization-id="${escapeHTML(organizationId)}">Export Audit Log (JSON)</button>` : ""}
       </div>
     `;
   } catch (error) {
@@ -4937,7 +4939,7 @@ async function loadOrganizationAssets(organizationId) {
         <div class="monitoring-run">
           <strong>${escapeHTML(site.hostname || site.url || "Verified asset")}</strong>
           <div class="monitoring-meta">${escapeHTML(site.status || "Unknown")} · Score: ${site.last_score == null ? "Not scanned" : escapeHTML(site.last_score + "/100")} · Added ${escapeHTML(monitoringDate(asset.created_at))}</div>
-          ${data.can_manage ? `<button class="secondary-button" type="button" onclick="removeOrganizationAsset('${escapeHTML(organizationId)}','${escapeHTML(asset.id)}')">Remove shared asset</button>` : ""}
+          ${data.can_manage ? `<button class="secondary-button" type="button" data-action="remove-organization-asset" data-organization-id="${escapeHTML(organizationId)}" data-asset-id="${escapeHTML(asset.id)}">Remove shared asset</button>` : ""}
         </div>
       `;
     }).join("") : '<div class="monitoring-meta">No verified assets are shared with this workspace yet.</div>';
@@ -4946,7 +4948,7 @@ async function loadOrganizationAssets(organizationId) {
         <select id="orgAssetSelect-${escapeHTML(organizationId)}">
           ${available.map((asset) => `<option value="${escapeHTML(asset.id)}">${escapeHTML(asset.hostname || asset.url)}</option>`).join("")}
         </select>
-        <button type="button" onclick="shareOrganizationAsset('${escapeHTML(organizationId)}')">Share verified asset</button>
+        <button type="button" data-action="share-organization-asset" data-organization-id="${escapeHTML(organizationId)}">Share verified asset</button>
       </div>
     ` : data.can_manage && !data.sharing_enabled ? '<div class="monitoring-meta">Asset sharing is disabled by the workspace owner.</div>' : data.can_manage ? '<div class="monitoring-meta">No other verified member-owned assets are available to share.</div>' : "";
     node.innerHTML = sharedHtml + selectHtml;
@@ -5056,7 +5058,7 @@ async function inviteOrganizationMember(organizationId) {
         Invitation created. Share this link privately with ${escapeHTML(result.invitation.email)}.
         It expires in seven days. Email is not sent automatically.
         <code class="monitoring-code">${escapeHTML(inviteUrl)}</code>
-        <button type="button" onclick="copyOrganizationInvite('${escapeHTML(inviteUrl)}')">Copy Invitation Link</button>
+        <button type="button" data-action="copy-organization-invite" data-invite-url="${escapeHTML(inviteUrl)}">Copy Invitation Link</button>
       </div>
     `;
     emailInput.value = "";
