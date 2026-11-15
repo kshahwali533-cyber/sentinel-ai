@@ -32,7 +32,8 @@ test("mentor evidence is normalized and bounded", () => {
     evidence: { source: "HTTP response", signal: "strict-transport-security", observed: "Header not present" }
   });
   assert.equal(input.evidence.signal, "strict-transport-security");
-  assert.equal(normalizeMentorInput({ finding: "HSTS", evidence: { observed: "x".repeat(3000) } }), null);
+  const bounded = normalizeMentorInput({ finding: "HSTS", evidence: { observed: "x".repeat(3000) } });
+  assert.equal(bounded.evidence.observed.length, 500);
 });
 
 test("AI response cannot change scanner severity or status", () => {
@@ -85,7 +86,7 @@ test("informational findings are not described as confirmed vulnerabilities", ()
     status: "INFO",
     message: "HTTP 200 returned."
   });
-  assert.match(fallback.explanation, /not, by itself, proof/);
+  assert.match(fallback.why_it_matters, /not, by itself, proof/);
 });
 
 test("warning fallback uses known defensive guidance when available", () => {
