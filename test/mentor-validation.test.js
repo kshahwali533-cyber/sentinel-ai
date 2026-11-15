@@ -86,7 +86,7 @@ test("informational findings are not described as confirmed vulnerabilities", ()
     status: "INFO",
     message: "HTTP 200 returned."
   });
-  assert.match(fallback.why_it_matters, /not, by itself, proof/);
+  assert.match(fallback.why_it_matters, /additional review is appropriate/);
 });
 
 test("warning fallback uses known defensive guidance when available", () => {
