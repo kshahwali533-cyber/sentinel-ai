@@ -24,7 +24,7 @@ select cron.schedule(
           where name = 'sentinel_monitoring_cron_secret'
         )
       ),
-      timeout_milliseconds := 5000
+      timeout_milliseconds := 300000
     ) as request_id;
   $job$
 );
