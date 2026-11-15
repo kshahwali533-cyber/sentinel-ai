@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main, integration/sentinel-evidence-2026-11]
   push:
-    branches: [reconcile/main-integration-2026-11-15]
+    branches: [main, reconcile/main-integration-2026-11-15]
 permissions:
   contents: read
 jobs:
