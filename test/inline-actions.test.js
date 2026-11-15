@@ -11,14 +11,14 @@ const reportStyles = fs.readFileSync("sentinel-report.css", "utf8");
 
 test("all former inline click and change handlers are removed", () => {
   assert.equal((html.match(/\son(?:click|change)\s*=/gi) || []).length, 0);
-  assert.equal((html.match(/data-action="/g) || []).length, 38);
+  assert.equal(((html + app).match(/data-action="/g) || []).length, 38);
   assert.match(html, /<script defer src="\/sentinel-actions\.js"><\/script>/);
   assert.match(actions, /document\.addEventListener\("click"/);
   assert.match(actions, /document\.addEventListener\("change"/);
 });
 
 test("all delegated UI actions are represented", () => {
-  const declared = new Set([...html.matchAll(/data-action="([^"]+)"/g)].map((match) => match[1]));
+  const declared = new Set([...(html + app).matchAll(/data-action="([^"]+)"/g)].map((match) => match[1]));
   const clickCases = new Set([...actions.matchAll(/case "([^"]+)"/g)].map((match) => match[1]));
   for (const action of declared) {
     assert.ok(clickCases.has(action) || action === "update-research-finding-status",
