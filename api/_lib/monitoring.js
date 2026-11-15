@@ -31,6 +31,29 @@ export function normalizeMonitoringTarget(value) {
   return { url: parsed.toString(), hostname };
 }
 
+
+export const MONITORING_INTERVAL_MINUTES = 15;
+
+export function getNextMonitoringScanAt(now = new Date()) {
+  const base = now instanceof Date ? now : new Date(now);
+  if (!Number.isFinite(base.getTime())) {
+    throw new Error("A valid monitoring timestamp is required.");
+  }
+  return new Date(
+    base.getTime() + MONITORING_INTERVAL_MINUTES * 60 * 1000
+  ).toISOString();
+}
+
+export function getMonitoringAppOrigin({ productionUrl, forwardedHost } = {}) {
+  const host = typeof productionUrl === "string" && productionUrl.trim()
+    ? productionUrl.trim()
+    : forwardedHost;
+  if (typeof host !== "string" || !/^[a-z0-9.-]+(?::\d+)?$/i.test(host)) {
+    throw new Error("Application host is unavailable.");
+  }
+  return "https://" + host;
+}
+
 export function riskRank(value) {
   const risk = String(value || "").toLowerCase();
   if (risk.includes("critical")) return 4;

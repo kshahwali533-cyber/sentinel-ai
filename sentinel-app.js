@@ -3309,6 +3309,7 @@ function renderMonitoringDashboard(data) {
         <div class="monitoring-site">
           <h4>${escapeHTML(site.hostname)}</h4>
           <div class="monitoring-meta">Status: ${escapeHTML(site.status)}</div>
+          <div class="monitoring-meta">Scan interval: ${escapeHTML((site.scan_interval_minutes || 15) + " minutes")}</div>
           <div class="monitoring-meta">Last scan: ${escapeHTML(monitoringDate(site.last_scan_at))}</div>
           <div class="monitoring-meta">Next scan: ${escapeHTML(monitoringDate(site.next_scan_at))}</div>
           <div class="monitoring-meta">Latest score: ${site.last_score == null ? "Not scanned yet" : escapeHTML(site.last_score + "/100 · " + (site.last_risk_level || "Unknown"))}</div>
@@ -3357,7 +3358,7 @@ async function loadMonitoringDashboard() {
     const data = await monitoringRequest();
     renderMonitoringDashboard(data);
     status.className = "success";
-    status.textContent = "Daily monitoring is ready. Only verified websites are scanned.";
+    status.textContent = "Monitoring is ready. Verified websites are checked every 15 minutes.";
   } catch (error) {
     status.className = "notice";
     status.textContent = error?.message || "Log in to manage monitoring.";
@@ -3396,7 +3397,7 @@ async function verifyMonitoringSite(siteId) {
     await monitoringRequest({ action: "verify", siteId });
     await loadMonitoringDashboard();
     status.className = "success";
-    status.textContent = "Domain ownership verified. Daily monitoring is enabled.";
+    status.textContent = "Domain ownership verified. 15-minute monitoring is enabled.";
   } catch (error) {
     status.className = "error";
     status.textContent = error?.message || "DNS verification failed.";

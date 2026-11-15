@@ -113,3 +113,29 @@ test("monitoring scan does not retry permanent client errors", async () => {
   );
   assert.equal(calls, 1);
 });
+
+
+test("monitoring schedules the next check fifteen minutes after the previous run", async () => {
+  const { getNextMonitoringScanAt, MONITORING_INTERVAL_MINUTES } = await import("../api/_lib/monitoring.js");
+  assert.equal(MONITORING_INTERVAL_MINUTES, 15);
+  assert.equal(
+    getNextMonitoringScanAt(new Date("2026-11-16T00:00:00.000Z")),
+    "2026-11-16T00:15:00.000Z"
+  );
+});
+
+test("monitoring worker prefers the stable production domain over deployment URLs", async () => {
+  const { getMonitoringAppOrigin } = await import("../api/_lib/monitoring.js");
+  assert.equal(
+    getMonitoringAppOrigin({
+      productionUrl: "project-3jyda.vercel.app",
+      forwardedHost: "preview-deployment.vercel.app"
+    }),
+    "https://project-3jyda.vercel.app"
+  );
+  assert.equal(
+    getMonitoringAppOrigin({ forwardedHost: "localhost:3000" }),
+    "https://localhost:3000"
+  );
+  assert.throws(() => getMonitoringAppOrigin({ forwardedHost: "bad host" }));
+});
