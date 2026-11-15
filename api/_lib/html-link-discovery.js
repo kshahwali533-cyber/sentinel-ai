@@ -6,13 +6,13 @@ export function extractHTMLLinks(html) {
   if (typeof html !== "string" || !html) return [];
 
   const documentMarkup = html
-    .replace(/<!--[\\s\\S]*?-->/g, " ")
-    .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script\\s*>/gi, " ")
-    .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style\\s*>/gi, " ");
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, " ");
 
   const links = [];
   const matches = documentMarkup.matchAll(
-    /<a\\b[^>]*?href\\s*=\\s*(?:"([^"]*)"|'([^']*)')[^>]*>/gi
+    /<a\b[^>]*?href\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>/gi
   );
 
   for (const match of matches) {
