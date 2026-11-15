@@ -12,7 +12,7 @@ test("Sentinel sends an enforced CSP with required application origins", async (
     "the enforced policy replaces the observation-only policy");
 
   const directives = new Map(csp.value.split(";").map((part) => {
-    const [name, ...values] = part.trim().split(/\\s+/);
+    const [name, ...values] = part.trim().split(/\s+/);
     return [name, values];
   }));
 
