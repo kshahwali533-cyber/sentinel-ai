@@ -1,0 +1,9 @@
+* { box-sizing: border-box; }
+  body { margin: 0 auto; padding: 20px; max-width: 900px; background: #07111f; color: #eef6ff; font: 15px/1.65 Arial, sans-serif; }
+  header, section, .finding { background: #0b1d31; border: 1px solid #24415e; border-radius: 12px; padding: 18px; margin: 0 0 16px; overflow-wrap: anywhere; }
+  h1, h2, h3 { color: #38bdf8; }
+  .score { font-size: 42px; font-weight: 700; }
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .stat { background: #102941; border-radius: 8px; padding: 12px; }
+  .print { width: 100%; border: 0; border-radius: 8px; padding: 14px; margin-bottom: 16px; background: #38bdf8; color: #06111f; font-weight: 700; font-size: 16px; }
+  @media print { body { background: #fff; color: #111; } header, section, .finding { background: #fff; color: #111; break-inside: avoid; } h1,h2,h3 { color: #111; } .print { display: none; } }
