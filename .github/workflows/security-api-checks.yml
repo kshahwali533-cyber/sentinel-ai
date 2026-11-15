@@ -203,8 +203,12 @@ jobs:
             }
           }
 
-          if (!headers.has("content-security-policy-report-only")) {
-            throw new Error("CSP must remain in report-only mode until browser compatibility is verified.");
+          if (!headers.has("content-security-policy")) {
+            throw new Error("An enforced Content-Security-Policy response header is required.");
+          }
+
+          if (headers.has("content-security-policy-report-only")) {
+            throw new Error("Remove the report-only header after the enforced policy is enabled.");
           }
 
           console.log("Vercel security response header configuration passed.");
