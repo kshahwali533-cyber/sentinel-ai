@@ -10,7 +10,9 @@ const supabaseAdmin =
 
 function appOrigin(req) {
   return getMonitoringAppOrigin({
-    productionUrl: process.env.VERCEL_ENV === "production"\n      ? process.env.VERCEL_PROJECT_PRODUCTION_URL\n      : undefined,
+    productionUrl: process.env.VERCEL_ENV === "production"
+      ? process.env.VERCEL_PROJECT_PRODUCTION_URL
+      : undefined,
     forwardedHost: req.headers["x-forwarded-host"] || req.headers.host
   });
 }
