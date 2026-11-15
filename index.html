@@ -3387,7 +3387,12 @@ async function askSecurityMentor(index) {
             website:
               latestScan.website ||
               latestScan.finalUrl ||
-              ""
+              "",
+
+            status: finding.status || "UNKNOWN",
+            message: finding.message || finding.description || "",
+            fix: finding.fix || finding.recommendation || "",
+            evidence: finding.evidence || null
 
           })
 
