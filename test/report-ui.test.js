@@ -9,7 +9,7 @@ const analytics = fs.readFileSync("sentinel-analytics.js", "utf8");
 const scripts = [app, analytics];
 
 test("external browser scripts parse without inline scripts", () => {
-  assert.equal([...html.matchAll(/<script\\b(?![^>]*\\bsrc=)[^>]*>/gi)].length, 0);
+  assert.equal([...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>/gi)].length, 0);
   assert.ok(scripts.length > 0, "Expected external application scripts");
   for (const source of scripts) {
     assert.doesNotThrow(() => new vm.Script(source), "External browser script should parse");
