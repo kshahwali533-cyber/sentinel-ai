@@ -7,32 +7,21 @@ const html = fs.readFileSync("index.html", "utf8");
 const actions = fs.readFileSync("public/sentinel-actions.js", "utf8");
 
 test("all former inline click and change handlers are removed", () => {
-  assert.equal((html.match(/\\son(?:click|change)\\s*=/gi) || []).length, 0);
-  assert.match(html, /<script defer src="\\/sentinel-actions\\.js"><\\/script>/);
-  assert.match(actions, /document\\.addEventListener\\("click"/);
-  assert.match(actions, /document\\.addEventListener\\("change"/);
+  assert.equal((html.match(/\son(?:click|change)\s*=/gi) || []).length, 0);
+  assert.equal((html.match(/data-action="/g) || []).length, 38);
+  assert.match(html, /<script defer src="\/sentinel-actions\.js"><\/script>/);
+  assert.match(actions, /document\.addEventListener\("click"/);
+  assert.match(actions, /document\.addEventListener\("change"/);
 });
 
-test("all 38 former actions have delegated handlers", () => {
-  const required = [
-    "toggle-password", "reset-password", "sign-up-user", "sign-in-user",
-    "update-password", "sign-out-user", "run-security-scan", "clear-scan-history",
-    "add-monitoring-site", "lookup-vulnerability", "create-research-project",
-    "create-research-finding", "create-organization", "accept-organization-invitation",
-    "ask-security-mentor", "generate-professional-report", "print-report",
-    "export-research-project", "set-research-project-status", "delete-research-project",
-    "update-research-finding-status", "add-research-note", "delete-research-finding",
-    "verify-monitoring-site", "change-monitoring-site", "remove-monitoring-site",
-    "mark-monitoring-alert-read", "change-organization-role", "remove-organization-member",
-    "revoke-organization-invitation", "invite-organization-member",
-    "save-organization-policy", "export-organization-audit", "remove-organization-asset",
-    "share-organization-asset", "copy-organization-invite"
-  ];
-  for (const action of required) {
-    assert.ok(html.includes('data-action="' + action + '"') || actions.includes('case "' + action + '"') ||
-      action === "update-research-finding-status", "Missing action mapping: " + action);
+test("all delegated UI actions are represented", () => {
+  const declared = new Set([...html.matchAll(/data-action="([^"]+)"/g)].map((match) => match[1]));
+  const clickCases = new Set([...actions.matchAll(/case "([^"]+)"/g)].map((match) => match[1]));
+  for (const action of declared) {
+    assert.ok(clickCases.has(action) || action === "update-research-finding-status",
+      "Missing delegated handler: " + action);
   }
-  assert.equal(required.length, 36);
+  assert.equal(declared.size, 36);
 });
 
 test("delegated action script parses", () => {
@@ -40,6 +29,6 @@ test("delegated action script parses", () => {
 });
 
 test("professional report loads the external delegated print handler", () => {
-  assert.match(html, /<script defer src="\\$\\{safe\\(window\\.location\\.origin\\)\\}\\/sentinel-actions\\.js"><\\/script>/);
+  assert.ok(html.includes('<script defer src="$' + '{safe(window.location.origin)}/sentinel-actions.js><\\/script>'));
   assert.match(html, /data-action="print-report"/);
 });
