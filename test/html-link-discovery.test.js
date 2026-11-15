@@ -3,15 +3,11 @@ import test from "node:test";
 import { extractHTMLLinks } from "../api/_lib/html-link-discovery.js";
 
 test("extracts real document anchors and ignores anchors inside scripts", () => {
-  const html = `
-    <html><body>
-      <a href="/about">About</a>
-      <script>
-        const template = \`<a href="${"${escapeHTML(result.sources?.nvd || \"https://nvd.nist.gov/\")}\"}">NVD</a>\`;
-      </script>
-      <a href='/contact'>Contact</a>
-    </body></html>
-  `;
+  const html = '<html><body>' +
+    '<a href="/about">About</a>' +
+    '<script>const template = `<a href="${escapeHTML(result.sources?.nvd || "https://nvd.nist.gov/")}">NVD</a>`;</script>' +
+    "<a href='/contact'>Contact</a>" +
+    '</body></html>';
   assert.deepEqual(extractHTMLLinks(html), ["/about", "/contact"]);
 });
 
