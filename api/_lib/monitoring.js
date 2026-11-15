@@ -39,9 +39,9 @@ export function getNextMonitoringScanAt(now = new Date()) {
   if (!Number.isFinite(base.getTime())) {
     throw new Error("A valid monitoring timestamp is required.");
   }
-  return new Date(
-    base.getTime() + MONITORING_INTERVAL_MINUTES * 60 * 1000
-  ).toISOString();
+  const intervalMs = MONITORING_INTERVAL_MINUTES * 60 * 1000;
+  const nextSlot = Math.floor(base.getTime() / intervalMs) + 1;
+  return new Date(nextSlot * intervalMs).toISOString();
 }
 
 export function getMonitoringAppOrigin({ productionUrl, forwardedHost } = {}) {

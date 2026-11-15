@@ -115,12 +115,24 @@ test("monitoring scan does not retry permanent client errors", async () => {
 });
 
 
-test("monitoring schedules the next check fifteen minutes after the previous run", async () => {
+test("monitoring aligns next checks to the next quarter-hour boundary", async () => {
   const { getNextMonitoringScanAt, MONITORING_INTERVAL_MINUTES } = await import("../api/_lib/monitoring.js");
   assert.equal(MONITORING_INTERVAL_MINUTES, 15);
   assert.equal(
     getNextMonitoringScanAt(new Date("2026-11-16T00:00:00.000Z")),
     "2026-11-16T00:15:00.000Z"
+  );
+  assert.equal(
+    getNextMonitoringScanAt(new Date("2026-11-16T00:00:05.000Z")),
+    "2026-11-16T00:15:00.000Z"
+  );
+  assert.equal(
+    getNextMonitoringScanAt(new Date("2026-11-16T00:14:59.000Z")),
+    "2026-11-16T00:15:00.000Z"
+  );
+  assert.equal(
+    getNextMonitoringScanAt(new Date("2026-11-16T00:15:00.000Z")),
+    "2026-11-16T00:30:00.000Z"
   );
 });
 

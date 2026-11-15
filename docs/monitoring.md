@@ -6,7 +6,7 @@
 - Add only a public HTTPS domain that you own or are authorized to manage.
 - Ownership is verified with a DNS TXT record at `_sentinel-ai-verification.<domain>`.
 - The beta currently allows up to five monitored domains per account.
-- Verified domains are scheduled for a security scan every 15 minutes.
+- Verified domains are scheduled for a security scan every 15 minutes, aligned to UTC quarter-hour boundaries to avoid scheduler drift.
 - Supabase Cron invokes the production monitoring worker every 15 minutes. The worker claims at most three due sites per run and invokes the existing SSRF-safe `/api/scan` endpoint.
 - The worker targets `VERCEL_PROJECT_PRODUCTION_URL` so internal scan requests use the stable production domain, not a deployment-specific preview URL.
 - The first successful scan establishes a baseline. Later scans create an in-app alert when a new warning appears, the risk level worsens, or the score drops by at least ten points.
