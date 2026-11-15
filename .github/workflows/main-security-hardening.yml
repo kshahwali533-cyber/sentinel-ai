@@ -1,0 +1,28 @@
+name: Main Security Hardening
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [security/main-hardening-2026-11-15]
+permissions:
+  contents: read
+jobs:
+  security-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Check API syntax
+        run: |
+          node --check api/scan.js
+          node --check api/assistant.js
+          node --check api/report.js
+          node --check api/_lib/pinned-lookup.js
+          node --check api/_lib/public-ip.js
+          node --check api/_lib/read-limited.js
+      - name: Run security tests
+        run: node --test
