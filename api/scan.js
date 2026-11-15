@@ -1,3 +1,4 @@
+import { extractHTMLLinks } from "./_lib/html-link-discovery.js";
 import dns from "node:dns/promises";
 import net from "node:net";
 import http from "node:http";
@@ -1349,10 +1350,7 @@ if (
 }
 
 if (html) {
-  const linkMatches =
-    html.matchAll(
-      /<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi
-    );
+  const linkMatches = extractHTMLLinks(html);
 
   let discoveredLinkCount = 0;
 
