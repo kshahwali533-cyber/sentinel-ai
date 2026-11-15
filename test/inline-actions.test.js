@@ -5,6 +5,9 @@ import vm from "node:vm";
 
 const html = fs.readFileSync("index.html", "utf8");
 const actions = fs.readFileSync("sentinel-actions.js", "utf8");
+const app = fs.readFileSync("sentinel-app.js", "utf8");
+const styles = fs.readFileSync("sentinel.css", "utf8");
+const reportStyles = fs.readFileSync("sentinel-report.css", "utf8");
 
 test("all former inline click and change handlers are removed", () => {
   assert.equal((html.match(/\son(?:click|change)\s*=/gi) || []).length, 0);
@@ -28,7 +31,27 @@ test("delegated action script parses", () => {
   assert.doesNotThrow(() => new vm.Script(actions));
 });
 
+test("all application scripts and styles are external", () => {
+  assert.equal([...html.matchAll(/<script\\b(?![^>]*\\bsrc=)[^>]*>/gi)].length, 0);
+  assert.equal([...html.matchAll(/<style\\b/gi)].length, 0);
+  assert.equal([...html.matchAll(/\\sstyle\\s*=/gi)].length, 0);
+  assert.match(html, /href="\\/sentinel\\.css"/);
+  assert.match(html, /src="\\/sentinel-app\\.js"/);
+  assert.match(html, /src="\\/sentinel-analytics\\.js"/);
+  assert.doesNotMatch(cspPolicy(), /'unsafe-inline'/);
+  assert.doesNotMatch(app, /\\.style\\.display\\s*=/);
+  assert.match(styles, /\\.is-hidden\\s*\\{/);
+  assert.match(app, /sentinel-report\\.css/);
+  assert.match(reportStyles, /@media print/);
+});
+
+function cspPolicy() {
+  const config = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
+  return config.headers.find((item) => item.source === "/(.*)").headers
+    .find((item) => item.key.toLowerCase() === "content-security-policy").value;
+}
+
 test("professional report loads the external delegated print handler", () => {
-  assert.ok(html.includes('<script defer src="$' + '{safe(window.location.origin)}/sentinel-actions.js"><\\/script>'));
-  assert.match(html, /data-action="print-report"/);
+  assert.ok(app.includes('<script defer src="${safe(window.location.origin)}/sentinel-actions.js"><\\/script>'));
+  assert.match(app, /data-action="print-report"/);
 });
