@@ -29,6 +29,8 @@ test("Sentinel sends an enforced CSP with required application origins", async (
   assert.deepEqual(directives.get("media-src"), ["'self'"]);
   assert.ok(directives.has("upgrade-insecure-requests"));
   assert.ok(!csp.value.includes("'unsafe-eval'"), "unsafe-eval must not be enabled");
-  assert.ok(csp.value.includes("'unsafe-inline'"),
-    "inline compatibility is explicit until inline handlers are migrated");
+  assert.ok(!csp.value.includes("'unsafe-inline'"),
+    "inline scripts and styles have been externalized");
+  assert.ok(directives.get("script-src")?.includes("'self'"));
+  assert.deepEqual(directives.get("style-src"), ["'self'"]);
 });
