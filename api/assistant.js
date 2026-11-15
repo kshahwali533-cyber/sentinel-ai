@@ -436,7 +436,11 @@ Do not provide exploitation instructions or invent facts about the website.`
                       text: JSON.stringify({
                         website: website || "Unknown",
                         finding,
-                        severity
+                        severity,
+                        status,
+                        message: mentorInput.message,
+                        fix: mentorInput.fix,
+                        evidence
                       })
                     }
                   ]
