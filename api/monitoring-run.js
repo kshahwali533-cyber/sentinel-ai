@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { buildMonitoringAlert, fetchMonitoringScan } from "./_lib/monitoring.js";
+import { buildMonitoringAlert, fetchMonitoringScan, getMonitoringAppOrigin, getNextMonitoringScanAt } from "./_lib/monitoring.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -9,14 +9,11 @@ const supabaseAdmin =
     : null;
 
 function appOrigin(req) {
-  if (process.env.VERCEL_URL) return "https://" + process.env.VERCEL_URL;
-  const host = req.headers["x-forwarded-host"] || req.headers.host;
-  if (typeof host !== "string" || !/^[a-z0-9.-]+(?::\d+)?$/i.test(host)) {
-    throw new Error("Application host is unavailable.");
-  }
-  return "https://" + host;
+  return getMonitoringAppOrigin({
+    productionUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    forwardedHost: req.headers["x-forwarded-host"] || req.headers.host
+  });
 }
-
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -85,7 +82,7 @@ export default async function handler(req, res) {
             last_score: score,
             last_risk_level: riskLevel,
             last_result: snapshot,
-            next_scan_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            next_scan_at: getNextMonitoringScanAt(),
             updated_at: now
           }).eq("id", site.site_id);
         if (updateSiteError) throw updateSiteError;
@@ -112,7 +109,7 @@ export default async function handler(req, res) {
           }).eq("id", runId);
         }
         await supabaseAdmin.from("monitoring_sites").update({
-          next_scan_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          next_scan_at: getNextMonitoringScanAt(),
           updated_at: now
         }).eq("id", site.site_id);
         summary.failed += 1;
