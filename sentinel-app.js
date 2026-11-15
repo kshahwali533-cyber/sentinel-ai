@@ -2020,7 +2020,7 @@ if (surfaceFindings.length > 0) {
 
     <div>
 
-      <h3 style="margin-bottom:10px;">
+      <h3 class="report-detail-heading">
 
         🔎 Detailed Security Checks
 

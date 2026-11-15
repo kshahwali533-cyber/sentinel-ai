@@ -16,6 +16,13 @@ test("external browser scripts parse without inline scripts", () => {
   }
 });
 
+test("generated professional report markup contains no inline style attributes", () => {
+  const start = app.indexOf("const reportHTML =");
+  assert.notEqual(start, -1, "report HTML template should exist");
+  const reportTemplate = app.slice(start);
+  assert.doesNotMatch(reportTemplate, /\sstyle\s*=/i);
+});
+
 test("professional report waits for the API and does not open an empty popup", () => {
   const start = app.indexOf("async function generateProfessionalReport(button) {");
   const end = app.indexOf("LOCAL + CLOUD SCAN HISTORY", start);
