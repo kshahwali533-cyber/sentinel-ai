@@ -476,6 +476,180 @@
       font-size: 14px;
     }
 
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .analytics-card,
+    .analytics-panel {
+      padding: 16px;
+      border-radius: 10px;
+      background: #07111f;
+      border: 1px solid #18304a;
+      overflow-wrap: anywhere;
+    }
+
+    .analytics-card span {
+      display: block;
+      color: #a9b8c9;
+      font-size: 13px;
+    }
+
+    .analytics-card strong {
+      display: block;
+      color: #38bdf8;
+      font-size: 27px;
+      line-height: 1.35;
+      margin-top: 5px;
+    }
+
+    .analytics-panel {
+      margin-top: 12px;
+    }
+
+    .analytics-panel h3 {
+      color: #bae6fd;
+      margin: 10px 0 5px;
+    }
+
+    .analytics-warning {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid #18304a;
+    }
+
+    .analytics-warning:last-child {
+      border-bottom: 0;
+    }
+
+    .intel-result {
+      padding: 16px;
+      margin-top: 14px;
+      border-radius: 10px;
+      background: #07111f;
+      border: 1px solid #18304a;
+      overflow-wrap: anywhere;
+    }
+
+    .intel-result h3,
+    .intel-result h4 {
+      color: #38bdf8;
+      margin: 12px 0 6px;
+    }
+
+    .intel-meta {
+      color: #a9b8c9;
+      font-size: 13px;
+      margin: 6px 0;
+    }
+
+    .intel-chip {
+      display: inline-block;
+      padding: 5px 9px;
+      margin: 4px 5px 4px 0;
+      border-radius: 6px;
+      background: #102a43;
+      color: #bae6fd;
+      font-size: 12px;
+    }
+
+    .intel-result a {
+      color: #7dd3fc;
+      overflow-wrap: anywhere;
+    }
+
+    .research-project,
+    .research-finding {
+      padding: 15px;
+      margin: 12px 0;
+      border-radius: 10px;
+      background: #07111f;
+      border: 1px solid #18304a;
+      overflow-wrap: anywhere;
+    }
+
+    .research-project h4,
+    .research-finding h4 {
+      color: #38bdf8;
+      margin-bottom: 7px;
+    }
+
+    .research-meta {
+      color: #a9b8c9;
+      font-size: 13px;
+      margin: 6px 0;
+    }
+
+    .research-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .research-actions button {
+      flex: 1 1 130px;
+    }
+
+    .research-notes {
+      padding: 10px;
+      margin-top: 10px;
+      border-left: 2px solid #2563eb;
+      background: #0b1728;
+    }
+
+    .monitoring-site,
+    .monitoring-alert,
+    .monitoring-run {
+      padding: 15px;
+      margin: 12px 0;
+      border-radius: 10px;
+      background: #07111f;
+      border: 1px solid #18304a;
+      overflow-wrap: anywhere;
+    }
+
+    .monitoring-site h4,
+    .monitoring-alert h4 {
+      color: #38bdf8;
+      margin-bottom: 6px;
+    }
+
+    .monitoring-meta {
+      color: #a9b8c9;
+      font-size: 13px;
+      margin: 6px 0;
+    }
+
+    .monitoring-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .monitoring-actions button {
+      min-width: 0;
+      padding: 11px 8px;
+      font-size: 14px;
+    }
+
+    .monitoring-code {
+      display: block;
+      padding: 9px;
+      margin: 6px 0;
+      border-radius: 7px;
+      background: #102a43;
+      color: #bae6fd;
+      overflow-wrap: anywhere;
+      user-select: text;
+    }
+
     @media (max-width: 650px) {
 
       header {
@@ -520,7 +694,13 @@
   <nav>
     <a href="#features">Features</a>
     <a href="#scanner">Scanner</a>
+    <a href="#analytics">Analytics</a>
     <a href="#history">History</a>
+    <a href="#monitoring">Monitoring</a>
+    <a href="#intelligence">Intelligence</a>
+    <a href="#research">Research</a>
+    <a href="#teams">Teams</a>
+    <a href="#usage">Usage</a>
     <a href="#mission">Mission</a>
   </nav>
 
@@ -796,6 +976,35 @@
 </section>
 
 
+<section id="analytics">
+
+  <h2 class="section-title">Security Analytics</h2>
+
+  <div class="history">
+    <p class="message">A private summary of your latest 200 cloud scans. Analytics are calculated from your own account history.</p>
+    <div id="analyticsStatus" class="notice">Sign in to view your security analytics.</div>
+
+    <div class="analytics-grid">
+      <div class="analytics-card"><span>Scans analyzed</span><strong id="analyticsTotal">—</strong></div>
+      <div class="analytics-card"><span>Average score</span><strong id="analyticsAverage">—</strong></div>
+      <div class="analytics-card"><span>High / critical risk</span><strong id="analyticsHighRisk">—</strong></div>
+      <div class="analytics-card"><span>Scans in 7 days</span><strong id="analyticsRecent">—</strong></div>
+      <div class="analytics-card"><span>Unique domains</span><strong id="analyticsDomains">—</strong></div>
+    </div>
+
+    <div class="analytics-panel">
+      <h3>Risk distribution</h3>
+      <p id="analyticsRisk">Sign in to view your risk distribution.</p>
+      <h3>Score trend</h3>
+      <p id="analyticsTrend">A trend appears after enough scans are available.</p>
+      <h3>Recurring warnings</h3>
+      <div id="analyticsWarnings" class="message">No warning data loaded.</div>
+    </div>
+  </div>
+
+</section>
+
+
 <section id="history">
 
   <h2 class="section-title">
@@ -822,6 +1031,160 @@
       🗑️ Clear My Scan History
     </button>
 
+  </div>
+
+</section>
+
+
+<section id="monitoring">
+
+  <h2 class="section-title">Continuous Monitoring</h2>
+
+  <div class="history">
+    <p class="message">
+      Add a website you own. Sentinel AI verifies domain control through a DNS TXT record,
+      then checks its security posture daily and records meaningful changes.
+    </p>
+    <div class="notice">
+      Monitoring is limited to verified domains you own or are authorized to manage.
+      The beta currently supports up to five websites per account and daily scans.
+    </div>
+    <input
+      id="monitorWebsite"
+      type="url"
+      placeholder="https://yourdomain.com"
+      autocomplete="url"
+    >
+    <button type="button" onclick="addMonitoringSite()">
+      Add Website to Monitoring
+    </button>
+    <div id="monitorStatus" class="message">
+      Sign in to manage continuous monitoring.
+    </div>
+    <div id="monitorSites"></div>
+    <h3 style="margin-top:24px;">Security Alerts</h3>
+    <div id="monitorAlerts" class="message">No alerts loaded.</div>
+    <h3 style="margin-top:24px;">Monitoring Activity</h3>
+    <div id="monitorRuns" class="message">No monitoring runs loaded.</div>
+  </div>
+
+</section>
+
+
+<section id="intelligence">
+
+  <h2 class="section-title">Vulnerability Intelligence</h2>
+
+  <div class="history">
+    <p class="message">
+      Look up an exact CVE ID using the NIST National Vulnerability Database and CISA Known Exploited Vulnerabilities catalog.
+      Sentinel AI does not infer that your website is affected from a product name or version guess.
+    </p>
+    <div id="intelStatus" class="notice">Sign in to search trusted vulnerability sources.</div>
+    <input id="intelCveInput" type="text" maxlength="32" placeholder="CVE-2021-44228">
+    <button type="button" onclick="lookupVulnerability()">Look Up CVE</button>
+    <div id="intelResults"></div>
+  </div>
+
+</section>
+
+
+<section id="research">
+
+  <h2 class="section-title">Research Workspace</h2>
+
+  <div class="history">
+    <p class="message">
+      Organize security findings only for domains you have verified in Continuous Monitoring.
+      Keep evidence, remediation notes, severity, and disclosure status together.
+    </p>
+    <div id="researchStatus" class="notice">Sign in to use your private research workspace.</div>
+
+    <div class="analytics-panel">
+      <h3>Create a research project</h3>
+      <input id="researchProjectName" type="text" maxlength="120" placeholder="Project name">
+      <textarea id="researchProjectDescription" rows="2" maxlength="1000" placeholder="Short project description (optional)"></textarea>
+      <button type="button" onclick="createResearchProject()">Create Project</button>
+      <div id="researchProjects"></div>
+    </div>
+
+    <div class="analytics-panel">
+      <h3>Record a security finding</h3>
+      <p class="research-meta">First verify your website in the Monitoring section. Findings can only be linked to your verified domains.</p>
+      <select id="researchProjectSelect">
+        <option value="">Select a research project</option>
+      </select>
+      <select id="researchAssetSelect">
+        <option value="">Select a verified website</option>
+      </select>
+      <input id="researchFindingTitle" type="text" maxlength="160" placeholder="Finding title">
+      <select id="researchFindingSeverity">
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium" selected>Medium</option>
+        <option value="low">Low</option>
+        <option value="info">Informational</option>
+      </select>
+      <input id="researchFindingPath" type="text" maxlength="1024" placeholder="Endpoint path, e.g. /account/profile">
+      <textarea id="researchFindingDescription" rows="3" maxlength="5000" placeholder="What did you observe?"></textarea>
+      <textarea id="researchFindingImpact" rows="2" maxlength="3000" placeholder="Potential impact (optional)"></textarea>
+      <textarea id="researchFindingRemediation" rows="2" maxlength="3000" placeholder="Recommended remediation (optional)"></textarea>
+      <textarea id="researchFindingEvidence" rows="2" maxlength="2000" placeholder="Evidence / observation (optional)"></textarea>
+      <button type="button" onclick="createResearchFinding()">Save Finding</button>
+    </div>
+
+    <h3 style="margin-top:24px;">Finding Register</h3>
+    <div id="researchFindings" class="message">No findings loaded.</div>
+  </div>
+
+</section>
+
+
+<section id="teams">
+
+  <h2 class="section-title">Team Workspaces</h2>
+
+  <div class="history">
+    <p class="message">
+      Create a private workspace, invite collaborators by email, assign roles, and review an organization audit trail.
+      Invitations are shared manually until verified email delivery is configured.
+    </p>
+    <div class="notice">
+      Beta roles: Owner, Admin, Member, and Analyst. Workspace data is isolated by organization membership.
+      Invitation links expire after seven days.
+    </div>
+    <div id="organizationStatus" class="message">Sign in to manage team workspaces.</div>
+
+    <div class="analytics-panel">
+      <h3>Create a workspace</h3>
+      <input id="organizationName" type="text" maxlength="100" placeholder="Organization or team name">
+      <button type="button" onclick="createOrganization()">Create Workspace</button>
+    </div>
+
+    <div class="analytics-panel">
+      <h3>Accept an invitation</h3>
+      <input id="organizationInviteToken" type="text" maxlength="64" placeholder="Paste your 64-character invitation token">
+      <button type="button" onclick="acceptOrganizationInvitation()">Accept Invitation</button>
+      <div id="organizationInvitations"></div>
+    </div>
+
+    <div id="organizationList"></div>
+  </div>
+
+</section>
+
+
+<section id="usage">
+
+  <h2 class="section-title">Account Usage</h2>
+
+  <div class="history">
+    <p class="message">
+      View your monthly beta usage. Sentinel AI is not connected to a payment provider;
+      no subscription or charge is active.
+    </p>
+    <div id="usageStatus" class="message">Sign in to view account usage.</div>
+    <div id="usageSummary"></div>
   </div>
 
 </section>
@@ -977,6 +1340,11 @@ if (error) {
       }
 
       await loadSupabaseHistory();
+      await loadMonitoringDashboard();
+      await loadAnalyticsDashboard();
+      await loadResearchWorkspace();
+      await loadOrganizationWorkspace();
+      await loadUsageSummary();
 
     } else {
       authStatus.className = "notice";
@@ -999,6 +1367,60 @@ if (error) {
         historyStatus.textContent =
           "📱 Local history is active. Log in to enable cloud history.";
       }
+
+      const intelStatus = document.getElementById("intelStatus");
+      if (intelStatus) {
+        intelStatus.className = "notice";
+        intelStatus.textContent = "Log in to search trusted vulnerability sources.";
+      }
+      const intelResults = document.getElementById("intelResults");
+      if (intelResults) intelResults.innerHTML = "";
+
+      const researchStatus = document.getElementById("researchStatus");
+      if (researchStatus) {
+        researchStatus.className = "notice";
+        researchStatus.textContent = "Log in to use your private research workspace.";
+      }
+      const researchProjects = document.getElementById("researchProjects");
+      const researchFindings = document.getElementById("researchFindings");
+      if (researchProjects) researchProjects.innerHTML = "";
+      if (researchFindings) researchFindings.innerHTML = "Log in to view research findings.";
+
+      const analyticsStatus = document.getElementById("analyticsStatus");
+      if (analyticsStatus) {
+        analyticsStatus.className = "notice";
+        analyticsStatus.textContent = "Log in to view your private scan analytics.";
+      }
+      const analyticsWarnings = document.getElementById("analyticsWarnings");
+      if (analyticsWarnings) analyticsWarnings.textContent = "Log in to view recurring warnings.";
+
+      const usageStatus = document.getElementById("usageStatus");
+      const usageSummary = document.getElementById("usageSummary");
+      if (usageStatus) {
+        usageStatus.className = "notice";
+        usageStatus.textContent = "Sign in to view account usage.";
+      }
+      if (usageSummary) usageSummary.innerHTML = "";
+
+      const organizationStatus = document.getElementById("organizationStatus");
+      if (organizationStatus) {
+        organizationStatus.className = "notice";
+        organizationStatus.textContent = "Log in to manage team workspaces.";
+      }
+      const organizationList = document.getElementById("organizationList");
+      if (organizationList) organizationList.innerHTML = "";
+
+      const monitorStatus = document.getElementById("monitorStatus");
+      if (monitorStatus) {
+        monitorStatus.className = "notice";
+        monitorStatus.textContent = "Log in to add and manage monitored websites.";
+      }
+      const monitorSites = document.getElementById("monitorSites");
+      const monitorAlerts = document.getElementById("monitorAlerts");
+      const monitorRuns = document.getElementById("monitorRuns");
+      if (monitorSites) monitorSites.innerHTML = "";
+      if (monitorAlerts) monitorAlerts.textContent = "Log in to view security alerts.";
+      if (monitorRuns) monitorRuns.textContent = "Log in to view monitoring activity.";
     }
 
   } catch (error) {
@@ -1882,6 +2304,9 @@ trackEvent(
 
   try {
 
+    const { data: scanAuth } = await supabaseClient.auth.getSession();
+    const scanAccessToken = scanAuth?.session?.access_token;
+
     const response =
       await fetch(
         "/api/scan",
@@ -1890,8 +2315,8 @@ trackEvent(
           method: "POST",
 
           headers: {
-            "Content-Type":
-              "application/json"
+            "Content-Type": "application/json",
+            ...(scanAccessToken ? { "Authorization": "Bearer " + scanAccessToken } : {})
           },
 
           body: JSON.stringify({
@@ -2122,7 +2547,7 @@ function displayScanResults(data) {
         <br><br>
 
         ${discoveredSurface.length}
-        public resources discovered.
+        candidate public paths identified (availability is checked separately).
 
         ${
           surfaceFindings.length > 0
@@ -2138,7 +2563,7 @@ function displayScanResults(data) {
               <br><br>
 
               <strong>
-                Discovered Resources
+                Candidate Resources (not all confirmed available)
               </strong>
 
               <ul>
@@ -2588,6 +3013,20 @@ if (surfaceFindings.length > 0) {
 
           </div>
 
+          ${
+            check.evidence
+              ? `
+                <div class="message evidence">
+                  <strong>Evidence:</strong>
+                  ${escapeHTML(check.evidence.source || "Scanner observation")}
+                  ${check.evidence.signal ? " — " + escapeHTML(check.evidence.signal) : ""}
+                  ${check.evidence.observed ? "<br>Observed: " + escapeHTML(check.evidence.observed) : ""}
+                  ${check.evidence.expected ? "<br>Expected: " + escapeHTML(check.evidence.expected) : ""}
+                </div>
+              `
+              : ""
+          }
+
 
           ${
             check.fix
@@ -2915,6 +3354,9 @@ async function askSecurityMentor(index) {
 
   try {
 
+    const { data: mentorAuth } = await supabaseClient.auth.getSession();
+    const mentorAccessToken = mentorAuth?.session?.access_token;
+
     const response =
       await fetch(
         "/api/assistant",
@@ -2923,8 +3365,8 @@ async function askSecurityMentor(index) {
           method: "POST",
 
           headers: {
-            "Content-Type":
-              "application/json"
+            "Content-Type": "application/json",
+            ...(mentorAccessToken ? { "Authorization": "Bearer " + mentorAccessToken } : {})
           },
 
           body: JSON.stringify({
@@ -2945,7 +3387,12 @@ async function askSecurityMentor(index) {
             website:
               latestScan.website ||
               latestScan.finalUrl ||
-              ""
+              "",
+
+            status: finding.status || "UNKNOWN",
+            message: finding.message || finding.description || "",
+            fix: finding.fix || finding.recommendation || "",
+            evidence: finding.evidence || null
 
           })
 
@@ -3177,580 +3624,159 @@ trackSentinelEvent("ai_mentor_used");
 async function generateProfessionalReport(button) {
 
   if (!latestScan) {
-
-    alert(
-      "Please run a security scan first."
-    );
-
+    alert("Please run a security scan first.");
     return;
-
   }
-
-
-  const reportWindow =
-    window.open(
-      "",
-      "_blank"
-    );
-
-
-  if (!reportWindow) {
-
-    alert(
-      "Please allow pop-ups for Sentinel AI."
-    );
-
-    return;
-
-  }
-
 
   if (button) {
-
     button.disabled = true;
-
-    button.textContent =
-      "📄 Generating Report...";
-
+    button.textContent = "📄 Generating Report...";
   }
 
-
-  const reportChecks =
-    Array.isArray(
-      latestScan.checks
-    )
+  try {
+    const reportChecks = Array.isArray(latestScan.checks)
       ? latestScan.checks
       : [];
 
-
-  reportWindow.document.write(`
-
-    <!DOCTYPE html>
-
-    <html lang="en">
-
-    <head>
-
-      <meta charset="UTF-8">
-
-      <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-      >
-
-      <title>
-        Sentinel AI Security Report
-      </title>
-
-      <style>
-
-        body {
-
-          font-family:
-            Arial,
-            sans-serif;
-
-          background:
-            #07111f;
-
-          color:
-            #ffffff;
-
-          line-height:
-            1.6;
-
-          max-width:
-            900px;
-
-          margin:
-            auto;
-
-          padding:
-            25px;
-
-        }
-
-        .header,
-        .box,
-        .finding {
-
-          background:
-            #0b1d31;
-
-          border:
-            1px solid #24415e;
-
-          border-radius:
-            14px;
-
-          padding:
-            20px;
-
-          margin-bottom:
-            18px;
-
-        }
-
-        h1,
-        h2,
-        h3 {
-
-          color:
-            #38bdf8;
-
-        }
-
-        .score {
-
-          font-size:
-            52px;
-
-          font-weight:
-            bold;
-
-          color:
-            #38bdf8;
-
-        }
-
-        .finding {
-
-          border-left:
-            4px solid #facc15;
-
-        }
-
-        .print-button {
-
-          width:
-            100%;
-
-          padding:
-            14px;
-
-          margin-bottom:
-            20px;
-
-          border:
-            none;
-
-          border-radius:
-            8px;
-
-          background:
-            #38bdf8;
-
-          color:
-            #06111f;
-
-          font-size:
-            16px;
-
-          font-weight:
-            bold;
-
-        }
-
-        .small {
-
-          color:
-            #8295aa;
-
-          font-size:
-            13px;
-
-        }
-
-        @media print {
-
-          body {
-
-            background:
-              white;
-
-            color:
-              black;
-
-          }
-
-          .print-button {
-
-            display:
-              none;
-
-          }
-
-          .header,
-          .box,
-          .finding {
-
-            background:
-              white;
-
-            color:
-              black;
-
-            box-shadow:
-              none;
-
-          }
-
-          h1,
-          h2,
-          h3 {
-
-            color:
-              black;
-
-          }
-
-        }
-
-      </style>
-
-    </head>
-
-    <body>
-
-      <button
-        class="print-button"
-        onclick="window.print()"
-      >
-        📄 Print / Save as PDF
-      </button>
-
-
-      <div class="header">
-
-        <h1>
-          🛡️ Sentinel AI
-        </h1>
-
-        <h2>
-          Professional Security-Awareness Report
-        </h2>
-
-        <p>
-          <strong>Website:</strong>
-          ${escapeHTML(
-            latestScan.website ||
-            latestScan.finalUrl ||
-            ""
-          )}
-        </p>
-
-        <p>
-          <strong>Scan ID:</strong>
-          ${escapeHTML(
-            latestScan.scanId ||
-            "N/A"
-          )}
-        </p>
-
-        <p>
-          <strong>Generated:</strong>
-          ${escapeHTML(
-            new Date().toLocaleString()
-          )}
-        </p>
-
-        <div class="score">
-
-          ${escapeHTML(
-            Number(
-              latestScan.score ??
-              latestScan.securityScore ??
-              0
-            )
-          )}/100
-
-        </div>
-
-        <p>
-          <strong>Risk Level:</strong>
-          ${escapeHTML(
-            latestScan.riskLevel ||
-            "Unknown"
-          )}
-        </p>
-
-      </div>
-
-
-      <div class="box">
-
-        <h2>
-          📊 Executive Summary
-        </h2>
-
-        <p>
-          <strong>Total Checks:</strong>
-          ${reportChecks.length}
-        </p>
-
-        <p>
-          <strong>Passed:</strong>
-          ${
-            reportChecks.filter(
-              c => c.status === "PASS"
-            ).length
-          }
-        </p>
-
-        <p>
-          <strong>Warnings:</strong>
-          ${
-            reportChecks.filter(
-              c => c.status === "WARNING"
-            ).length
-          }
-        </p>
-
-        <p>
-          <strong>Informational:</strong>
-          ${
-            reportChecks.filter(
-              c => c.status === "INFO"
-            ).length
-          }
-        </p>
-
-      </div>
-
-
-      <div class="box">
-
-        <h2>
-          🎯 Security Findings
-        </h2>
-
-        ${
-          reportChecks
-            .map(
-              check => `
-
-                <div class="finding">
-
-                  <h3>
-                    ${escapeHTML(
-                      check.name ||
-                      "Security Check"
-                    )}
-                  </h3>
-
-                  <p>
-                    <strong>Status:</strong>
-                    ${escapeHTML(
-                      check.status ||
-                      "INFO"
-                    )}
-                  </p>
-
-                  <p>
-                    ${escapeHTML(
-                      check.message ||
-                      ""
-                    )}
-                  </p>
-
-                  ${
-                    check.fix
-                      ? `
-
-                        <p>
-
-                          <strong>
-                            🔧 Recommended Fix:
-                          </strong>
-
-                          <br>
-
-                          ${escapeHTML(
-                            check.fix
-                          )}
-
-                        </p>
-
-                      `
-                      : ""
-                  }
-
-                </div>
-
-              `
-            )
-            .join("")
-        }
-
-      </div>
-
-
-      <div class="box">
-
-        <h2>
-          🚀 Recommended Action Plan
-        </h2>
-
-        <ol>
-
-          <li>
-            Review all WARNING findings.
-          </li>
-
-          <li>
-            Apply the recommended defensive fixes.
-          </li>
-
-          <li>
-            Re-scan the website after making changes.
-          </li>
-
-          <li>
-            Compare the new security score.
-          </li>
-
-          <li>
-            Continue monitoring security configuration.
-          </li>
-
-        </ol>
-
-      </div>
-
-
-      <div class="box">
-
-        <h2>
-          ⚠️ Limitations
-        </h2>
-
-        <p>
-          Sentinel AI checks publicly observable
-          HTTPS and security configuration signals.
-        </p>
-
-        <p>
-          It does not perform exploitation or
-          unauthorized penetration testing.
-        </p>
-
-        <p>
-          A complete professional security assessment
-          may require additional application,
-          infrastructure and manual testing.
-        </p>
-
-      </div>
-
-
-      <div class="box">
-
-        <h2>
-          🛡️ Disclaimer
-        </h2>
-
-        <p>
-          Sentinel AI provides automated
-          security-awareness checks and defensive
-          guidance. This report is not a complete
-          penetration test, vulnerability assessment
-          or professional security audit.
-        </p>
-
-      </div>
-
-
-      <p class="small">
-
-        Sentinel AI · AI Cybersecurity Scanner &
-        Security Education Platform
-
-      </p>
-
-    </body>
-
-    </html>
-
-  `);
-
-
-  reportWindow.document.close();
-trackSentinelEvent("report_generated");
-
-  try {
-
-    const response =
-      await fetch(
-        "/api/report",
-        {
-
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body: JSON.stringify({
-
-            website:
-              latestScan.website ||
-              latestScan.finalUrl ||
-              "",
-
-            securityScore:
-              Number(
-                latestScan.score ??
-                latestScan.securityScore ??
-                0
-              ),
-
-            riskLevel:
-              latestScan.riskLevel ||
-              "Unknown",
-
-            checks:
-              reportChecks,
-
-            scanId:
-              latestScan.scanId ||
-              ""
-
-          })
-
-        }
-      );
-
-
-    if (!response.ok) {
-
-      console.error(
-        "Report API returned an error."
-      );
-
+    const { data: reportAuth } = await supabaseClient.auth.getSession();
+    const reportAccessToken = reportAuth?.session?.access_token;
+    const response = await fetch("/api/report", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(reportAccessToken ? { "Authorization": "Bearer " + reportAccessToken } : {})
+      },
+      body: JSON.stringify({
+        website: latestScan.website || latestScan.finalUrl || "",
+        securityScore: Number(latestScan.score ?? latestScan.securityScore ?? 0),
+        riskLevel: latestScan.riskLevel || "Unknown",
+        checks: reportChecks,
+        scanId: latestScan.scanId || ""
+      })
+    });
+
+    let payload = {};
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error("The report service returned an unreadable response.");
     }
 
+    if (!response.ok || !payload.success || !payload.report) {
+      throw new Error(payload.error || "The report could not be generated.");
+    }
+
+    const report = payload.report;
+    const summary = report.executiveSummary || {};
+    const safe = value => escapeHTML(value == null ? "" : String(value));
+
+    const findingsHTML = reportChecks.map(check => {
+      const evidence = check.evidence && typeof check.evidence === "object"
+        ? `
+          <p><strong>Evidence source:</strong> ${safe(check.evidence.source || "Not supplied")}</p>
+          <p><strong>Observed:</strong> ${safe(check.evidence.observed || "Not supplied")}</p>
+          <p><strong>Expected:</strong> ${safe(check.evidence.expected || "Not supplied")}</p>
+        `
+        : "";
+
+      return `
+        <article class="finding">
+          <h3>${safe(check.name || check.title || "Security Check")}</h3>
+          <p><strong>Status:</strong> ${safe(check.status || "INFO")}</p>
+          <p>${safe(check.message || check.description || "")}</p>
+          ${check.fix || check.recommendation
+            ? `<p><strong>Recommended fix:</strong> ${safe(check.fix || check.recommendation)}</p>`
+            : ""}
+          ${evidence}
+        </article>
+      `;
+    }).join("");
+
+    const priorityHTML = (report.priorityFindings || []).map(item => `
+      <li>
+        <strong>${safe(item.title)}</strong> — ${safe(item.message)}
+        <p><strong>Recommended fix:</strong> ${safe(item.fix)}</p>
+      </li>
+    `).join("");
+
+    const reportHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sentinel AI Professional Security Report</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0 auto; padding: 20px; max-width: 900px; background: #07111f; color: #eef6ff; font: 15px/1.65 Arial, sans-serif; }
+  header, section, .finding { background: #0b1d31; border: 1px solid #24415e; border-radius: 12px; padding: 18px; margin: 0 0 16px; overflow-wrap: anywhere; }
+  h1, h2, h3 { color: #38bdf8; }
+  .score { font-size: 42px; font-weight: 700; }
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .stat { background: #102941; border-radius: 8px; padding: 12px; }
+  .print { width: 100%; border: 0; border-radius: 8px; padding: 14px; margin-bottom: 16px; background: #38bdf8; color: #06111f; font-weight: 700; font-size: 16px; }
+  @media print { body { background: #fff; color: #111; } header, section, .finding { background: #fff; color: #111; break-inside: avoid; } h1,h2,h3 { color: #111; } .print { display: none; } }
+</style>
+</head>
+<body>
+<button class="print" onclick="window.print()">Print / Save as PDF</button>
+<header>
+  <h1>🛡️ Sentinel AI</h1>
+  <h2>Professional Security-Awareness Report</h2>
+  <p><strong>Website:</strong> ${safe(report.website)}</p>
+  <p><strong>Scan ID:</strong> ${safe(report.scanId || "N/A")}</p>
+  <p><strong>Generated:</strong> ${safe(report.generatedAt)}</p>
+  <div class="score">${safe(report.securityScore)}/100</div>
+  <p><strong>Risk level:</strong> ${safe(report.riskLevel)}</p>
+</header>
+<section>
+  <h2>Executive Summary</h2>
+  <div class="stats">
+    <div class="stat"><strong>Total checks</strong><br>${safe(summary.totalChecks ?? 0)}</div>
+    <div class="stat"><strong>Passed</strong><br>${safe(summary.passed ?? 0)}</div>
+    <div class="stat"><strong>Warnings</strong><br>${safe(summary.warnings ?? 0)}</div>
+    <div class="stat"><strong>Informational</strong><br>${safe(summary.informational ?? 0)}</div>
+    <div class="stat"><strong>Evidence-backed checks</strong><br>${safe(summary.evidenceBackedFindings ?? 0)}</div>
+    <div class="stat"><strong>Priority issues</strong><br>${safe(summary.priorityIssues ?? 0)}</div>
+  </div>
+</section>
+<section>
+  <h2>Priority Recommendations</h2>
+  ${priorityHTML ? `<ol>${priorityHTML}</ol>` : "<p>No priority warnings were returned by the report service.</p>"}
+</section>
+<section>
+  <h2>Detailed Security Checks</h2>
+  ${findingsHTML || "<p>No scan checks were available.</p>"}
+</section>
+<section>
+  <h2>Next Steps</h2>
+  <ol>${(report.nextSteps || []).map(step => `<li>${safe(step)}</li>`).join("")}</ol>
+</section>
+<section>
+  <h2>Limitations and Disclaimer</h2>
+  <p>${safe(report.disclaimer)}</p>
+  <p>Sentinel AI checks publicly observable security signals. This report is not a substitute for a complete professional security assessment.</p>
+</section>
+<p>Sentinel AI · AI Cybersecurity Scanner &amp; Security Education Platform</p>
+</body>
+</html>`;
+
+    const reportBlob = new Blob([reportHTML], { type: "text/html;charset=utf-8" });
+    const reportUrl = URL.createObjectURL(reportBlob);
+
+    trackSentinelEvent("report_generated");
+    window.location.assign(reportUrl);
 
   } catch (error) {
-
-    console.error(
-      "Report API Error:",
-      error
-    );
-
+    console.error("Professional Report Error:", error);
+    alert(error && error.message
+      ? "Report generation failed: " + error.message
+      : "Report generation failed. Please try again.");
   } finally {
-
     if (button) {
-
       button.disabled = false;
-
-      button.textContent =
-        "📄 Generate Professional Security Report";
-
+      button.textContent = "📄 Generate Professional Security Report";
     }
-
   }
-
 }
 
 
@@ -3965,6 +3991,1129 @@ async function clearScanHistory() {
 
   await clearSupabaseHistory();
 
+}
+
+
+/* =========================
+   VULNERABILITY INTELLIGENCE
+========================= */
+
+function renderVulnerabilityIntelligence(result) {
+  const node = document.getElementById("intelResults");
+  if (!node) return;
+  const cve = result?.cve || {};
+  const kev = result?.kev || {};
+  const meta = result?.meta || {};
+
+  if (!cve.found) {
+    node.innerHTML = `
+      <div class="intel-result">
+        <h3>${escapeHTML(cve.id || "CVE lookup")}</h3>
+        <p>No matching record was returned by the NVD API.</p>
+        ${kev.listed === true ? '<p><strong>CISA KEV:</strong> This CVE is listed in the KEV catalog.</p>' : ""}
+      </div>
+    `;
+    return;
+  }
+
+  const cvss = cve.cvss;
+  const kevStatus = kev.listed === true
+    ? '<p><strong>CISA KEV:</strong> Listed as a known exploited vulnerability.</p>'
+    : kev.listed === false
+      ? '<p><strong>CISA KEV:</strong> Not listed in this catalog snapshot. This does not prove that the vulnerability is not exploited.</p>'
+      : '<p><strong>CISA KEV:</strong> Catalog unavailable; no KEV determination can be made.</p>';
+
+  const kevEntry = kev.entry ? `
+    <div class="intel-result">
+      <h4>CISA KEV details</h4>
+      <div class="intel-meta">${escapeHTML(kev.entry.vendor || "")} · ${escapeHTML(kev.entry.product || "")}</div>
+      <p>${escapeHTML(kev.entry.name || "")}</p>
+      <p>${escapeHTML(kev.entry.description || "")}</p>
+      <p><strong>Required action:</strong> ${escapeHTML(kev.entry.required_action || "See the official CISA record.")}</p>
+      <div class="intel-meta">Added: ${escapeHTML(kev.entry.date_added || "Unknown")} · Due date: ${escapeHTML(kev.entry.due_date || "Not specified")} · Ransomware use: ${escapeHTML(kev.entry.ransomware_use || "Unknown")}</div>
+    </div>
+  ` : "";
+
+  const affectedProducts = Array.isArray(cve.affected_products) ? cve.affected_products : [];
+  const cpe = Array.isArray(cve.cpe_matches) ? cve.cpe_matches : [];
+  const references = Array.isArray(cve.references) ? cve.references : [];
+  const weaknesses = Array.isArray(cve.weaknesses) ? cve.weaknesses : [];
+
+  node.innerHTML = `
+    <div class="intel-result">
+      <h3>${escapeHTML(cve.id)}</h3>
+      <div class="intel-meta">NVD status: ${escapeHTML(cve.status || "Unknown")} · Published: ${escapeHTML(cve.published || "Unknown")} · Modified: ${escapeHTML(cve.last_modified || "Unknown")}</div>
+      <p>${escapeHTML(cve.description || "No English description was supplied.")}</p>
+      <h4>CVSS assessment</h4>
+      ${cvss
+        ? '<span class="intel-chip">CVSS ' + escapeHTML(cvss.version || "Unknown") + '</span><span class="intel-chip">' + escapeHTML(cvss.base_score == null ? "No score" : cvss.base_score + "/10") + '</span><span class="intel-chip">' + escapeHTML(cvss.severity || "Unrated") + '</span><p class="intel-meta">CVSS is a base severity metric, not a complete risk assessment for your environment.</p>'
+        : '<p>No NVD CVSS score is currently attached to this record.</p>'}
+      ${kevStatus}
+      <div class="intel-meta">CISA catalog: ${escapeHTML(kev.catalog_version || "Unavailable")} · Released: ${escapeHTML(kev.date_released || "Unknown")} ${kev.stale ? "· cached/stale snapshot" : ""}</div>
+      ${kev.absence_note ? '<p class="intel-meta">' + escapeHTML(kev.absence_note) + '</p>' : ""}
+      ${kevEntry}
+      <h4>Weakness classifications</h4>
+      <p>${weaknesses.length ? weaknesses.map(value => '<span class="intel-chip">' + escapeHTML(value) + '</span>').join("") : "No CWE classification supplied."}</p>
+      <h4>NVD affected product/version data</h4>
+      ${affectedProducts.length ? affectedProducts.map(item => `
+        <div class="monitoring-run">
+          <strong>${escapeHTML(item.vendor)} · ${escapeHTML(item.product)}</strong>
+          <div class="intel-meta">Version: ${escapeHTML(item.version || "Not specified")} · Less than: ${escapeHTML(item.less_than || "Not specified")} · Type: ${escapeHTML(item.version_type || "Unknown")} · Source status: ${escapeHTML(item.status)}</div>
+          ${item.changes?.length ? '<div class="intel-meta">Version changes: ' + item.changes.map(change => escapeHTML(change.at) + ' → ' + escapeHTML(change.status)).join(" · ") + '</div>' : ""}
+        </div>
+      `).join("") : "<p>No affected product/version data supplied in the NVD record.</p>"}
+      <h4>NVD affected-product criteria</h4>
+      ${cpe.length ? cpe.map(item => `
+        <div class="monitoring-run">
+          <div>${escapeHTML(item.criteria)}</div>
+          <div class="intel-meta">Vulnerable flag: ${item.vulnerable ? "Yes" : "No"} · Start: ${escapeHTML(item.version_start_including || item.version_start_excluding || "Not specified")} · End: ${escapeHTML(item.version_end_including || item.version_end_excluding || "Not specified")}</div>
+        </div>
+      `).join("") : "<p>No CPE applicability criteria were supplied.</p>"}
+      <p class="notice">${escapeHTML(result.applicability_note || "Verify the exact vendor, product, version, and configuration before treating this CVE as applicable.")}</p>
+      <h4>References</h4>
+      ${references.length ? references.map(item => '<p><a href="' + escapeHTML(item.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHTML(item.url) + '</a></p>').join("") : "<p>No references supplied.</p>"}
+      <div class="research-actions">
+        <a href="${escapeHTML(result.sources?.nvd || "https://nvd.nist.gov/")}" target="_blank" rel="noopener noreferrer">Open NVD record</a>
+        <a href="${escapeHTML(result.sources?.cisa_kev || "https://www.cisa.gov/known-exploited-vulnerabilities-catalog")}" target="_blank" rel="noopener noreferrer">Open CISA KEV catalog</a>
+      </div>
+      <div class="intel-meta">NVD data fetched: ${escapeHTML(meta.nvd_fetched_at || "Unknown")} ${meta.nvd_stale ? "· cached/stale record" : ""}</div>
+    </div>
+  `;
+}
+
+async function lookupVulnerability() {
+  const input = document.getElementById("intelCveInput");
+  const status = document.getElementById("intelStatus");
+  const results = document.getElementById("intelResults");
+  const cve = input?.value.trim();
+  if (!cve) {
+    status.className = "error";
+    status.textContent = "Enter a CVE ID first.";
+    return;
+  }
+
+  status.className = "notice";
+  status.textContent = "Checking NVD and CISA sources...";
+  if (results) results.innerHTML = "";
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    const token = data?.session?.access_token;
+    if (!token) throw new Error("Log in to use vulnerability intelligence.");
+
+    const response = await fetch("/api/intelligence?cve=" + encodeURIComponent(cve), {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "CVE lookup failed.");
+    renderVulnerabilityIntelligence(payload.result);
+    status.className = "success";
+    status.textContent = "Lookup complete. Verify affected product versions against the official vendor advisory.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to load vulnerability intelligence.";
+  }
+}
+
+
+/* =========================
+   RESEARCH WORKSPACE
+========================= */
+
+let researchWorkspaceData = {
+  projects: [],
+  verified_assets: [],
+  findings: [],
+  notes: []
+};
+
+async function researchRequest(payload = null) {
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  const token = data?.session?.access_token;
+  if (!token) throw new Error("Please log in to use the research workspace.");
+
+  const response = await fetch("/api/research", {
+    method: payload ? "POST" : "GET",
+    headers: {
+      "Authorization": "Bearer " + token,
+      ...(payload ? { "Content-Type": "application/json" } : {})
+    },
+    ...(payload ? { body: JSON.stringify(payload) } : {})
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Research workspace request failed.");
+  return result;
+}
+
+function renderResearchWorkspace(data) {
+  researchWorkspaceData = data;
+  const projects = Array.isArray(data.projects) ? data.projects : [];
+  const assets = Array.isArray(data.verified_assets) ? data.verified_assets : [];
+  const findings = Array.isArray(data.findings) ? data.findings : [];
+  const notes = Array.isArray(data.notes) ? data.notes : [];
+
+  const projectSelect = document.getElementById("researchProjectSelect");
+  if (projectSelect) {
+    projectSelect.innerHTML = '<option value="">Select a research project</option>' +
+      projects.filter(project => project.status === "active").map(project =>
+        '<option value="' + escapeHTML(project.id) + '">' + escapeHTML(project.name) + '</option>'
+      ).join("");
+  }
+
+  const assetSelect = document.getElementById("researchAssetSelect");
+  if (assetSelect) {
+    assetSelect.innerHTML = '<option value="">Select a verified website</option>' +
+      assets.map(asset =>
+        '<option value="' + escapeHTML(asset.id) + '">' +
+        escapeHTML(asset.hostname + " · " + asset.url) + '</option>'
+      ).join("");
+  }
+
+  const projectsNode = document.getElementById("researchProjects");
+  if (projectsNode) {
+    projectsNode.innerHTML = projects.length ? projects.map(project => {
+      const count = findings.filter(finding => finding.project_id === project.id).length;
+      return `
+        <div class="research-project">
+          <h4>${escapeHTML(project.name)}</h4>
+          <div class="research-meta">${escapeHTML(project.status)} · ${count} finding(s)</div>
+          ${project.description ? '<p>' + escapeHTML(project.description) + '</p>' : ""}
+          <div class="research-actions">
+            <button class="secondary-button" type="button" onclick="exportResearchProject('${escapeHTML(project.id)}')">Copy Report</button>
+            <button class="secondary-button" type="button" onclick="setResearchProjectStatus('${escapeHTML(project.id)}','${project.status === "active" ? "archived" : "active"}')">${project.status === "active" ? "Archive" : "Reopen"}</button>
+            <button class="secondary-button" type="button" onclick="deleteResearchProject('${escapeHTML(project.id)}')">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join("") : '<div class="empty-history">Create your first research project above.</div>';
+  }
+
+  const findingsNode = document.getElementById("researchFindings");
+  if (findingsNode) {
+    findingsNode.innerHTML = findings.length ? findings.map(finding => {
+      const findingNotes = notes.filter(note => note.finding_id === finding.id);
+      return `
+        <div class="research-finding">
+          <h4>${escapeHTML(finding.title)}</h4>
+          <div class="research-meta">${escapeHTML(finding.severity)} · ${escapeHTML(finding.status)} · ${escapeHTML(finding.asset_hostname)}</div>
+          <div class="research-meta">Endpoint: ${escapeHTML(finding.endpoint_path)}</div>
+          <p>${escapeHTML(finding.description)}</p>
+          ${finding.impact ? '<p><strong>Impact:</strong> ' + escapeHTML(finding.impact) + '</p>' : ""}
+          ${finding.remediation ? '<p><strong>Remediation:</strong> ' + escapeHTML(finding.remediation) + '</p>' : ""}
+          ${Array.isArray(finding.evidence) && finding.evidence.length
+            ? '<div class="research-meta"><strong>Evidence:</strong> ' + escapeHTML(finding.evidence.map(item => item.observed).join(" · ")) + '</div>'
+            : ""}
+          <label for="researchStatus-${escapeHTML(finding.id)}">Finding status</label>
+          <select id="researchStatus-${escapeHTML(finding.id)}" onchange="updateResearchFindingStatus('${escapeHTML(finding.id)}',this.value)">
+            ${["new","triaged","accepted","remediating","resolved","false_positive"].map(status =>
+              '<option value="' + status + '"' + (finding.status === status ? " selected" : "") + '>' + status.replace("_"," ") + '</option>'
+            ).join("")}
+          </select>
+          <div class="research-notes">
+            <strong>Research notes</strong>
+            ${findingNotes.map(note => '<p class="research-meta">' + escapeHTML(note.content) + '</p>').join("")}
+            <textarea id="researchNote-${escapeHTML(finding.id)}" rows="2" maxlength="5000" placeholder="Add a private research note"></textarea>
+            <div class="research-actions">
+              <button class="secondary-button" type="button" onclick="addResearchNote('${escapeHTML(finding.id)}')">Add Note</button>
+              <button class="secondary-button" type="button" onclick="deleteResearchFinding('${escapeHTML(finding.id)}')">Delete Finding</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("") : '<div class="empty-history">No findings yet. Create a project and add a finding for a verified asset.</div>';
+  }
+}
+
+async function loadResearchWorkspace() {
+  const status = document.getElementById("researchStatus");
+  if (!status) return;
+  try {
+    const data = await researchRequest();
+    renderResearchWorkspace(data);
+    status.className = "success";
+    status.textContent = data.verified_assets?.length
+      ? "Research workspace ready. Only your verified domains can be used as assets."
+      : "Create a project now. Verify a domain in Monitoring before recording findings.";
+  } catch (error) {
+    status.className = "notice";
+    status.textContent = error?.message || "Log in to use the research workspace.";
+    const projects = document.getElementById("researchProjects");
+    const findings = document.getElementById("researchFindings");
+    if (projects) projects.innerHTML = "";
+    if (findings) findings.innerHTML = "";
+  }
+}
+
+async function createResearchProject() {
+  const name = document.getElementById("researchProjectName")?.value.trim();
+  const description = document.getElementById("researchProjectDescription")?.value.trim() || "";
+  const status = document.getElementById("researchStatus");
+  try {
+    await researchRequest({ action: "create_project", name, description });
+    document.getElementById("researchProjectName").value = "";
+    document.getElementById("researchProjectDescription").value = "";
+    await loadResearchWorkspace();
+    status.className = "success";
+    status.textContent = "Research project created.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to create the research project.";
+  }
+}
+
+async function createResearchFinding() {
+  const status = document.getElementById("researchStatus");
+  const evidenceText = document.getElementById("researchFindingEvidence")?.value.trim() || "";
+  const evidence = evidenceText ? [{
+    source: "Researcher observation",
+    signal: "Manual evidence",
+    observed: evidenceText,
+    expected: "Documented expected behavior"
+  }] : [];
+  const payload = {
+    action: "create_finding",
+    projectId: document.getElementById("researchProjectSelect")?.value,
+    assetId: document.getElementById("researchAssetSelect")?.value,
+    title: document.getElementById("researchFindingTitle")?.value.trim(),
+    severity: document.getElementById("researchFindingSeverity")?.value,
+    endpointPath: document.getElementById("researchFindingPath")?.value.trim(),
+    description: document.getElementById("researchFindingDescription")?.value.trim(),
+    impact: document.getElementById("researchFindingImpact")?.value.trim(),
+    remediation: document.getElementById("researchFindingRemediation")?.value.trim(),
+    evidence
+  };
+  try {
+    await researchRequest(payload);
+    ["researchFindingTitle","researchFindingPath","researchFindingDescription","researchFindingImpact","researchFindingRemediation","researchFindingEvidence"].forEach(id => {
+      const node = document.getElementById(id);
+      if (node) node.value = "";
+    });
+    await loadResearchWorkspace();
+    status.className = "success";
+    status.textContent = "Finding saved under your verified asset.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to save this finding.";
+  }
+}
+
+async function setResearchProjectStatus(projectId, projectStatus) {
+  try {
+    await researchRequest({ action: "set_project_status", projectId, status: projectStatus });
+    await loadResearchWorkspace();
+  } catch (error) {
+    const status = document.getElementById("researchStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to update the project.";
+  }
+}
+
+async function deleteResearchProject(projectId) {
+  if (!confirm("Delete this project, its findings, and its research notes?")) return;
+  try {
+    await researchRequest({ action: "delete_project", projectId });
+    await loadResearchWorkspace();
+  } catch (error) {
+    const status = document.getElementById("researchStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to delete the project.";
+  }
+}
+
+async function updateResearchFindingStatus(findingId, findingStatus) {
+  try {
+    await researchRequest({ action: "update_finding", findingId, status: findingStatus });
+    await loadResearchWorkspace();
+  } catch (error) {
+    const status = document.getElementById("researchStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to update the finding.";
+  }
+}
+
+async function deleteResearchFinding(findingId) {
+  if (!confirm("Delete this finding and its notes?")) return;
+  try {
+    await researchRequest({ action: "delete_finding", findingId });
+    await loadResearchWorkspace();
+  } catch (error) {
+    const status = document.getElementById("researchStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to delete the finding.";
+  }
+}
+
+async function addResearchNote(findingId) {
+  const input = document.getElementById("researchNote-" + findingId);
+  const content = input?.value.trim();
+  if (!content) return;
+  try {
+    await researchRequest({ action: "add_note", findingId, content });
+    await loadResearchWorkspace();
+  } catch (error) {
+    const status = document.getElementById("researchStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to add the note.";
+  }
+}
+
+async function exportResearchProject(projectId) {
+  const project = researchWorkspaceData.projects.find(item => item.id === projectId);
+  if (!project) return;
+  const findings = researchWorkspaceData.findings.filter(item => item.project_id === projectId);
+  const lines = [
+    "# " + project.name,
+    "",
+    project.description || "Security research project",
+    "",
+    "Generated by Sentinel AI",
+    ""
+  ];
+  for (const finding of findings) {
+    lines.push("## [" + finding.severity.toUpperCase() + "] " + finding.title);
+    lines.push("");
+    lines.push("- Status: " + finding.status);
+    lines.push("- Asset: " + finding.asset_hostname);
+    lines.push("- Endpoint: " + finding.endpoint_path);
+    lines.push("");
+    lines.push(finding.description);
+    if (finding.impact) lines.push("\nImpact: " + finding.impact);
+    if (finding.remediation) lines.push("\nRemediation: " + finding.remediation);
+    const evidence = Array.isArray(finding.evidence) ? finding.evidence : [];
+    for (const item of evidence) lines.push("\nEvidence (" + item.source + "): " + item.observed);
+    const notes = researchWorkspaceData.notes.filter(note => note.finding_id === finding.id);
+    for (const note of notes) lines.push("\nResearch note: " + note.content);
+    lines.push("");
+  }
+  const markdown = lines.join("\n");
+  try {
+    await navigator.clipboard.writeText(markdown);
+    const status = document.getElementById("researchStatus");
+    status.className = "success";
+    status.textContent = "Project report copied. You can paste it into your disclosure report.";
+  } catch {
+    const manualCopy = prompt("Copy your Sentinel AI research report:", markdown);
+    const status = document.getElementById("researchStatus");
+    if (status) {
+      status.className = manualCopy === null ? "notice" : "success";
+      status.textContent = manualCopy === null
+        ? "Report export was cancelled."
+        : "Report text is ready to copy from the prompt.";
+    }
+  }
+}
+
+
+/* =========================
+   PRIVATE SCAN ANALYTICS
+========================= */
+
+async function loadAnalyticsDashboard() {
+  const status = document.getElementById("analyticsStatus");
+  if (!status) return;
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    const token = data?.session?.access_token;
+    if (!token) throw new Error("Log in to view your private scan analytics.");
+
+    const response = await fetch("/api/analytics", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "Analytics could not be loaded.");
+
+    const analytics = payload.analytics || {};
+    const setText = (id, value) => {
+      const node = document.getElementById(id);
+      if (node) node.textContent = value;
+    };
+
+    setText("analyticsTotal", String(analytics.total_scans ?? 0));
+    setText("analyticsAverage", analytics.average_score == null ? "—" : analytics.average_score + "/100");
+    setText("analyticsHighRisk", String(analytics.high_risk_scans ?? 0));
+    setText("analyticsRecent", String(analytics.scans_last_7_days ?? 0));
+    setText("analyticsDomains", String(analytics.unique_domains ?? 0));
+
+    const risks = analytics.risk_breakdown || {};
+    setText("analyticsRisk",
+      "Critical: " + (risks.critical || 0) +
+      " · High: " + (risks.high || 0) +
+      " · Medium: " + (risks.medium || 0) +
+      " · Low: " + (risks.low || 0) +
+      " · Unknown: " + (risks.unknown || 0)
+    );
+
+    const trend = analytics.trend || {};
+    let trendText = "Not enough scan history to calculate a trend yet.";
+    if (trend.direction && trend.direction !== "insufficient_data") {
+      const change = Number(trend.change || 0);
+      const sign = change > 0 ? "+" : "";
+      const direction = trend.direction === "improving"
+        ? "Improving"
+        : trend.direction === "declining" ? "Declining" : "Stable";
+      trendText = direction + " · " + sign + change +
+        " points comparing the latest five scans with the previous five.";
+    }
+    setText("analyticsTrend", trendText);
+
+    const warnings = Array.isArray(analytics.recurring_warnings)
+      ? analytics.recurring_warnings
+      : [];
+    const warningsNode = document.getElementById("analyticsWarnings");
+    if (warningsNode) {
+      warningsNode.innerHTML = warnings.length
+        ? warnings.map(item =>
+            '<div class="analytics-warning"><span>' +
+            escapeHTML(item.name || "Security warning") +
+            '</span><strong>' + escapeHTML(item.count) + ' scans</strong></div>'
+          ).join("")
+        : "No recurring warning patterns found in the analyzed scans.";
+    }
+
+    status.className = analytics.total_scans ? "success" : "notice";
+    status.textContent = analytics.total_scans
+      ? "Private analytics loaded from your latest " + (analytics.records_analyzed || 0) + " cloud scans."
+      : "No cloud scans yet. Run a scan while signed in to begin your analytics history.";
+  } catch (error) {
+    status.className = "notice";
+    status.textContent = error?.message || "Sign in to view your private scan analytics.";
+  }
+}
+
+
+/* =========================
+   CONTINUOUS MONITORING
+========================= */
+
+async function monitoringRequest(payload = null) {
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  const token = data?.session?.access_token;
+  if (!token) throw new Error("Please log in to use continuous monitoring.");
+
+  const response = await fetch("/api/monitoring", {
+    method: payload ? "POST" : "GET",
+    headers: {
+      "Authorization": "Bearer " + token,
+      ...(payload ? { "Content-Type": "application/json" } : {})
+    },
+    ...(payload ? { body: JSON.stringify(payload) } : {})
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Monitoring request failed.");
+  return result;
+}
+
+function monitoringDate(value) {
+  if (!value) return "Not scheduled";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleString();
+}
+
+function renderMonitoringDashboard(data) {
+  const sitesNode = document.getElementById("monitorSites");
+  const alertsNode = document.getElementById("monitorAlerts");
+  const runsNode = document.getElementById("monitorRuns");
+
+  if (sitesNode) {
+    const sites = Array.isArray(data.sites) ? data.sites : [];
+    sitesNode.innerHTML = sites.length ? sites.map(site => {
+      const pending = site.status === "pending";
+      const active = site.status === "active";
+      const verification = pending ? `
+        <div class="notice">
+          <strong>Verify domain ownership</strong>
+          <div class="monitoring-meta">Create this DNS TXT record at your domain provider:</div>
+          <div class="monitoring-meta">Record name</div>
+          <code class="monitoring-code">${escapeHTML("_sentinel-ai-verification." + site.hostname)}</code>
+          <div class="monitoring-meta">Record value</div>
+          <code class="monitoring-code">${escapeHTML("sentinel-ai-verification=" + site.verification_token)}</code>
+          <button class="secondary-button" type="button" onclick="verifyMonitoringSite('${escapeHTML(site.id)}')">Verify DNS Record</button>
+        </div>
+      ` : "";
+      return `
+        <div class="monitoring-site">
+          <h4>${escapeHTML(site.hostname)}</h4>
+          <div class="monitoring-meta">Status: ${escapeHTML(site.status)}</div>
+          <div class="monitoring-meta">Last scan: ${escapeHTML(monitoringDate(site.last_scan_at))}</div>
+          <div class="monitoring-meta">Next scan: ${escapeHTML(monitoringDate(site.next_scan_at))}</div>
+          <div class="monitoring-meta">Latest score: ${site.last_score == null ? "Not scanned yet" : escapeHTML(site.last_score + "/100 · " + (site.last_risk_level || "Unknown"))}</div>
+          ${verification}
+          <div class="monitoring-actions">
+            ${active
+              ? `<button class="secondary-button" type="button" onclick="changeMonitoringSite('${escapeHTML(site.id)}','pause')">Pause</button>`
+              : (!pending ? `<button type="button" onclick="changeMonitoringSite('${escapeHTML(site.id)}','resume')">Resume</button>` : "")}
+            <button class="secondary-button" type="button" onclick="removeMonitoringSite('${escapeHTML(site.id)}')">Remove</button>
+          </div>
+        </div>
+      `;
+    }).join("") : '<div class="empty-history">No monitored websites yet.</div>';
+  }
+
+  if (alertsNode) {
+    const alerts = Array.isArray(data.alerts) ? data.alerts : [];
+    alertsNode.innerHTML = alerts.length ? alerts.map(alert => `
+      <div class="monitoring-alert">
+        <h4>${escapeHTML(alert.title)}</h4>
+        <div class="monitoring-meta">${escapeHTML(alert.severity)} · ${escapeHTML(monitoringDate(alert.created_at))} · ${alert.is_read ? "Read" : "Unread"}</div>
+        <p>${escapeHTML(alert.message)}</p>
+        ${alert.is_read ? "" : `<button class="secondary-button" type="button" onclick="markMonitoringAlertRead('${escapeHTML(alert.id)}')">Mark as read</button>`}
+      </div>
+    `).join("") : '<div class="empty-history">No security-change alerts yet. A first scan creates the baseline.</div>';
+  }
+
+  if (runsNode) {
+    const runs = Array.isArray(data.runs) ? data.runs : [];
+    runsNode.innerHTML = runs.length ? runs.map(run => `
+      <div class="monitoring-run">
+        <strong>${escapeHTML(run.status)}</strong>
+        <div class="monitoring-meta">${escapeHTML(monitoringDate(run.started_at))} · ${run.score == null ? "No score" : escapeHTML(run.score + "/100 · " + (run.risk_level || "Unknown"))}</div>
+        ${run.error_code ? `<div class="monitoring-meta">${escapeHTML(run.error_code)}</div>` : ""}
+      </div>
+    `).join("") : '<div class="empty-history">No monitoring runs yet.</div>';
+  }
+}
+
+async function loadMonitoringDashboard() {
+  const status = document.getElementById("monitorStatus");
+  const sitesNode = document.getElementById("monitorSites");
+  if (!status) return;
+
+  try {
+    const data = await monitoringRequest();
+    renderMonitoringDashboard(data);
+    status.className = "success";
+    status.textContent = "Daily monitoring is ready. Only verified websites are scanned.";
+  } catch (error) {
+    status.className = "notice";
+    status.textContent = error?.message || "Log in to manage monitoring.";
+    if (sitesNode) sitesNode.innerHTML = "";
+  }
+}
+
+async function addMonitoringSite() {
+  const input = document.getElementById("monitorWebsite");
+  const status = document.getElementById("monitorStatus");
+  if (!input || !status) return;
+  const url = input.value.trim();
+  if (!url) {
+    status.className = "error";
+    status.textContent = "Enter your website address first.";
+    return;
+  }
+
+  status.className = "notice";
+  status.textContent = "Adding website and creating its ownership challenge...";
+  try {
+    await monitoringRequest({ action: "add", url });
+    input.value = "";
+    await loadMonitoringDashboard();
+    status.className = "success";
+    status.textContent = "Website added. Add the DNS TXT record shown below, then verify it.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to add this website.";
+  }
+}
+
+async function verifyMonitoringSite(siteId) {
+  const status = document.getElementById("monitorStatus");
+  try {
+    await monitoringRequest({ action: "verify", siteId });
+    await loadMonitoringDashboard();
+    status.className = "success";
+    status.textContent = "Domain ownership verified. Daily monitoring is enabled.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "DNS verification failed.";
+  }
+}
+
+async function changeMonitoringSite(siteId, action) {
+  try {
+    await monitoringRequest({ action, siteId });
+    await loadMonitoringDashboard();
+  } catch (error) {
+    const status = document.getElementById("monitorStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to update monitoring status.";
+  }
+}
+
+async function removeMonitoringSite(siteId) {
+  if (!confirm("Remove this website and its monitoring history and alerts?")) return;
+  try {
+    await monitoringRequest({ action: "remove", siteId });
+    await loadMonitoringDashboard();
+  } catch (error) {
+    const status = document.getElementById("monitorStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to remove this website.";
+  }
+}
+
+async function markMonitoringAlertRead(alertId) {
+  try {
+    await monitoringRequest({ action: "mark_read", alertId });
+    await loadMonitoringDashboard();
+  } catch (error) {
+    const status = document.getElementById("monitorStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to update this alert.";
+  }
+}
+
+
+/* =========================
+   ACCOUNT USAGE
+========================= */
+
+async function loadUsageSummary() {
+  const status = document.getElementById("usageStatus");
+  const summary = document.getElementById("usageSummary");
+  if (!status || !summary) return;
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    const token = data?.session?.access_token;
+    if (!token) throw new Error("Sign in to view account usage.");
+    const response = await fetch("/api/usage", {
+      headers: { "Authorization": "Bearer " + token },
+      cache: "no-store"
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "Unable to load account usage.");
+    status.className = "success";
+    status.textContent = "Beta usage summary · Period starts " + monitoringDate(result.period_start);
+    summary.innerHTML = `
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <span class="analytics-label">Current plan</span>
+          <strong>${escapeHTML(result.plan || "beta")}</strong>
+        </div>
+        <div class="analytics-card">
+          <span class="analytics-label">Completed scans</span>
+          <strong>${escapeHTML(result.usage?.scans ?? 0)} / ${escapeHTML(result.monthly_scan_limit ?? 100)}</strong>
+        </div>
+        <div class="analytics-card">
+          <span class="analytics-label">Reports generated</span>
+          <strong>${escapeHTML(result.usage?.reports ?? 0)}</strong>
+        </div>
+        <div class="analytics-card">
+          <span class="analytics-label">Mentor sessions</span>
+          <strong>${escapeHTML(result.usage?.mentor_sessions ?? 0)}</strong>
+        </div>
+      </div>
+      <div class="notice">${escapeHTML(result.billing?.message || "Beta usage only. No billing is active.")}</div>
+    `;
+  } catch (error) {
+    status.className = "notice";
+    status.textContent = error?.message || "Unable to load account usage.";
+    summary.innerHTML = "";
+  }
+}
+
+
+/* =========================
+   TEAM WORKSPACES
+========================= */
+
+async function organizationRequest(payload = null) {
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  const token = data?.session?.access_token;
+  if (!token) throw new Error("Please log in to use team workspaces.");
+  const response = await fetch("/api/organizations", {
+    method: payload ? "POST" : "GET",
+    headers: {
+      "Authorization": "Bearer " + token,
+      ...(payload ? { "Content-Type": "application/json" } : {})
+    },
+    ...(payload ? { body: JSON.stringify(payload) } : {})
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Workspace request failed.");
+  return result;
+}
+
+let organizationWorkspaceData = { organizations: [], invitations: [] };
+
+function renderOrganizationWorkspace(data) {
+  organizationWorkspaceData = data;
+  const list = document.getElementById("organizationList");
+  const invitations = document.getElementById("organizationInvitations");
+  if (invitations) {
+    invitations.innerHTML = (data.invitations || []).length
+      ? data.invitations.map(invite => `
+        <div class="monitoring-site">
+          <strong>${escapeHTML(invite.organizations?.name || "Team workspace")}</strong>
+          <div class="monitoring-meta">${escapeHTML(invite.email)} · ${escapeHTML(invite.role)} · Expires ${escapeHTML(monitoringDate(invite.expires_at))}</div>
+        </div>
+      `).join("")
+      : '<div class="empty-history">No pending invitations for your account.</div>';
+  }
+  if (!list) return;
+  const orgs = data.organizations || [];
+  list.innerHTML = orgs.length ? orgs.map(org => {
+    const canManage = ["owner", "admin"].includes(org.my_role);
+    const members = (org.members || []).map(member => `
+      <div class="monitoring-run">
+        <div><strong>${escapeHTML(member.user_id)}</strong></div>
+        <div class="monitoring-meta">${escapeHTML(member.role)} · Joined ${escapeHTML(monitoringDate(member.joined_at))}</div>
+        ${org.my_role === "owner" && member.role !== "owner" ? `
+          <div class="monitoring-actions">
+            <select id="orgRole-${escapeHTML(org.id)}-${escapeHTML(member.user_id)}">
+              <option value="admin" ${member.role === "admin" ? "selected" : ""}>Admin</option>
+              <option value="member" ${member.role === "member" ? "selected" : ""}>Member</option>
+              <option value="analyst" ${member.role === "analyst" ? "selected" : ""}>Analyst</option>
+            </select>
+            <button class="secondary-button" type="button" onclick="changeOrganizationRole('${escapeHTML(org.id)}','${escapeHTML(member.user_id)}')">Save Role</button>
+            <button class="secondary-button" type="button" onclick="removeOrganizationMember('${escapeHTML(org.id)}','${escapeHTML(member.user_id)}')">Remove</button>
+          </div>
+        ` : ""}
+      </div>
+    `).join("");
+    const inviteRows = (org.invitations || []).map(invite => `
+      <div class="monitoring-meta">${escapeHTML(invite.email)} · ${escapeHTML(invite.role)} · Expires ${escapeHTML(monitoringDate(invite.expires_at))}</div>
+      <button class="secondary-button" type="button" onclick="revokeOrganizationInvitation('${escapeHTML(org.id)}','${escapeHTML(invite.id)}')">Revoke invitation</button>
+    `).join("");
+    const auditRows = (org.audit_events || []).slice(0, 10).map(event => `
+      <div class="monitoring-meta">${escapeHTML(event.event_type)} · ${escapeHTML(monitoringDate(event.created_at))}</div>
+    `).join("");
+    return `
+      <div class="monitoring-site">
+        <h3>${escapeHTML(org.name)}</h3>
+        <div class="monitoring-meta">Workspace: ${escapeHTML(org.slug)} · Your role: ${escapeHTML(org.my_role)} · Status: ${escapeHTML(org.status)}</div>
+        <h4>Members (${(org.members || []).length})</h4>
+        ${members || '<div class="monitoring-meta">No members yet.</div>'}
+        <h4>Shared verified assets</h4>
+        <div id="orgAssets-${escapeHTML(org.id)}" class="monitoring-meta">Loading shared assets...</div>
+        <div id="orgAdmin-${escapeHTML(org.id)}" class="monitoring-meta">Loading workspace settings...</div>
+        ${canManage ? `
+          <div class="analytics-panel">
+            <h4>Invite a collaborator</h4>
+            <input id="orgInviteEmail-${escapeHTML(org.id)}" type="email" maxlength="254" placeholder="collaborator@example.com">
+            <select id="orgInviteRole-${escapeHTML(org.id)}">
+              <option value="member">Member</option>
+              <option value="analyst">Analyst</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button type="button" onclick="inviteOrganizationMember('${escapeHTML(org.id)}')">Create Invitation</button>
+            <div id="orgInviteResult-${escapeHTML(org.id)}"></div>
+          </div>
+          <h4>Pending invitations</h4>
+          ${inviteRows || '<div class="monitoring-meta">No pending invitations.</div>'}
+          <h4>Recent audit events</h4>
+          ${auditRows || '<div class="monitoring-meta">No audit events yet.</div>'}
+        ` : ""}
+      </div>
+    `;
+  }).join("") : '<div class="empty-history">No team workspaces yet. Create one to get started.</div>';
+  orgs.forEach((org) => {
+    loadOrganizationAssets(org.id);
+    loadOrganizationAdmin(org.id);
+  });
+}
+
+async function organizationAdminRequest(organizationId, payload = null) {
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  const token = data?.session?.access_token;
+  if (!token) throw new Error("Please log in to manage workspace policies.");
+  const response = await fetch("/api/organization-admin" + (payload ? "" : "?organizationId=" + encodeURIComponent(organizationId)), {
+    method: payload ? "POST" : "GET",
+    headers: {
+      "Authorization": "Bearer " + token,
+      ...(payload ? { "Content-Type": "application/json" } : {})
+    },
+    ...(payload ? { body: JSON.stringify({ ...payload, organizationId }) } : {})
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Workspace administration request failed.");
+  return result;
+}
+
+async function loadOrganizationAdmin(organizationId) {
+  const node = document.getElementById("orgAdmin-" + organizationId);
+  if (!node) return;
+  try {
+    const data = await organizationAdminRequest(organizationId);
+    const p = data.policy || {};
+    const ownerControls = data.can_manage ? `
+      <label><input id="orgPolicyInvites-${escapeHTML(organizationId)}" type="checkbox" ${p.allow_member_invites ? "checked" : ""}> Allow new member invitations</label>
+      <label><input id="orgPolicyAssets-${escapeHTML(organizationId)}" type="checkbox" ${p.allow_asset_sharing ? "checked" : ""}> Allow sharing verified assets</label>
+      <label><input id="orgPolicyAudit-${escapeHTML(organizationId)}" type="checkbox" ${p.audit_export_enabled ? "checked" : ""}> Allow audit log exports</label>
+      <button type="button" onclick="saveOrganizationPolicy('${escapeHTML(organizationId)}')">Save Security Policies</button>
+    ` : "";
+    const canExport = ["owner", "admin"].includes(data.my_role) && p.audit_export_enabled;
+    node.innerHTML = `
+      <div class="analytics-panel">
+        <h4>Workspace Security Policies</h4>
+        <div class="monitoring-meta">Only the owner can change these controls. Last update: ${escapeHTML(monitoringDate(p.updated_at))}</div>
+        ${ownerControls || `<div class="monitoring-meta">Invitations: ${p.allow_member_invites ? "Enabled" : "Disabled"} · Asset sharing: ${p.allow_asset_sharing ? "Enabled" : "Disabled"} · Audit exports: ${p.audit_export_enabled ? "Enabled" : "Disabled"}</div>`}
+        ${canExport ? `<button class="secondary-button" type="button" onclick="exportOrganizationAudit('${escapeHTML(organizationId)}')">Export Audit Log (JSON)</button>` : ""}
+      </div>
+    `;
+  } catch (error) {
+    node.className = "error";
+    node.textContent = error?.message || "Unable to load workspace policies.";
+  }
+}
+
+async function saveOrganizationPolicy(organizationId) {
+  const getChecked = (id) => Boolean(document.getElementById(id)?.checked);
+  try {
+    await organizationAdminRequest(organizationId, {
+      action: "update_policy",
+      allow_member_invites: getChecked("orgPolicyInvites-" + organizationId),
+      allow_asset_sharing: getChecked("orgPolicyAssets-" + organizationId),
+      audit_export_enabled: getChecked("orgPolicyAudit-" + organizationId)
+    });
+    await loadOrganizationAdmin(organizationId);
+    const status = document.getElementById("organizationStatus");
+    status.className = "success";
+    status.textContent = "Workspace security policies saved.";
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to save workspace policies.";
+  }
+}
+
+async function exportOrganizationAudit(organizationId) {
+  try {
+    const data = await organizationAdminRequest(organizationId, { action: "export_audit" });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "sentinel-workspace-audit-" + organizationId + ".json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    const status = document.getElementById("organizationStatus");
+    status.className = "success";
+    status.textContent = "Audit log export created.";
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to export audit log.";
+  }
+}
+
+async function organizationAssetRequest(organizationId, payload = null) {
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  const token = data?.session?.access_token;
+  if (!token) throw new Error("Please log in to manage shared assets.");
+  const response = await fetch("/api/organization-assets" + (payload ? "" : "?organizationId=" + encodeURIComponent(organizationId)), {
+    method: payload ? "POST" : "GET",
+    headers: {
+      "Authorization": "Bearer " + token,
+      ...(payload ? { "Content-Type": "application/json" } : {})
+    },
+    ...(payload ? { body: JSON.stringify({ ...payload, organizationId }) } : {})
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Team asset request failed.");
+  return result;
+}
+
+async function loadOrganizationAssets(organizationId) {
+  const node = document.getElementById("orgAssets-" + organizationId);
+  if (!node) return;
+  try {
+    const data = await organizationAssetRequest(organizationId);
+    const assets = data.assets || [];
+    const available = data.available_assets || [];
+    const sharedHtml = assets.length ? assets.map((asset) => {
+      const site = asset.monitoring_site || {};
+      return `
+        <div class="monitoring-run">
+          <strong>${escapeHTML(site.hostname || site.url || "Verified asset")}</strong>
+          <div class="monitoring-meta">${escapeHTML(site.status || "Unknown")} · Score: ${site.last_score == null ? "Not scanned" : escapeHTML(site.last_score + "/100")} · Added ${escapeHTML(monitoringDate(asset.created_at))}</div>
+          ${data.can_manage ? `<button class="secondary-button" type="button" onclick="removeOrganizationAsset('${escapeHTML(organizationId)}','${escapeHTML(asset.id)}')">Remove shared asset</button>` : ""}
+        </div>
+      `;
+    }).join("") : '<div class="monitoring-meta">No verified assets are shared with this workspace yet.</div>';
+    const selectHtml = data.can_manage && data.sharing_enabled && available.length ? `
+      <div class="analytics-panel">
+        <select id="orgAssetSelect-${escapeHTML(organizationId)}">
+          ${available.map((asset) => `<option value="${escapeHTML(asset.id)}">${escapeHTML(asset.hostname || asset.url)}</option>`).join("")}
+        </select>
+        <button type="button" onclick="shareOrganizationAsset('${escapeHTML(organizationId)}')">Share verified asset</button>
+      </div>
+    ` : data.can_manage && !data.sharing_enabled ? '<div class="monitoring-meta">Asset sharing is disabled by the workspace owner.</div>' : data.can_manage ? '<div class="monitoring-meta">No other verified member-owned assets are available to share.</div>' : "";
+    node.innerHTML = sharedHtml + selectHtml;
+  } catch (error) {
+    node.className = "error";
+    node.textContent = error?.message || "Unable to load shared assets.";
+  }
+}
+
+async function shareOrganizationAsset(organizationId) {
+  const select = document.getElementById("orgAssetSelect-" + organizationId);
+  if (!select?.value) return;
+  try {
+    await organizationAssetRequest(organizationId, { action: "share", monitoringSiteId: select.value });
+    await loadOrganizationAssets(organizationId);
+    const status = document.getElementById("organizationStatus");
+    status.className = "success";
+    status.textContent = "Verified asset shared with the workspace.";
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to share this asset.";
+  }
+}
+
+async function removeOrganizationAsset(organizationId, assetId) {
+  if (!confirm("Remove this asset from the shared workspace?")) return;
+  try {
+    await organizationAssetRequest(organizationId, { action: "remove", assetId });
+    await loadOrganizationAssets(organizationId);
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to remove this asset.";
+  }
+}
+
+async function loadOrganizationWorkspace() {
+  const status = document.getElementById("organizationStatus");
+  if (!status) return;
+  try {
+    const inviteFromLink = new URLSearchParams(location.search).get("org_invite");
+    if (inviteFromLink) {
+      history.replaceState(null, "", location.pathname + location.hash);
+      const tokenInput = document.getElementById("organizationInviteToken");
+      if (tokenInput) tokenInput.value = inviteFromLink;
+      await acceptOrganizationInvitation(inviteFromLink);
+      return;
+    }
+    const data = await organizationRequest();
+    renderOrganizationWorkspace(data);
+    status.className = "success";
+    status.textContent = "Team workspace ready. Membership and invitations are private to your account.";
+  } catch (error) {
+    status.className = "notice";
+    status.textContent = error?.message || "Log in to manage team workspaces.";
+    const list = document.getElementById("organizationList");
+    if (list) list.innerHTML = "";
+  }
+}
+
+async function createOrganization() {
+  const input = document.getElementById("organizationName");
+  const status = document.getElementById("organizationStatus");
+  try {
+    const result = await organizationRequest({ action: "create", name: input.value.trim() });
+    input.value = "";
+    await loadOrganizationWorkspace();
+    status.className = "success";
+    status.textContent = "Workspace created. You are its owner.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to create workspace.";
+  }
+}
+
+async function acceptOrganizationInvitation(tokenValue) {
+  const input = document.getElementById("organizationInviteToken");
+  const token = (tokenValue || input?.value || "").trim();
+  const status = document.getElementById("organizationStatus");
+  try {
+    await organizationRequest({ action: "accept_invitation", token });
+    if (input) input.value = "";
+    await loadOrganizationWorkspace();
+    status.className = "success";
+    status.textContent = "Invitation accepted. The workspace is now available in your account.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to accept this invitation.";
+  }
+}
+
+async function inviteOrganizationMember(organizationId) {
+  const emailInput = document.getElementById("orgInviteEmail-" + organizationId);
+  const roleInput = document.getElementById("orgInviteRole-" + organizationId);
+  const resultNode = document.getElementById("orgInviteResult-" + organizationId);
+  try {
+    const result = await organizationRequest({
+      action: "invite",
+      organizationId,
+      email: emailInput.value.trim(),
+      role: roleInput.value
+    });
+    const inviteUrl = location.origin + "/?org_invite=" + encodeURIComponent(result.token) + "#teams";
+    resultNode.innerHTML = `
+      <div class="notice">
+        Invitation created. Share this link privately with ${escapeHTML(result.invitation.email)}.
+        It expires in seven days. Email is not sent automatically.
+        <code class="monitoring-code">${escapeHTML(inviteUrl)}</code>
+        <button type="button" onclick="copyOrganizationInvite('${escapeHTML(inviteUrl)}')">Copy Invitation Link</button>
+      </div>
+    `;
+    emailInput.value = "";
+    await loadOrganizationWorkspace();
+  } catch (error) {
+    resultNode.className = "error";
+    resultNode.textContent = error?.message || "Unable to create invitation.";
+  }
+}
+
+async function copyOrganizationInvite(value) {
+  try {
+    await navigator.clipboard.writeText(value);
+    const status = document.getElementById("organizationStatus");
+    status.className = "success";
+    status.textContent = "Invitation link copied.";
+  } catch {
+    const status = document.getElementById("organizationStatus");
+    status.className = "notice";
+    status.textContent = "Copy was blocked by the browser. Select and copy the invitation link above.";
+  }
+}
+
+async function changeOrganizationRole(organizationId, userId) {
+  const role = document.getElementById("orgRole-" + organizationId + "-" + userId)?.value;
+  try {
+    await organizationRequest({ action: "change_role", organizationId, userId, role });
+    await loadOrganizationWorkspace();
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to change member role.";
+  }
+}
+
+async function removeOrganizationMember(organizationId, userId) {
+  if (!confirm("Remove this member from the workspace?")) return;
+  try {
+    await organizationRequest({ action: "remove_member", organizationId, userId });
+    await loadOrganizationWorkspace();
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to remove member.";
+  }
+}
+
+async function revokeOrganizationInvitation(organizationId, invitationId) {
+  if (!confirm("Revoke this pending invitation?")) return;
+  try {
+    await organizationRequest({ action: "revoke_invitation", organizationId, invitationId });
+    await loadOrganizationWorkspace();
+  } catch (error) {
+    const status = document.getElementById("organizationStatus");
+    status.className = "error";
+    status.textContent = error?.message || "Unable to revoke invitation.";
+  }
 }
 
 

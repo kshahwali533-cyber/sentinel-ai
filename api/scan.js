@@ -6,7 +6,10 @@ import { Readable } from "node:stream";
 import { createPinnedLookup } from "./_lib/pinned-lookup.js";
 import { isPublicIP } from "./_lib/public-ip.js";
 import { readTextLimited } from "./_lib/read-limited.js";
+import { calculateScanScore } from "./_lib/scan-score.js";
+import { createCheckEvidence } from "./_lib/finding-validation.js";
 import { createClient } from "@supabase/supabase-js";
+import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -21,12 +24,15 @@ const supabaseAdmin =
         }
       )
     : null;
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed."
     });
   }
+
+  let scanReservationId = null;
 
   try {
     const body = req.body || {};
@@ -56,25 +62,57 @@ if (
       });
     }
 
-    const { data: rateAllowed, error: rateError } =
-  await supabaseAdmin.rpc("check_scan_rate_limit", {
-    p_ip_address: clientIP,
-    p_window_start: rateWindowStart,
-    p_rate_limit: RATE_LIMIT
-  });
+    if (!isValidMonitoringWorkerSecret(req.headers["x-sentinel-monitor-worker"], process.env.CRON_SECRET)) {
+      const { data: rateAllowed, error: rateError } =
+    await supabaseAdmin.rpc("check_scan_rate_limit", {
+      p_ip_address: clientIP,
+      p_window_start: rateWindowStart,
+      p_rate_limit: RATE_LIMIT
+    });
+  
+  if (rateError) {
+    console.error("Rate limit check failed:", rateError);
+    return res.status(500).json({
+      error: "Unable to process scan request safely."
+    });
+  }
+  
+  if (!rateAllowed) {
+    return res.status(429).json({
+      error: "Scan limit reached. Please try again later."
+    });
+  }
+    }
 
-if (rateError) {
-  console.error("Rate limit check failed:", rateError);
-  return res.status(500).json({
-    error: "Unable to process scan request safely."
-  });
-}
+    let authenticatedUser = null;
+    const authorization = req.headers.authorization || "";
+    if (authorization) {
+      const accessToken = typeof authorization === "string" && authorization.startsWith("Bearer ")
+        ? authorization.slice(7).trim()
+        : "";
+      if (!accessToken) {
+        return res.status(401).json({ error: "Invalid authentication header." });
+      }
+      const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(accessToken);
+      if (authError || !authData?.user?.id) {
+        return res.status(401).json({ error: "Your session is invalid. Please sign in again." });
+      }
+      authenticatedUser = authData.user;
 
-if (!rateAllowed) {
-  return res.status(429).json({
-    error: "Scan limit reached. Please try again later."
-  });
-}
+      const { data: entitlement, error: entitlementError } = await supabaseAdmin
+        .from("account_entitlements")
+        .select("status")
+        .eq("user_id", authenticatedUser.id)
+        .maybeSingle();
+      if (entitlementError) {
+        console.error("Usage entitlement lookup failed:", entitlementError);
+        return res.status(503).json({ error: "Account usage could not be checked safely." });
+      }
+      if (entitlement?.status === "suspended") {
+        return res.status(403).json({ error: "Scanning is disabled for this account." });
+      }
+    }
+
     const website =
       typeof body.url === "string"
         ? body.url.trim()
@@ -575,6 +613,20 @@ if (!hostname) {
 
     const response =
       mainResult.response;
+
+    // A 401/403 response is not a reliable representation of the
+    // protected page. Do not calculate or save a misleading security score.
+    if ([401, 403].includes(response.status)) {
+      await response.body?.cancel();
+
+      return res.status(422).json({
+        code: "TARGET_ACCESS_RESTRICTED",
+        error:
+          "The target website returned HTTP " +
+          response.status +
+          " (access restricted). Sentinel AI cannot verify the page security headers or produce a reliable score. If this is a Vercel Preview deployment, its deployment protection may be blocking server-side scanning. Test a publicly accessible authorized URL or use an approved temporary test access method."
+      });
+    }
 const contentLength =
   Number(response.headers.get("content-length") || 0);
 
@@ -588,6 +640,22 @@ if (
       "The website response is too large to scan safely."
   });
 }
+    if (authenticatedUser) {
+      const { data: reservationId, error: reservationError } = await supabaseAdmin.rpc(
+        "reserve_scan_allowance",
+        { p_user_id: authenticatedUser.id }
+      );
+      if (reservationError) {
+        console.error("Atomic scan allowance reservation failed:", reservationError);
+        return res.status(503).json({ error: "Account usage could not be reserved safely. Please try again." });
+      }
+      if (!reservationId) {
+        return res.status(429).json({ error: "Your monthly beta scan allowance has been reached." });
+      }
+      scanReservationId = reservationId;
+    }
+
+    try {
     const finalTarget =
       mainResult.finalURL;
 
@@ -604,13 +672,23 @@ if (
       name,
       status,
       message,
-      fix = ""
+      fix = "",
+      evidence = null
     ) {
+      const observedEvidence = evidence || createCheckEvidence({
+        name,
+        headers,
+        finalTarget,
+        responseStatus: response.status,
+        contentType: headers.get("content-type")
+      });
+
       checks.push({
         name,
         status,
         message,
-        ...(fix ? { fix } : {})
+        ...(fix ? { fix } : {}),
+        ...(observedEvidence ? { evidence: observedEvidence } : {})
       });
     }
 
@@ -666,7 +744,13 @@ if (
         "HSTS",
         "WARNING",
         "HSTS header was not detected.",
-        "Enable Strict-Transport-Security with an appropriate max-age."
+        "Enable Strict-Transport-Security with an appropriate max-age.",
+        {
+          source: "HTTP response header",
+          signal: "strict-transport-security",
+          observed: "Header not present",
+          expected: "Strict-Transport-Security with max-age of at least 31536000 seconds"
+        }
       );
     }
 
@@ -681,7 +765,13 @@ if (
         "Content Security Policy",
         "WARNING",
         "Content-Security-Policy was not detected.",
-        "Add a carefully configured Content-Security-Policy header."
+        "Add a carefully configured Content-Security-Policy header.",
+        {
+          source: "HTTP response header",
+          signal: "content-security-policy",
+          observed: "Header not present",
+          expected: "A site-specific Content-Security-Policy header"
+        }
       );
     } else if (
       /'unsafe-inline'/i.test(csp) ||
@@ -720,7 +810,13 @@ if (
         "Clickjacking Protection",
         "WARNING",
         "No clear clickjacking protection was detected.",
-        "Add X-Frame-Options or CSP frame-ancestors."
+        "Add X-Frame-Options or CSP frame-ancestors.",
+        {
+          source: "HTTP response headers",
+          signal: "x-frame-options / content-security-policy frame-ancestors",
+          observed: `X-Frame-Options: ${xFrame || "not present"}; CSP frame-ancestors: ${frameAncestors ? "present" : "not present"}`,
+          expected: "X-Frame-Options or a Content-Security-Policy frame-ancestors directive"
+        }
       );
     }
 
@@ -746,7 +842,13 @@ if (
         "X-Content-Type-Options",
         "WARNING",
         "X-Content-Type-Options: nosniff was not detected.",
-        "Add X-Content-Type-Options: nosniff."
+        "Add X-Content-Type-Options: nosniff.",
+        {
+          source: "HTTP response header",
+          signal: "x-content-type-options",
+          observed: xContentType || "Header not present",
+          expected: "X-Content-Type-Options: nosniff"
+        }
       );
     }
 
@@ -2814,49 +2916,15 @@ for (
     }
 
     // SCORE — Conservative Security Configuration Score
-    const totalChecks = checks.length;
-
-    const passed = checks.filter(
-      c => c.status === "PASS"
-    ).length;
-
-    const warnings = checks.filter(
-      c => c.status === "WARNING"
-    ).length;
-
-    const informational = checks.filter(
-      c => c.status === "INFO"
-    ).length;
-
-    // INFO findings are neutral and must not dilute the score.
-    // PASS checks earn points; WARNING checks earn no points.
-    const scoredChecks = passed + warnings;
-    let score = 0;
-
-    if (scoredChecks > 0) {
-      score = Math.round(
-        (passed / scoredChecks) * 100
-      );
-    }
-
-    score = Math.max(
-      0,
-      Math.min(100, score)
-    );
-
-    let riskLevel = "Low";
-
-    if (
-      score < 50 ||
-      warnings >= 5
-    ) {
-      riskLevel = "High";
-    } else if (
-      score < 75 ||
-      warnings >= 2
-    ) {
-      riskLevel = "Medium";
-    }
+    const scoreResult = calculateScanScore(checks);
+    const {
+      totalChecks,
+      passed,
+      warnings,
+      informational,
+      score,
+      riskLevel
+    } = scoreResult;
 
     const scanId =
       "SA-" +
@@ -2865,6 +2933,30 @@ for (
       Math.random()
         .toString(36)
         .substring(2, 7);
+
+    if (scanReservationId) {
+      const { data: usageRecorded, error: usageCompleteError } = await supabaseAdmin.rpc(
+        "complete_scan_allowance",
+        {
+          p_reservation_id: scanReservationId,
+          p_resource_host: new URL(finalURL).hostname,
+          p_metadata: {
+            score,
+            risk_level: riskLevel,
+            check_count: totalChecks
+          }
+        }
+      );
+      if (usageCompleteError || usageRecorded !== true) {
+        console.error("Atomic scan usage completion failed:", usageCompleteError || "Reservation was not found.");
+        await supabaseAdmin.rpc("cancel_scan_allowance", {
+          p_reservation_id: scanReservationId
+        });
+        scanReservationId = null;
+        return res.status(503).json({ error: "Scan usage could not be recorded safely. Please try again." });
+      }
+      scanReservationId = null;
+    }
 
     return res.status(200).json({
       website: finalURL,
@@ -2888,8 +2980,29 @@ for (
         informational
       }
     });
+    } finally {
+      if (scanReservationId && supabaseAdmin) {
+        const { error: cancelError } = await supabaseAdmin.rpc("cancel_scan_allowance", {
+          p_reservation_id: scanReservationId
+        });
+        if (cancelError) {
+          console.error("Atomic scan allowance cancellation failed:", cancelError);
+        }
+        scanReservationId = null;
+      }
+    }
 
   } catch (error) {
+    if (scanReservationId && supabaseAdmin) {
+      const { error: cancelError } = await supabaseAdmin.rpc("cancel_scan_allowance", {
+        p_reservation_id: scanReservationId
+      });
+      if (cancelError) {
+        console.error("Atomic scan allowance cancellation failed:", cancelError);
+      }
+      scanReservationId = null;
+    }
+
     console.error(
       "Sentinel AI scan error:",
       error

@@ -1,9 +1,9 @@
 name: Main Security Hardening
 on:
   pull_request:
-    branches: [main]
+    branches: [main, integration/sentinel-evidence-2026-11]
   push:
-    branches: [security/main-hardening-2026-11-15]
+    branches: [reconcile/main-integration-2026-11-15]
 permissions:
   contents: read
 jobs:
