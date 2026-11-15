@@ -21,6 +21,7 @@ function normalizeWebsite(value) {
 
 export function normalizeMentorInput(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  if (typeof body.finding !== "string" || body.finding.trim().length > 160) return null;
   const finding = cleanText(body.finding, 160);
   if (!finding) return null;
 
