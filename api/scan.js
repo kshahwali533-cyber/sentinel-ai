@@ -1364,7 +1364,7 @@ if (html) {
     }
 
     const rawHref =
-      match[1]?.trim();
+      typeof match === "string" ? match.trim() : "";
 
     if (!rawHref) {
       continue;
@@ -1923,10 +1923,7 @@ function addLinkedResourceFinding(
 }
 
 if (html) {
-  const linkMatches =
-    html.matchAll(
-      /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi
-    );
+  const linkMatches = extractHTMLLinks(html);
 
   let linkCount = 0;
   const linkLimit = 50;
@@ -1941,7 +1938,7 @@ if (html) {
     }
 
     const rawURL =
-      match[1]?.trim();
+      typeof match === "string" ? match.trim() : "";
 
     if (!rawURL) {
       continue;
