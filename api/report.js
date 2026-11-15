@@ -1,3 +1,10 @@
+import { normalizeEvidence } from "./_lib/security-evidence.js";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseAdmin = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+  : null;
+
 export default async function handler(req, res) {
 
   if (req.method !== "POST") {
@@ -9,6 +16,22 @@ export default async function handler(req, res) {
   try {
 
     const body = req.body;
+
+    let authenticatedUser = null;
+    const authorization = req.headers?.authorization || "";
+    if (authorization) {
+      const accessToken = typeof authorization === "string" && authorization.startsWith("Bearer ")
+        ? authorization.slice(7).trim()
+        : "";
+      if (!accessToken || !supabaseAdmin) {
+        return res.status(401).json({ error: "A valid signed-in session is required." });
+      }
+      const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(accessToken);
+      if (authError || !authData?.user?.id) {
+        return res.status(401).json({ error: "Your session is invalid. Please sign in again." });
+      }
+      authenticatedUser = authData.user;
+    }
 
     if (!body || typeof body !== "object" || Array.isArray(body)) {
       return res.status(400).json({
@@ -81,6 +104,24 @@ export default async function handler(req, res) {
         : fallback;
 
     for (const check of checks) {
+      if (check.evidence !== undefined &&
+          (!check.evidence || typeof check.evidence !== "object" || Array.isArray(check.evidence))) {
+        return res.status(400).json({
+          error: "Security evidence must be a valid object."
+        });
+      }
+
+      if (check.evidence) {
+        for (const field of ["source", "signal", "observed", "expected"]) {
+          if (check.evidence[field] !== undefined &&
+              (typeof check.evidence[field] !== "string" || check.evidence[field].length > 2000)) {
+            return res.status(400).json({
+              error: "Security evidence contains an invalid or oversized field."
+            });
+          }
+        }
+      }
+
       for (const field of ["name", "title", "status", "message", "description", "fix", "recommendation"]) {
         if (check[field] !== undefined &&
             (typeof check[field] !== "string" || check[field].length > 2000)) {
@@ -122,6 +163,10 @@ export default async function handler(req, res) {
         String(check?.status || "").toLowerCase() === "informational"
     ).length;
 
+    const evidenceBackedFindings = checks.filter(
+      check => normalizeEvidence(check.evidence) !== null
+    ).length;
+
     const priorityFindings = checks
       .filter(
         check =>
@@ -142,7 +187,10 @@ export default async function handler(req, res) {
           check.fix || check.recommendation,
           500,
           "Review and improve this security configuration."
-        )
+        ),
+        ...(normalizeEvidence(check.evidence)
+          ? { evidence: normalizeEvidence(check.evidence) }
+          : {})
       }));
 
     const recommendations = priorityFindings.map(
@@ -169,7 +217,8 @@ export default async function handler(req, res) {
         passed,
         warnings,
         informational,
-        priorityIssues: priorityFindings.length
+        priorityIssues: priorityFindings.length,
+        evidenceBackedFindings
       },
 
       priorityFindings,
@@ -181,6 +230,16 @@ export default async function handler(req, res) {
       disclaimer:
         "Sentinel AI provides security-awareness and defensive guidance based on publicly observable security signals. It is not a substitute for a complete professional security assessment."
     };
+
+    if (authenticatedUser && supabaseAdmin) {
+      const { error: usageError } = await supabaseAdmin.from("usage_events").insert({
+        user_id: authenticatedUser.id,
+        event_type: "report.generated",
+        resource_host: new URL(website).hostname,
+        metadata: { security_score: securityScore, risk_level: riskLevel }
+      });
+      if (usageError) console.error("Report usage event could not be recorded:", usageError);
+    }
 
     return res.status(200).json({
       success: true,
