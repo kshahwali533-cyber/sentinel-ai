@@ -1,4 +1,4 @@
-import { normalizeMentorInput, normalizeMentorResponse } from "./_lib/mentor-validation.js";
+import { buildMentorFallback, normalizeMentorInput, normalizeMentorResponse } from "./_lib/mentor-validation.js";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin =
@@ -538,15 +538,7 @@ Do not provide exploitation instructions or invent facts about the website.`
       success: true,
       aiPowered: false,
       fallback: true,
-      assistant: {
-        title: finding,
-        severity: severity || "Unknown",
-        explanation: guidance.explanation,
-        why_it_matters: guidance.why_it_matters,
-        defensive_action: guidance.defensive_action,
-        steps: guidance.steps,
-        verification: guidance.verification
-      }
+      assistant: buildMentorFallback(mentorInput, fallbackGuidance)
     });
 
   } catch (error) {
