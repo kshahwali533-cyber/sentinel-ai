@@ -26,12 +26,6 @@
       ]
     }
   ],
-  "crons": [
-    {
-      "path": "/api/monitoring-run",
-      "schedule": "0 2 * * *"
-    }
-  ],
   "functions": {
     "api/monitoring-run.js": {
       "maxDuration": 300
