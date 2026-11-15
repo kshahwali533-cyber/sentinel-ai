@@ -29,6 +29,6 @@ test("delegated action script parses", () => {
 });
 
 test("professional report loads the external delegated print handler", () => {
-  assert.ok(html.includes('<script defer src="$' + '{safe(window.location.origin)}/sentinel-actions.js><\\/script>'));
+  assert.ok(html.includes('<script defer src="$' + '{safe(window.location.origin)}/sentinel-actions.js"><\\/script>'));
   assert.match(html, /data-action="print-report"/);
 });
