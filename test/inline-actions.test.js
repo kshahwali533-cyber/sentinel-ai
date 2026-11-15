@@ -4,7 +4,7 @@ import fs from "node:fs";
 import vm from "node:vm";
 
 const html = fs.readFileSync("index.html", "utf8");
-const actions = fs.readFileSync("public/sentinel-actions.js", "utf8");
+const actions = fs.readFileSync("sentinel-actions.js", "utf8");
 
 test("all former inline click and change handlers are removed", () => {
   assert.equal((html.match(/\son(?:click|change)\s*=/gi) || []).length, 0);
