@@ -7,9 +7,10 @@ export function calculateScanScore(checks) {
     throw new TypeError("checks must be an array.");
   }
 
-  const passed = checks.filter(check => check?.status === "PASS").length;
-  const warnings = checks.filter(check => check?.status === "WARNING").length;
-  const informational = checks.filter(check => check?.status === "INFO").length;
+  const statuses = checks.map(check => String(check?.status || "").toUpperCase());
+  const passed = statuses.filter(status => status === "PASS" || status === "PASSED").length;
+  const warnings = statuses.filter(status => status === "WARNING" || status === "WARN").length;
+  const informational = statuses.filter(status => status === "INFO" || status === "INFORMATIONAL").length;
   const scoredChecks = passed + warnings;
 
   const score = scoredChecks === 0
