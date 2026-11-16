@@ -61,8 +61,8 @@ test("report API rejects invalid scores and oversized check arrays", async () =>
 test("report API creates accurate summaries and normalized evidence", async () => {
   const result = await invoke({
     website: "https://example.com",
-    securityScore: 75,
-    riskLevel: "Medium",
+    securityScore: 100,
+    riskLevel: "Low",
     scanId: "scan-test-001",
     checks: [
       {
@@ -87,6 +87,8 @@ test("report API creates accurate summaries and normalized evidence", async () =
   assert.equal(result.payload.success, true);
   assert.equal(result.payload.report.website, "https://example.com");
   assert.equal(result.payload.report.scanId, "scan-test-001");
+  assert.equal(result.payload.report.securityScore, 50);
+  assert.equal(result.payload.report.riskLevel, "Medium");
   assert.deepEqual(result.payload.report.executiveSummary, {
     totalChecks: 3,
     passed: 1,
