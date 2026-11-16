@@ -31,7 +31,7 @@
           console.error("Sentinel scanner handler is unavailable.");
           break;
         }
-        Promise.resolve(window.runSecurityScan(data.rescan === "true")).catch((error) => {
+        Promise.resolve().then(() => window.runSecurityScan(data.rescan === "true")).catch((error) => {
           if (result) {
             result.classList.remove("is-hidden");
             result.textContent = "❌ Scanner could not start: " + (error?.message || "Unexpected error.");
