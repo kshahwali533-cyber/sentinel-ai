@@ -21,7 +21,25 @@
       case "sign-in-user": window.signInUser(); break;
       case "update-password": window.updatePassword(); break;
       case "sign-out-user": window.signOutUser(); break;
-      case "run-security-scan": window.runSecurityScan(data.rescan === "true"); break;
+      case "run-security-scan": {
+        const result = document.getElementById("result");
+        if (typeof window.runSecurityScan !== "function") {
+          if (result) {
+            result.classList.remove("is-hidden");
+            result.textContent = "❌ Scanner could not start because its script did not load. Please refresh and try again.";
+          }
+          console.error("Sentinel scanner handler is unavailable.");
+          break;
+        }
+        Promise.resolve(window.runSecurityScan(data.rescan === "true")).catch((error) => {
+          if (result) {
+            result.classList.remove("is-hidden");
+            result.textContent = "❌ Scanner could not start: " + (error?.message || "Unexpected error.");
+          }
+          console.error("Sentinel scanner launch error:", error);
+        });
+        break;
+      }
       case "clear-scan-history": window.clearScanHistory(); break;
       case "add-monitoring-site": window.addMonitoringSite(); break;
       case "lookup-vulnerability": window.lookupVulnerability(); break;
