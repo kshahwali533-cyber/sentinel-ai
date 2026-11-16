@@ -6,7 +6,7 @@ test("uses the proxy-provided x-real-ip address", () => {
   assert.equal(getTrustedClientIp({ "x-real-ip": "203.0.113.9" }, "10.0.0.1"), "203.0.113.9");
 });
 
-test("does not trust a caller-controlled x-forwarded-for value", () => {
+test("falls back to the socket address when x-real-ip is unavailable", () => {
   assert.equal(getTrustedClientIp({ "x-forwarded-for": "198.51.100.7" }, "10.0.0.1"), "10.0.0.1");
 });
 
