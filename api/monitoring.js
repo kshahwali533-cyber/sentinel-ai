@@ -65,7 +65,12 @@ export default async function handler(req, res) {
     const siteId = typeof body.siteId === "string" ? body.siteId : "";
 
     if (action === "add") {
-      const target = normalizeMonitoringTarget(body.url);
+      let target;
+      try {
+        target = normalizeMonitoringTarget(body.url);
+      } catch (error) {
+        return send(res, 400, { error: error.message });
+      }
       const { count, error: countError } = await supabaseAdmin
         .from("monitoring_sites").select("id", { count: "exact", head: true })
         .eq("user_id", user.id);
