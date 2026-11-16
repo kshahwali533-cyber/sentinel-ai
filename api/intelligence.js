@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { readTextLimited } from "./_lib/read-limited.js";
 import {
   normalizeCveId,
   normalizeNvdCve,
@@ -52,8 +53,21 @@ async function fetchJson(url, timeoutMs, maxBytes, headers = {}) {
     error.status = response.status;
     throw error;
   }
-  const text = await response.text();
-  if (text.length > maxBytes) throw new Error("UPSTREAM_RESPONSE_TOO_LARGE");
+  let text;
+  try {
+    // Enforce the limit while streaming so an oversized provider response
+    // cannot be fully buffered in memory before it is rejected.
+    text = await readTextLimited(response, maxBytes, timeoutMs);
+  } catch (error) {
+    const code = error?.code === "RESPONSE_TOO_LARGE"
+      ? "UPSTREAM_RESPONSE_TOO_LARGE"
+      : error?.code === "RESPONSE_BODY_TIMEOUT"
+        ? "UPSTREAM_BODY_TIMEOUT"
+        : "UPSTREAM_BODY_READ_FAILED";
+    const upstreamError = new Error(code);
+    upstreamError.cause = error;
+    throw upstreamError;
+  }
   return JSON.parse(text);
 }
 
