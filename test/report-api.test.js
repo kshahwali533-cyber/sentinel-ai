@@ -67,7 +67,7 @@ test("report API creates accurate summaries and normalized evidence", async () =
     checks: [
       {
         name: "Content Security Policy",
-        status: "WARNING",
+        status: "WARN",
         message: "CSP header is missing.",
         fix: "Configure a site-specific CSP.",
         evidence: {
