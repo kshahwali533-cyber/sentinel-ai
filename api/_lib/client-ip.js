@@ -1,8 +1,9 @@
 import net from "node:net";
 
 /**
- * Resolve the client address from Vercel's proxy-populated x-real-ip header.
- * Do not trust x-forwarded-for: callers can supply spoofed values in that list.
+ * Resolve the client address from Vercel's documented x-real-ip header.
+ * Vercel documents this as identical to x-forwarded-for; validate the value
+ * and fall back to the socket address if the trusted header is unavailable.
  */
 export function getTrustedClientIp(headers = {}, remoteAddress) {
   const candidate = typeof headers?.["x-real-ip"] === "string"
