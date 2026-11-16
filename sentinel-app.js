@@ -118,6 +118,13 @@ if (error) {
           "☁️ Cloud history is active for your account.";
       }
 
+      const intelStatus = document.getElementById("intelStatus");
+      if (intelStatus) {
+        intelStatus.className = "notice";
+        intelStatus.textContent =
+          "Enter an exact CVE ID to search NIST NVD and the CISA KEV catalog.";
+      }
+
       await loadSupabaseHistory();
       await loadMonitoringDashboard();
       await loadAnalyticsDashboard();
