@@ -107,11 +107,16 @@ export default async function handler(req, res) {
     const orgId = typeof body.organizationId === "string" ? body.organizationId : "";
 
     if (action === "create") {
+      let name;
+      try {
+        name = normalizeOrganizationName(body.name);
+      } catch (error) {
+        return send(res, 400, { error: error.message });
+      }
       const { count, error: countError } = await supabaseAdmin.from("organization_members")
         .select("organization_id", { count: "exact", head: true }).eq("user_id", user.id);
       if (countError) throw countError;
       if ((count || 0) >= 3) return send(res, 429, { error: "The beta limit is three workspaces per account." });
-      const name = normalizeOrganizationName(body.name);
       const slug = slugifyOrganizationName(name) + "-" + randomBytes(3).toString("hex");
       const { data, error } = await supabaseAdmin.rpc("create_organization_with_owner", {
         p_user_id: user.id, p_name: name, p_slug: slug
@@ -147,7 +152,7 @@ export default async function handler(req, res) {
       }
       const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
       const role = ["admin", "member", "analyst"].includes(body.role) ? body.role : "member";
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      if (!isValidOrganizationInviteEmail(email)) {
         return send(res, 400, { error: "Enter a valid invitation email address." });
       }
       const [{ count: memberCount, error: memberCountError }, { count: inviteCount, error: inviteCountError }] = await Promise.all([
