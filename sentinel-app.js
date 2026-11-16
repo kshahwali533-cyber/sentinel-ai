@@ -1196,6 +1196,9 @@ trackSentinelEvent("scan_failed");
 }
 
 
+// Explicitly expose the scanner for the delegated action handler.
+window.runSecurityScan = runSecurityScan;
+
 /* =========================
    DISPLAY RESULTS
 ========================= */
