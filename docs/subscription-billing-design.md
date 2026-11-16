@@ -88,14 +88,23 @@ Webhook processing must tolerate retries, duplicates, delayed events and out-of-
 
 ## 8. Payment provider selection
 
-Provider is deliberately undecided. Before implementation, compare providers for:
-- Pakistani business/individual eligibility and settlement to the owner's bank account.
-- International card acceptance and supported customer countries.
-- Recurring subscriptions, hosted checkout, customer portal and signed webhooks.
-- Refunds, disputes, taxes, invoice support, fees and payout timing.
-- Required business registration, KYC and compliance documentation.
+**Preferred first candidate: Paddle, subject to successful seller onboarding and payout verification for the owner in Pakistan.** This is a research recommendation, not a connected or approved payment account.
 
-Do not assume Stripe availability or create an account on the owner's behalf. Do not connect a provider, enter credentials, or enable live mode without explicit approval.
+Official documentation checked on 2026-11-17:
+- Paddle's supplier-country help page lists countries it cannot support; Pakistan is not on that list. Paddle may still request additional compliance information or hold/review payments, so this is not a guarantee of account approval.
+- Paddle says sellers can receive monthly payouts by bank/wire transfer or Payoneer. The published minimum payout threshold is USD 100 (or equivalent in GBP/EUR); payout timing is generally between the 2nd and 15th of the month after the threshold is met.
+- Paddle's listed payout currencies do not include PKR. A USD or other supported-currency payout may be converted by the receiving bank/provider, with possible bank or intermediary fees. Confirm the exact Pakistan payout route, account eligibility, and fees directly in the seller onboarding/dashboard before relying on it.
+- Paddle acts as merchant of record and supports sales in 200+ countries/territories, subject to its supported-country and compliance rules.
+- Stripe's public global availability list does not currently list Pakistan as a supported account country. Do not design the first release around a Pakistan-based Stripe account.
+
+Provider decision gate:
+1. Owner independently completes Paddle seller onboarding and KYC.
+2. Confirm Paddle accepts the owner's actual legal/business profile and Pakistan payout destination.
+3. Confirm whether Payoneer or a bank wire is available for that account, the payout currency, fees, threshold and expected settlement time.
+4. Confirm recurring subscription, customer portal, cancellation, refund and webhook capabilities in the approved account.
+5. Only then approve Paddle as the implementation provider. If onboarding or payout fails, evaluate a Pakistan-capable alternative such as Safepay before coding provider-specific integration.
+
+Do not connect a provider, enter credentials, or enable live mode without explicit approval. Never use another person's country, identity, bank account or false business details to bypass eligibility.
 
 ## 9. UI surfaces
 
@@ -109,7 +118,7 @@ Do not assume Stripe availability or create an account on the owner's behalf. Do
 ## 10. Delivery phases and acceptance gates
 
 1. Confirm product plans, prices, limits, currency, tax policy and target markets.
-2. Select a provider that can onboard the owner and settle funds in Pakistan.
+2. Complete provider seller onboarding and verify settlement to the owner's Pakistan payout destination.
 3. Approve provider connection and create test-mode credentials outside chat.
 4. Add schema migration and RLS; review before applying to Supabase.
 5. Implement provider adapter, checkout, webhook and subscription APIs on a feature branch.
