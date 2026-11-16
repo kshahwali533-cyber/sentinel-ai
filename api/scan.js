@@ -11,6 +11,7 @@ import { calculateScanScore } from "./_lib/scan-score.js";
 import { createCheckEvidence } from "./_lib/finding-validation.js";
 import { createClient } from "@supabase/supabase-js";
 import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
+import { getTrustedClientIp } from "./_lib/client-ip.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -46,10 +47,7 @@ if (
     error: "Invalid request body."
   });
 }
-    const clientIP =
-      req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-      req.socket?.remoteAddress ||
-      "unknown";
+    const clientIP = getTrustedClientIp(req.headers, req.socket?.remoteAddress);
         const RATE_LIMIT = 10;
     const RATE_WINDOW_MS = 60 * 60 * 1000;
     const rateWindowStart =
