@@ -1073,10 +1073,13 @@ trackEvent(
 );
 
   result.innerHTML = `
-    <div class="notice">
-      🛡️ Sentinel AI is checking the website...
-      <br><br>
-      Please wait.
+    <div class="notice scan-progress" role="status" aria-live="polite">
+      <span class="scan-spinner" aria-hidden="true"></span>
+      <div>
+        <strong>🛡️ Sentinel AI is scanning your website...</strong>
+        <br><br>
+        Connecting to the scanner and checking HTTPS and security headers. Please wait.
+      </div>
     </div>
   `;
 
