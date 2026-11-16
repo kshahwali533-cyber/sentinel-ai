@@ -1,5 +1,6 @@
 import { buildMentorFallback, normalizeMentorInput, normalizeMentorResponse } from "./_lib/mentor-validation.js";
 import { createClient } from "@supabase/supabase-js";
+import { getTrustedClientIp } from "./_lib/client-ip.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -102,11 +103,7 @@ export default async function handler(req, res) {
         });
       }
 
-      const clientIP =
-        req.headers["x-real-ip"]?.toString().trim() ||
-        req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ||
-        req.socket?.remoteAddress ||
-        "unknown";
+      const clientIP = getTrustedClientIp(req.headers, req.socket?.remoteAddress);
 
       const rateWindowMs = 60 * 60 * 1000;
       const rateWindowStart = new Date(
