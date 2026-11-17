@@ -11,6 +11,7 @@ import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 import { getTrustedClientIp } from "./_lib/client-ip.js";
 import { createSafeFetch } from "./_lib/safe-fetch.js";
 import { createPinnedRequest } from "./_lib/pinned-request.js";
+import { isSameSiteRedirectHost } from "./_lib/scan-target-identity.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -407,6 +408,16 @@ if (!hostname) {
 
     const response =
       mainResult.response;
+
+    // Never attribute a third-party redirect/challenge response to the
+    // hostname the user originally asked Sentinel AI to scan.
+    if (!isSameSiteRedirectHost(target.hostname, mainResult.finalURL.hostname)) {
+      await response.body?.cancel();
+      return res.status(422).json({
+        code: "TARGET_REDIRECTED_OFF_SITE",
+        error: "The website redirected to a different domain. Sentinel AI stopped the scan to avoid reporting another website's security headers as the original target's results. Scan the final domain separately if you are authorized to do so."
+      });
+    }
 
     // A 401/403 response is not a reliable representation of the
     // protected page. Do not calculate or save a misleading security score.
