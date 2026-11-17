@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { isVerifiedMemberAsset } from "./_lib/team-assets.js";
+import { getAvailableAssetOwnerIds, isVerifiedMemberAsset } from "./_lib/team-assets.js";
 
 const admin = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
   ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
@@ -45,13 +45,15 @@ export default async function handler(req, res) {
         .select("user_id").eq("organization_id", orgId);
       if (membersError) throw membersError;
       const memberIds = (members || []).map((item) => item.user_id);
+      const canManageAssets = ["owner", "admin"].includes(membership.role);
+      const availableOwnerIds = getAvailableAssetOwnerIds(membership.role, memberIds);
       const [shared, available] = await Promise.all([
         admin.from("organization_assets")
           .select("id,created_at,monitoring_site:monitoring_sites(id,url,hostname,status,last_scan_at,last_score,last_risk_level,verified_at)")
           .eq("organization_id", orgId).order("created_at", { ascending: false }).limit(50),
-        memberIds.length ? admin.from("monitoring_sites")
+        availableOwnerIds.length ? admin.from("monitoring_sites")
           .select("id,url,hostname,status,last_scan_at,last_score,last_risk_level,verified_at")
-          .in("user_id", memberIds).not("verified_at", "is", null)
+          .in("user_id", availableOwnerIds).not("verified_at", "is", null)
           .order("created_at", { ascending: false }).limit(50)
           : Promise.resolve({ data: [], error: null })
       ]);
@@ -61,7 +63,7 @@ export default async function handler(req, res) {
       return reply(res, 200, {
         assets: shared.data || [],
         available_assets: (available.data || []).filter((item) => !sharedIds.has(item.id)),
-        can_manage: ["owner", "admin"].includes(membership.role),
+        can_manage: canManageAssets,
         sharing_enabled: assetSharingEnabled
       });
     }
