@@ -6,7 +6,7 @@
 export function isSameSiteRedirectHost(originalHostname, finalHostname) {
   const normalize = value => {
     if (typeof value !== "string") return "";
-    let host = value.trim().toLowerCase().replace(/\\.$/, "");
+    let host = value.trim().toLowerCase().replace(/\.$/, "");
     if (host.startsWith("[") && host.endsWith("]")) {
       host = host.slice(1, -1);
     }
