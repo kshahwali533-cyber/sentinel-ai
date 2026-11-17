@@ -214,3 +214,35 @@ jobs:
 
           console.log("Vercel security response header configuration passed.");
           NODE
+
+      - name: Verify manual redirect safety guards
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const source = fs.readFileSync("api/scan.js", "utf8");
+          const requestStart = source.indexOf("async function requestPinned(");
+          const safeFetchStart = source.indexOf("async function safeFetch(");
+          const safeFetchEnd = source.indexOf("\n    let mainResult;", safeFetchStart);
+
+          if (requestStart < 0 || safeFetchStart < 0 || safeFetchEnd < 0) {
+            throw new Error("Pinned request or safe redirect handler is missing.");
+          }
+
+          const requestBlock = source.slice(requestStart, safeFetchStart);
+          const redirectBlock = source.slice(safeFetchStart, safeFetchEnd);
+
+          for (const [description, condition] of [
+            ["scanner must use the pinned native HTTP transport", /transport\\.request\\(/.test(requestBlock)],
+            ["each redirect hop must validate its current destination", /validateTargetURL\\(currentURL\\)/.test(redirectBlock)],
+            ["redirect responses must be handled explicitly", /response\\.status >= 300[\\s\\S]*?response\\.status < 400/.test(redirectBlock)],
+            ["redirect Location must be resolved relative to the current URL", /new URL\\(\\s*location,\\s*currentURL\\.href\\s*\\)/.test(redirectBlock)],
+            ["redirect targets must be validated before the next request", /validateTargetURL\\(nextURL\\)/.test(redirectBlock)],
+            ["private/local redirect destinations must be blocked", /SSRF_REDIRECT_BLOCKED/.test(redirectBlock)],
+            ["redirect loops must be bounded to five hops", /const maxRedirects = 5/.test(redirectBlock) && /TOO_MANY_REDIRECTS/.test(redirectBlock)],
+            ["redirect response bodies must be cancelled before continuing", /response\\.body\\?\\.cancel\\(\\)/.test(redirectBlock)]
+          ]) {
+            if (!condition) throw new Error(`Redirect safety check failed: ${description}`);
+            console.log(`PASS: ${description}`);
+          }
+          NODE
