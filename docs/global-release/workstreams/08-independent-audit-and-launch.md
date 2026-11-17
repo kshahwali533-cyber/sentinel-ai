@@ -31,3 +31,10 @@ No unresolved critical/high findings; all material findings have documented disp
 - Open findings:
 - Retest:
 - Decision: NOT STARTED / IN PROGRESS / PASS / FAIL
+
+## Preparation update — 2026-11-18
+
+- [x] **AUD-01 draft scope:** `docs/global-release/REVIEWER-PACK.md` defines proposed assessment boundaries, in-scope components, prohibited activities and required evidence. This is a draft scope, not signed authorization.
+- [x] **AUD-02 reviewer pack draft:** the same document records architecture/data flows, currently evidenced controls, known gaps and release decision.
+- [ ] **AUD-03 to AUD-06:** no assessor has been selected or commissioned; no independent assessment or retest has occurred.
+- [ ] **AUD-07:** current decision remains **NO-GO** for Global Ready Release until all critical gaps are closed and independent assessment is completed.
