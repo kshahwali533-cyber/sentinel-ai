@@ -184,3 +184,40 @@ test("validates the redirect target before requesting it", async () => {
     "request:next.test"
   ]);
 });
+
+test("validates and pins an absolute cross-origin redirect independently", async () => {
+  const validations = [];
+  const requests = [];
+
+  const safeFetch = createSafeFetch({
+    validateTargetURL: async url => {
+      validations.push(url.hostname);
+      return {
+        safe: true,
+        addresses: [{
+          address: url.hostname === "start.test" ? "93.184.216.34" : "203.0.113.20",
+          family: 4
+        }]
+      };
+    },
+    requestPinned: async (url, addresses) => {
+      requests.push({
+        hostname: url.hostname,
+        address: addresses[0].address
+      });
+      return url.hostname === "start.test"
+        ? makeResponse(302, "https://cdn.test/landing")
+        : makeResponse(200);
+    }
+  });
+
+  const result = await safeFetch(new URL("https://start.test/"));
+
+  assert.equal(result.response.status, 200);
+  assert.equal(result.finalURL.href, "https://cdn.test/landing");
+  assert.deepEqual(validations, ["start.test", "cdn.test"]);
+  assert.deepEqual(requests, [
+    { hostname: "start.test", address: "93.184.216.34" },
+    { hostname: "cdn.test", address: "203.0.113.20" }
+  ]);
+});
