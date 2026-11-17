@@ -19,3 +19,11 @@ test("scanner refuses to score an unrelated cross-domain redirect response", () 
   const scoringIndex = source.indexOf("const checks = []", guardIndex);
   assert.ok(guardIndex >= 0 && scoringIndex > guardIndex, "off-site redirect guard must run before security checks are scored");
 });
+
+test("scanner does not score target rate limits, server errors or incomplete redirects", () => {
+  assert.match(source, /code: "TARGET_RATE_LIMITED"/);
+  assert.match(source, /code: response\.status >= 500 \? "TARGET_UPSTREAM_ERROR" : "TARGET_REDIRECT_INCOMPLETE"/);
+  const guardIndex = source.indexOf('code: "TARGET_RATE_LIMITED"');
+  const scoringIndex = source.indexOf("const checks = []", guardIndex);
+  assert.ok(guardIndex >= 0 && scoringIndex > guardIndex, "unreliable upstream responses must be rejected before scoring");
+});
