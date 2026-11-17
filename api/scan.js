@@ -12,6 +12,7 @@ import { createCheckEvidence } from "./_lib/finding-validation.js";
 import { createClient } from "@supabase/supabase-js";
 import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 import { getTrustedClientIp } from "./_lib/client-ip.js";
+import { createSafeFetch } from "./_lib/safe-fetch.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -439,117 +440,10 @@ if (!hostname) {
       });
     }
 
-    async function safeFetch(startURL, options = {}) {
-      let currentURL =
-        new URL(startURL.href);
-
-      const maxRedirects = 5;
-
-      for (
-        let redirectCount = 0;
-        redirectCount <= maxRedirects;
-        redirectCount++
-      ) {
-        const validation =
-          await validateTargetURL(currentURL);
-
-        if (!validation.safe) {
-          const error =
-            new Error(validation.reason);
-
-          error.code = "SSRF_BLOCKED";
-
-          throw error;
-        }
-
-        const response = await requestPinned(
-          currentURL,
-          validation.addresses,
-          options
-        );
-
-        /*
-         * Handle redirects manually so every redirect
-         * destination is validated before the next request.
-         */
-        if (
-          response.status >= 300 &&
-          response.status < 400
-        ) {
-          const location =
-            response.headers.get("location");
-
-          if (!location) {
-            return {
-              response,
-              finalURL: currentURL
-            };
-          }
-
-          if (
-            redirectCount >= maxRedirects
-          ) {
-            const error =
-              new Error(
-                "The website exceeded the maximum number of redirects."
-              );
-
-            error.code =
-              "TOO_MANY_REDIRECTS";
-
-            throw error;
-          }
-
-          let nextURL;
-
-          try {
-            nextURL =
-              new URL(
-                location,
-                currentURL.href
-              );
-          } catch {
-            const error =
-              new Error(
-                "The website returned an invalid redirect destination."
-              );
-
-            error.code =
-              "INVALID_REDIRECT";
-
-            throw error;
-          }
-
-          const nextValidation =
-            await validateTargetURL(nextURL);
-
-          if (!nextValidation.safe) {
-            const error =
-              new Error(
-                "The website redirected to a private or local destination."
-              );
-
-            error.code =
-              "SSRF_REDIRECT_BLOCKED";
-
-            throw error;
-          }
-
-          await response.body?.cancel();
-          currentURL = nextURL;
-          continue;
-        }
-
-        return {
-          response,
-          finalURL: currentURL
-        };
-      }
-
-      throw new Error(
-        "Unable to safely follow the website redirects."
-      );
-    }
+    const safeFetch = createSafeFetch({
+      validateTargetURL,
+      requestPinned
+    });
 
     let mainResult;
 
