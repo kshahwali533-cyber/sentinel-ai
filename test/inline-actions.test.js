@@ -31,7 +31,7 @@ test("professional report includes safe CSV export and report data payload", () 
   assert.match(app, /id="sentinelReportData"/);
   assert.match(app, /data-action="export-security-report-csv"/);
   assert.match(actions, /function exportSecurityReportCsv/);
-  assert.match(actions, /text\.replace\(\/\^\\\\s\*\[=\+@\\\\-\]\/\)/);
+  assert.match(actions, /if \(\/\^\\s\*\[=\+@\\-\]\/\.test\(text\)\)/);
 });
 
 test("Supabase SDK is deferred so it does not block initial HTML parsing", () => {
