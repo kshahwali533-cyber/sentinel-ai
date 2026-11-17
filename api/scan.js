@@ -419,6 +419,26 @@ if (!hostname) {
       });
     }
 
+    // Rate limits, server failures and incomplete redirects are not a
+    // trustworthy representation of the target's security posture.
+    if (response.status === 429) {
+      await response.body?.cancel();
+      return res.status(503).json({
+        code: "TARGET_RATE_LIMITED",
+        error: "The target website is temporarily rate limiting scan requests. Sentinel AI did not calculate a security score; try again later."
+      });
+    }
+
+    if (response.status >= 500 || (response.status >= 300 && response.status < 400 && !response.headers.get("location"))) {
+      await response.body?.cancel();
+      return res.status(502).json({
+        code: response.status >= 500 ? "TARGET_UPSTREAM_ERROR" : "TARGET_REDIRECT_INCOMPLETE",
+        error: response.status >= 500
+          ? "The target website returned a server error. Sentinel AI did not calculate a security score."
+          : "The target website returned an incomplete redirect without a destination. Sentinel AI did not calculate a security score."
+      });
+    }
+
     // A 401/403 response is not a reliable representation of the
     // protected page. Do not calculate or save a misleading security score.
     if ([401, 403].includes(response.status)) {
