@@ -27,6 +27,17 @@ test("all delegated UI actions are represented", () => {
   assert.equal(declared.size, 37);
 });
 
+test("professional report includes safe CSV export and report data payload", () => {
+  assert.match(app, /id="sentinelReportData"/);
+  assert.match(app, /data-action="export-security-report-csv"/);
+  assert.match(actions, /function exportSecurityReportCsv/);
+  assert.match(actions, /text\.replace\(\/\^\\\\s\*\[=\+@\\\\-\]\/\)/);
+});
+
+test("Supabase SDK is deferred so it does not block initial HTML parsing", () => {
+  assert.match(html, /<script defer src="https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@2"><\/script>/);
+});
+
 test("delegated action script parses", () => {
   assert.doesNotThrow(() => new vm.Script(actions));
 });
