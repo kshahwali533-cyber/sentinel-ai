@@ -1,63 +1,62 @@
-# Global Release — Execution Tracker
+# Sentinel AI — Global Release Execution Tracker
 
-Use this tracker as the day-to-day record. Update only after checking actual output.
+**Environment:** Preview branch only — `feature/final-release-audit-20261117`  
+**Current branch HEAD:** `b2126e25ac2ade2243afad0efc2812d7f48fb23d` (documentation-only release-gate update)  
+**Latest verified code commit:** `0ca55d6368d69123c7b262abdb19cd30b7229eef`  
+**Production Main:** `bb02efc80f8106c4cfe1e428e0fb9e4056f0e525` — unchanged by this work  
+**Release decision:** **NO-GO** until the blockers below are closed.
 
-## Current baseline
-- [x] Confirm Preview branch head and deployment URL: `https://project-3jyda-izab2j5rp-sentinel-ai14.vercel.app` (READY).
-- [x] Record exact commit SHA under test: `ede8d1e9b8c90acd438b5f636a3ce3079076a198`.
-- [x] Run repository CI/test workflow for that commit: run `44188841292` — SUCCESS.
-- [x] Inspect test-step results before proceeding: all 10 substantive workflow steps completed successfully; no failure logs were reported.
+## Workstream status
 
-## Active queue
-1. [ ] Workstream 1: seven security layers — read-only review and baseline tests.
-2. [ ] Workstream 2: scanner accuracy — reproduce redirect/429 attribution issue.
-3. [ ] Workstream 3: AI Mentor — CVSS formatting regression and evaluation cases.
-4. [ ] Workstream 4: monitoring — read-only Cron/Vault/dispatch verification.
-5. [ ] Workstream 5: reports — accuracy, export, print and mobile checks.
-6. [ ] Workstream 6: accounts/data — multi-account authorization and RLS review.
-7. [ ] Workstream 7: global performance/mobile/accessibility measurements.
-8. [ ] Workstream 8: independent audit, remediation and go/no-go.
+| # | Workstream | Current state | Remaining gate |
+|---|---|---|---|
+| 1 | Seven defensive security layers | PARTIAL PASS | Supabase leaked-password protection warning, custom WAF review, recovery/rollback and full edge/API audit |
+| 2 | Scanner accuracy, safety and evidence | PARTIAL PASS | Controlled redirect/429 fixture and scan-history/report target-identity verification |
+| 3 | AI Security Mentor | PARTIAL PASS | Live provider test in isolated Preview, curated quality evaluation, CVSS UI regression and human review |
+| 4 | Continuous monitoring | PARTIAL PASS | One owner-controlled domain must complete DNS verification; zero runs/alerts currently; full lifecycle and cross-account test |
+| 5 | Reports and exports | PARTIAL PASS | Real browser/mobile print, large-report and end-to-end acceptance |
+| 6 | Accounts, permissions and data | PARTIAL PASS | Isolated two-account negative tests for auth, scans, teams, monitoring and reports |
+| 7 | Global/mobile readiness | NOT MEASURED | Custom domain, real device/browser matrix, accessibility, regional latency, load and rollback tests |
+| 8 | Independent audit and launch | IN PROGRESS — PREPARATION | Reviewer pack drafted; independent assessor, written scope, report and retest still required |
 
-## Issue register
-| ID | Severity | Description | Reproduction/evidence | Fix commit | Retest status |
-|---|---|---|---|---|---|
-| TBD | — | No issue is marked confirmed until reproduced | — | — | NOT RUN |
+## Verified evidence
 
-## Test run log
-| Date (UTC) | Commit | Environment | Command/suite | Result | Evidence |
-|---|---|---|---|---|---|
-| 2026-11-18 | `ede8d1e9b8c90acd438b5f636a3ce3079076a198` | Preview branch `feature/final-release-audit-20261117`; Vercel deployment READY | GitHub Actions run `44188841292`, job `134412493881` (`syntax-and-ssrf-guard`) | PASS for this workflow only | [Workflow run](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44188841292); [Preview deployment](https://project-3jyda-izab2j5rp-sentinel-ai14.vercel.app) |
-| 2026-11-18 | Supabase project `vceqmqwszvisvxxbgbfs` | Live database, read-only | Cron job status/history; Vault secret presence (boolean only); `net._http_response`; monitoring RLS and RPC grants; monitoring row counts | PARTIAL PASS: scheduler active, five Cron runs succeeded, five worker dispatches HTTP 200; E2E BLOCKED because zero verified sites/runs | `docs/global-release/workstreams/04-continuous-monitoring.md` |
+- GitHub Actions run [44191486142](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44191486142) passed on code commit `0ca55d6`: **167/167 unit tests**, production `npm audit` found **0 vulnerabilities**, browser-source privileged-secret guard passed, concurrent quota reservation, pinned DNS, security headers and manual redirect safety all passed.
+- Vercel Preview deployment for `0ca55d6` reached **READY**: [Preview](https://project-3jyda-2c4cfvaom-sentinel-ai14.vercel.app).
+- Scanner hardening now rejects unrelated cross-domain redirects, target HTTP 408/429/5xx and incomplete 3xx responses without calculating a score. Regression tests cover target identity and failure semantics.
+- Team asset API no longer enumerates unshared verified member domains for ordinary members; owners/admins retain asset-management discovery. Role and API-wiring tests were added.
+- Supabase read-only review: all 21 public tables have RLS enabled; no anon SELECT/INSERT table grants found; ownership/workspace policies and SECURITY DEFINER function privileges reviewed.
+- Supabase monitoring: 15-minute Cron job active; Vault secret presence confirmed without revealing its value; five recent Cron runs succeeded and five worker dispatches returned HTTP 200. **The worker claimed zero sites**: one site is pending DNS verification, with zero verified active sites, zero runs and zero alerts.
+- Vercel: SSO deployment protection enabled; no custom firewall config (default firewall applies); no runtime error clusters in the last 24 hours; no Preview branch-scoped runtime environment variables are configured.
+- Draft independent reviewer pack: `docs/global-release/REVIEWER-PACK.md`. Billing design remains design-only; no payment provider or paid plans are active.
 
-| 2026-11-18 | `0086e4dde9aec90d40264a18c7ac12c66185bd8d` | Preview branch; Vercel deployment READY | GitHub Actions run `44190045489` | PASS: 162 tests; quota concurrency; pinned DNS; response headers; manual redirect safety. One initial test failure on hostname trailing-dot normalization was corrected and rerun successfully. | [Workflow run](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44190045489); Workstreams 01–02 evidence notes |
+## Test log
 
-| 2026-11-18 | `faebcade760082f1de2c1fb3b02b089f342596da` | Preview branch; deployment for subsequent docs commit READY | GitHub Actions run `44190637546` | PASS: 165/165 unit tests; concurrent quota reservation; pinned DNS; Vercel security headers; all manual redirect safety checks. Includes off-site redirect, HTTP 408/429/5xx and incomplete-redirect non-scoring guards. | [Workflow run](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44190637546); [Preview](https://project-3jyda-6hjgs1gb7-sentinel-ai14.vercel.app); Workstream 02 evidence |
+| Date (UTC) | Commit / system | Result | Evidence |
+|---|---|---|---|
+| 2026-11-18 | `0ca55d6` — Preview CI | PASS: 167/167 tests; 0 production dependency vulnerabilities; browser secret guard and all security workflow checks passed | [Run 44191486142](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44191486142) |
+| 2026-11-18 | Supabase live read-only checks | PARTIAL PASS: scheduler, Vault presence, dispatch, RLS/grants verified; end-to-end scan BLOCKED by no verified site | `workstreams/04-continuous-monitoring.md`, `workstreams/01-security-layers.md` |
+| 2026-11-18 | `69d04d4` — Preview CI | PASS: 167/167 tests; 0 production dependency vulnerabilities; quota, pinned DNS, headers and redirect guards passed | [Run 44191187763](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44191187763) |
+| 2026-11-18 | `faebcad` — scanner hardening CI | PASS: 165/165 tests; scanner redirect, timeout, rate-limit and upstream-error guards passed | [Run 44190637546](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44190637546) |
 
-| 2026-11-18 | `573c01fc600318a38bfbd631b691c873c0e81d0d` | Preview branch; docs deployment READY | GitHub Actions run `44190876266` | PASS: current suite and workflow gates passed; AI Mentor code-level checks documented. Separate read-only Supabase review found all 21 public tables RLS-enabled, no anon table read/write grants, and owner-scoped policies; live two-account authorization test remains open. | [Workflow run](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44190876266); Workstreams 01 and 03 |
+## Release blockers — do not mark Global Ready until resolved
 
-| 2026-11-18 | `69d04d48137d09ca61a75647747deaa222deb13a` | Preview branch; Vercel deployment READY | GitHub Actions run `44191187763` | PASS: production dependency audit found 0 vulnerabilities; 167/167 unit tests; quota concurrency, pinned DNS, response headers and manual redirect checks passed. Team asset privacy fix is included in branch history and separately tested. | [Workflow run](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44191187763); [Preview](https://project-3jyda-ifxr3445r-sentinel-ai14.vercel.app); Workstreams 01 and 06 |
+- [ ] Resolve Supabase Auth Advisor warning: **Leaked Password Protection is disabled**; enable only after owner-approved Auth configuration and signup/reset regression tests.
+- [ ] Provision an **isolated Preview/staging environment** with its own Supabase and AI-provider credentials. Never copy Production secrets into Preview.
+- [ ] Complete DNS TXT ownership verification for an owner-controlled monitoring test domain; run scheduled scan, alert, pause/resume/remove and cross-account tests.
+- [ ] Verify scanner original-target identity through scan history and report generation using controlled redirect/429 fixtures.
+- [ ] Complete two-account authorization tests across scans, monitoring, teams, invitations, research and reports.
+- [ ] Complete live AI provider evaluation and human review; verify CVSS UI presentation.
+- [ ] Complete report print/PDF/mobile and large-report acceptance.
+- [ ] Attach a custom brand domain; measure regional latency, mobile/browser compatibility, accessibility and load behavior.
+- [ ] Review/approve WAF policy; exercise recovery/rollback. Supabase Free has no scheduled backups/PITR.
+- [ ] Decide and implement email/webhook alert delivery if required; current alerts are in-app only.
+- [ ] Complete subscription billing. Current design is not an implementation; owner must complete provider onboarding and payout verification before integration/live mode.
+- [ ] Commission independent application-security/penetration testing; remediate and retest findings; publish only the actual tested scope.
 
-| 2026-11-18 | `0ca55d6368d69123c7b262abdb19cd30b7229eef` | Preview branch; Vercel deployment READY | GitHub Actions run `44191486142` | PASS: 167/167 tests; npm audit found 0 production vulnerabilities; browser source secret guard passed; quota concurrency, pinned DNS, security headers and redirect safety all passed. | [Workflow run](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44191486142); [Preview](https://project-3jyda-2c4cfvaom-sentinel-ai14.vercel.app); Workstream 01 |
+## Safety and status rules
 
-| 2026-11-18 | `0ca55d6368d69123c7b262abdb19cd30b7229eef` | Preview branch; deployment READY | GitHub Actions run `44191486142` | PASS: 167/167 tests; 0 production dependency vulnerabilities; browser secret guard; quota, pinned DNS, headers and redirect checks passed. Reviewer pack draft prepared in `docs/global-release/REVIEWER-PACK.md`; independent audit still not commissioned. | [Workflow run](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44191486142); [Preview](https://project-3jyda-2c4cfvaom-sentinel-ai14.vercel.app); Global Release reviewer pack |
-
-## Release blockers
-- [ ] No unresolved critical security findings.
-- [ ] Resolve Supabase Auth Advisor warning: Leaked Password Protection is disabled.
-- [ ] Provision isolated Preview environment variables; current audit branch has no branch-scoped variables (do not reuse Production secrets).
-- [ ] No unresolved high security findings.
-- [ ] Scanner target identity and upstream failure handling verified.
-- [ ] Monitoring authorization, scheduling, dispatch and isolation verified.
-- [ ] Authentication, RLS and cross-account isolation verified.
-- [ ] Reports and exports verified.
-- [ ] Mobile, browser, accessibility and regional performance evidence recorded.
-- [ ] Recovery/rollback procedure exercised.
-- [ ] Independent security assessment and retest completed.
-
-## Status vocabulary
-- **NOT RUN:** no test/evidence yet.
-- **BLOCKED:** cannot test because a dependency or permission is missing.
-- **FAIL:** tested and acceptance criteria not met.
-- **PASS:** acceptance criteria passed and evidence is linked.
-
-Never convert an estimate or code-presence check into PASS.
+- All changes remain on Preview until separately reviewed and approved. Do not merge to Main or alter production database/settings/secrets/WAF without explicit approval.
+- Scan only assets the owner has authorized. Use controlled fixtures for redirect, error and adversarial cases.
+- **NOT RUN:** no test/evidence. **BLOCKED:** dependency/permission missing. **FAIL:** acceptance criteria not met. **PASS:** criteria passed with linked evidence.
+- Code presence, CI success, Cron HTTP 200 or a READY deployment alone never proves full product readiness.
