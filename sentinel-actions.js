@@ -9,6 +9,65 @@
     return target && (!action || target.dataset.action === action) ? target : null;
   }
 
+  function exportSecurityReportCsv() {
+    const dataNode = document.getElementById("sentinelReportData");
+    if (!dataNode) {
+      window.alert("Report data is unavailable. Generate the report again.");
+      return;
+    }
+
+    let data;
+    try {
+      data = JSON.parse(dataNode.textContent || "{}");
+    } catch {
+      window.alert("The report data could not be read.");
+      return;
+    }
+
+    const report = data.report && typeof data.report === "object" ? data.report : {};
+    const checks = Array.isArray(data.checks) ? data.checks : [];
+    const cell = value => {
+      let text = value == null ? "" : String(value);
+      if (/^\\s*[=+@\\-]/.test(text)) text = "'" + text;
+      return '"' + text.replace(/"/g, '""').replace(/\\r?\\n/g, " ") + '"';
+    };
+
+    const rows = [
+      ["Website", report.website],
+      ["Scan ID", report.scanId],
+      ["Generated", report.generatedAt],
+      ["Security score", report.securityScore],
+      ["Risk level", report.riskLevel],
+      [],
+      ["Check", "Status", "Message", "Recommended fix", "Evidence source", "Observed", "Expected"]
+    ];
+
+    for (const check of checks) {
+      const evidence = check && check.evidence && typeof check.evidence === "object" ? check.evidence : {};
+      rows.push([
+        check?.name || check?.title || "Security Check",
+        check?.status || "INFO",
+        check?.message || check?.description || "",
+        check?.fix || check?.recommendation || "",
+        evidence.source || "",
+        evidence.observed || "",
+        evidence.expected || ""
+      ]);
+    }
+
+    const csv = "\\uFEFF" + rows.map(row => row.map(cell).join(",")).join("\\r\\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "sentinel-security-report.csv";
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   document.addEventListener("click", function (event) {
     const target = closestAction(event);
     if (!target) return;
@@ -50,6 +109,7 @@
       case "ask-security-mentor": window.askSecurityMentor(Number(data.index)); break;
       case "generate-professional-report": window.generateProfessionalReport(target); break;
       case "print-report": window.print(); break;
+      case "export-security-report-csv": exportSecurityReportCsv(); break;
       case "export-research-project": window.exportResearchProject(data.projectId); break;
       case "set-research-project-status": window.setResearchProjectStatus(data.projectId, data.status); break;
       case "delete-research-project": window.deleteResearchProject(data.projectId); break;
