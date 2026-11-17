@@ -8,10 +8,11 @@ const actions = fs.readFileSync("sentinel-actions.js", "utf8");
 const app = fs.readFileSync("sentinel-app.js", "utf8");
 const styles = fs.readFileSync("sentinel.css", "utf8");
 const reportStyles = fs.readFileSync("sentinel-report.css", "utf8");
+const supabaseVersion = JSON.parse(fs.readFileSync("package.json", "utf8")).dependencies["@supabase/supabase-js"];
 
 test("all former inline click and change handlers are removed", () => {
   assert.equal((html.match(/\son(?:click|change)\s*=/gi) || []).length, 0);
-  assert.equal(((html + app).match(/data-action="/g) || []).length, 38);
+  assert.equal(((html + app).match(/data-action="/g) || []).length, 39);
   assert.match(html, /<script defer src="\/sentinel-actions\.js"><\/script>/);
   assert.match(actions, /document\.addEventListener\("click"/);
   assert.match(actions, /document\.addEventListener\("change"/);
@@ -24,7 +25,18 @@ test("all delegated UI actions are represented", () => {
     assert.ok(clickCases.has(action) || action === "update-research-finding-status",
       "Missing delegated handler: " + action);
   }
-  assert.equal(declared.size, 36);
+  assert.equal(declared.size, 37);
+});
+
+test("professional report includes safe CSV export and report data payload", () => {
+  assert.match(app, /id="sentinelReportData"/);
+  assert.match(app, /data-action="export-security-report-csv"/);
+  assert.match(actions, /function exportSecurityReportCsv/);
+  assert.match(actions, /if \(\/\^\\s\*\[=\+@\\-\]\/\.test\(text\)\)/);
+});
+
+test("Supabase SDK is deferred so it does not block initial HTML parsing", () => {
+  assert.ok(html.includes(`<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@${supabaseVersion}"></script>`));
 });
 
 test("delegated action script parses", () => {

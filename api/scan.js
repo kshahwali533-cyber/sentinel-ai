@@ -1,16 +1,16 @@
 import { extractHTMLLinks } from "./_lib/html-link-discovery.js";
 import dns from "node:dns/promises";
 import net from "node:net";
-import http from "node:http";
-import https from "node:https";
-import { Readable } from "node:stream";
-import { createPinnedLookup } from "./_lib/pinned-lookup.js";
 import { isPublicIP } from "./_lib/public-ip.js";
 import { readTextLimited } from "./_lib/read-limited.js";
 import { calculateScanScore } from "./_lib/scan-score.js";
 import { createCheckEvidence } from "./_lib/finding-validation.js";
+import { hasValidFrameProtection } from "./_lib/security-header-analysis.js";
 import { createClient } from "@supabase/supabase-js";
 import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
+import { getTrustedClientIp } from "./_lib/client-ip.js";
+import { createSafeFetch } from "./_lib/safe-fetch.js";
+import { createPinnedRequest } from "./_lib/pinned-request.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -46,10 +46,7 @@ if (
     error: "Invalid request body."
   });
 }
-    const clientIP =
-      req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-      req.socket?.remoteAddress ||
-      "unknown";
+    const clientIP = getTrustedClientIp(req.headers, req.socket?.remoteAddress);
         const RATE_LIMIT = 10;
     const RATE_WINDOW_MS = 60 * 60 * 1000;
     const rateWindowStart =
@@ -342,216 +339,12 @@ if (!hostname) {
      */
 
 
-    /*
-     * Connect only to an IP address that was resolved and validated
-     * immediately above. The custom lookup callback prevents Node's
-     * HTTP client from performing a second DNS lookup at connect time.
-     */
-    async function requestPinned(urlObject, validatedAddresses, options = {}) {
-      if (!Array.isArray(validatedAddresses) || validatedAddresses.length === 0) {
-        throw new Error("No validated destination addresses are available.");
-      }
+    const requestPinned = createPinnedRequest();
 
-      const normalizeHost = value => {
-        const normalized = String(value).toLowerCase();
-        return normalized.startsWith("[") && normalized.endsWith("]")
-          ? normalized.slice(1, -1)
-          : normalized;
-      };
-      const hostname = normalizeHost(urlObject.hostname);
-      const pinned = validatedAddresses[0];
-      const pinnedFamily = net.isIP(pinned.address);
-
-      if (!pinnedFamily || pinnedFamily !== pinned.family || !isPublicIP(pinned.address)) {
-        throw new Error("The validated destination address is not safe.");
-      }
-
-      const transport = urlObject.protocol === "https:" ? https : http;
-
-      return await new Promise((resolve, reject) => {
-        let settled = false;
-        const timeoutMs = options.timeout || 15000;
-
-        const request = transport.request({
-          protocol: urlObject.protocol,
-          hostname,
-          port: urlObject.port || undefined,
-          path: `${urlObject.pathname}${urlObject.search}`,
-          method: options.method || "GET",
-          headers: options.headers || {},
-          servername: net.isIP(hostname) ? undefined : hostname,
-          // Never let the transport resolve this hostname again after validation.
-          lookup: createPinnedLookup(hostname, pinned)
-        }, incoming => {
-          try {
-            const responseHeaders = new Headers();
-
-            for (const [name, value] of Object.entries(incoming.headers)) {
-              if (value === undefined) continue;
-
-              if (Array.isArray(value)) {
-                for (const item of value) {
-                  responseHeaders.append(name, String(item));
-                }
-              } else {
-                responseHeaders.set(name, String(value));
-              }
-            }
-
-            const status = incoming.statusCode || 502;
-            const body = [204, 205, 304].includes(status)
-              ? null
-              : Readable.toWeb(incoming);
-
-            const response = new Response(body, {
-              status,
-              statusText: incoming.statusMessage,
-              headers: responseHeaders
-            });
-
-            settled = true;
-            clearTimeout(timeout);
-            resolve(response);
-          } catch (error) {
-            clearTimeout(timeout);
-            incoming.destroy(error);
-
-            if (!settled) {
-              settled = true;
-              reject(error);
-            }
-          }
-        });
-
-        const timeout = setTimeout(() => {
-          const error = new Error("The website took too long to respond.");
-          error.name = "AbortError";
-          request.destroy(error);
-        }, timeoutMs);
-
-        request.on("error", error => {
-          clearTimeout(timeout);
-
-          if (!settled) {
-            reject(error);
-          }
-        });
-
-        request.end();
-      });
-    }
-
-    async function safeFetch(startURL, options = {}) {
-      let currentURL =
-        new URL(startURL.href);
-
-      const maxRedirects = 5;
-
-      for (
-        let redirectCount = 0;
-        redirectCount <= maxRedirects;
-        redirectCount++
-      ) {
-        const validation =
-          await validateTargetURL(currentURL);
-
-        if (!validation.safe) {
-          const error =
-            new Error(validation.reason);
-
-          error.code = "SSRF_BLOCKED";
-
-          throw error;
-        }
-
-        const response = await requestPinned(
-          currentURL,
-          validation.addresses,
-          options
-        );
-
-        /*
-         * Handle redirects manually so every redirect
-         * destination is validated before the next request.
-         */
-        if (
-          response.status >= 300 &&
-          response.status < 400
-        ) {
-          const location =
-            response.headers.get("location");
-
-          if (!location) {
-            return {
-              response,
-              finalURL: currentURL
-            };
-          }
-
-          if (
-            redirectCount >= maxRedirects
-          ) {
-            const error =
-              new Error(
-                "The website exceeded the maximum number of redirects."
-              );
-
-            error.code =
-              "TOO_MANY_REDIRECTS";
-
-            throw error;
-          }
-
-          let nextURL;
-
-          try {
-            nextURL =
-              new URL(
-                location,
-                currentURL.href
-              );
-          } catch {
-            const error =
-              new Error(
-                "The website returned an invalid redirect destination."
-              );
-
-            error.code =
-              "INVALID_REDIRECT";
-
-            throw error;
-          }
-
-          const nextValidation =
-            await validateTargetURL(nextURL);
-
-          if (!nextValidation.safe) {
-            const error =
-              new Error(
-                "The website redirected to a private or local destination."
-              );
-
-            error.code =
-              "SSRF_REDIRECT_BLOCKED";
-
-            throw error;
-          }
-
-          await response.body?.cancel();
-          currentURL = nextURL;
-          continue;
-        }
-
-        return {
-          response,
-          finalURL: currentURL
-        };
-      }
-
-      throw new Error(
-        "Unable to safely follow the website redirects."
-      );
-    }
+    const safeFetch = createSafeFetch({
+      validateTargetURL,
+      requestPinned
+    });
 
     let mainResult;
 
@@ -796,27 +589,28 @@ if (
     const xFrame =
       headers.get("x-frame-options");
 
-    const frameAncestors =
-      csp &&
-      /frame-ancestors/i.test(csp);
+    const frameProtectionValid = hasValidFrameProtection({
+      xFrameOptions: xFrame,
+      contentSecurityPolicy: csp
+    });
 
-    if (xFrame || frameAncestors) {
+    if (frameProtectionValid) {
       addCheck(
         "Clickjacking Protection",
         "PASS",
-        "Frame protection was detected."
+        "A valid X-Frame-Options or CSP frame-ancestors policy was detected."
       );
     } else {
       addCheck(
         "Clickjacking Protection",
         "WARNING",
-        "No clear clickjacking protection was detected.",
-        "Add X-Frame-Options or CSP frame-ancestors.",
+        "No valid clickjacking protection policy was detected.",
+        "Use X-Frame-Options: DENY or SAMEORIGIN, or configure a valid CSP frame-ancestors directive.",
         {
           source: "HTTP response headers",
           signal: "x-frame-options / content-security-policy frame-ancestors",
-          observed: `X-Frame-Options: ${xFrame || "not present"}; CSP frame-ancestors: ${frameAncestors ? "present" : "not present"}`,
-          expected: "X-Frame-Options or a Content-Security-Policy frame-ancestors directive"
+          observed: `X-Frame-Options: ${xFrame || "not present"}; CSP frame-ancestors: ${csp && /(?:^|;)\\s*frame-ancestors\\b/i.test(csp) ? "directive detected; policy validation failed or was incomplete" : "not present"}`,
+          expected: "X-Frame-Options: DENY or SAMEORIGIN, or a CSP frame-ancestors directive with at least one valid source"
         }
       );
     }

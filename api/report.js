@@ -1,4 +1,5 @@
 import { normalizeEvidence } from "./_lib/security-evidence.js";
+import { calculateScanScore } from "./_lib/scan-score.js";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -6,6 +7,7 @@ const supabaseAdmin = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_R
   : null;
 
 export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
 
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -132,18 +134,10 @@ export default async function handler(req, res) {
       }
     }
 
-    const score = securityScore;
-
-    if (!Number.isFinite(score)) {
-      return res.status(400).json({
-        error: "Security score must be a valid number."
-      });
-    }
-
-    const safeScore = Math.max(
-      0,
-      Math.min(100, Math.round(score))
-    );
+    // Never trust a score or risk label supplied by the browser.
+    // Recalculate both from the submitted check statuses so a modified
+    // request cannot produce a report with an inflated security score.
+    const scoreResult = calculateScanScore(checks);
 
     const passed = checks.filter(
       check =>
@@ -207,8 +201,8 @@ export default async function handler(req, res) {
     const report = {
       website: String(website),
       scanId: scanId || "",
-      securityScore: safeScore,
-      riskLevel: safeText(riskLevel, 24, "Unknown"),
+      securityScore: scoreResult.score,
+      riskLevel: scoreResult.riskLevel,
 
       generatedAt: new Date().toISOString(),
 
@@ -236,7 +230,7 @@ export default async function handler(req, res) {
         user_id: authenticatedUser.id,
         event_type: "report.generated",
         resource_host: new URL(website).hostname,
-        metadata: { security_score: securityScore, risk_level: riskLevel }
+        metadata: { security_score: scoreResult.score, risk_level: scoreResult.riskLevel }
       });
       if (usageError) console.error("Report usage event could not be recorded:", usageError);
     }

@@ -61,3 +61,18 @@ test("monitoring worker refuses to run without Supabase service configuration", 
   assert.equal(result.statusCode, 503);
   assert.match(result.payload.error, /not configured/i);
 });
+
+
+test("monitoring worker rejects an incorrect bearer secret before accessing Supabase", async () => {
+  process.env.CRON_SECRET = "expected-test-secret";
+  const result = await invoke("GET", "Bearer wrong-test-secret");
+  assert.equal(result.statusCode, 401);
+  assert.match(result.payload.error, /Unauthorized/);
+});
+
+test("monitoring worker rejects non-string authorization headers", async () => {
+  process.env.CRON_SECRET = "expected-test-secret";
+  const result = await invoke("GET", ["Bearer expected-test-secret"]);
+  assert.equal(result.statusCode, 401);
+  assert.match(result.payload.error, /Unauthorized/);
+});

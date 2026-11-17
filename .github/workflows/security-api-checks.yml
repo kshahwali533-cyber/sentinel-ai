@@ -23,6 +23,7 @@ on:
   push:
     branches:
       - main
+      - feature/final-release-audit-20261117
       - fix/atomic-scan-allowance-2026-11
       - security/pin-validated-dns-connection
       - integration/sentinel-evidence-2026-11
@@ -73,6 +74,7 @@ jobs:
           while IFS= read -r -d '' file; do
             node --check "$file"
           done < <(find api test -type f -name '*.js' -print0)
+          node --check sentinel-app.js
           node --test test/*.test.js
 
       - name: Verify concurrent monthly scan allowance at the final quota slot
@@ -167,19 +169,23 @@ jobs:
             throw new Error("Unpinned fetch() calls remain in api/scan.js.");
           }
 
-          const helper = fs.readFileSync("api/_lib/pinned-lookup.js", "utf8");
+          const lookupHelper = fs.readFileSync("api/_lib/pinned-lookup.js", "utf8");
+          const transport = fs.readFileSync("api/_lib/pinned-request.js", "utf8");
 
-          if (!source.includes("lookup: createPinnedLookup(hostname, pinned)") ||
-              !helper.includes("return (lookupHostname, lookupOptions, callback)")) {
+          if (!transport.includes("lookup: createPinnedLookup(hostname, pinned)") ||
+              !lookupHelper.includes("return (lookupHostname, lookupOptions, callback)")) {
             throw new Error("Pinned DNS lookup callback is missing.");
           }
 
-          if (!source.includes("validation.addresses")) {
+          const redirectHelper = fs.readFileSync("api/_lib/safe-fetch.js", "utf8");
+
+          if (!redirectHelper.includes("validation.addresses")) {
             throw new Error("Validated DNS addresses are not passed to the request.");
           }
 
-          if (!source.includes("servername: net.isIP(hostname) ? undefined : hostname")) {
-            throw new Error("HTTPS hostname verification/SNI configuration is missing.");
+          if (!transport.includes("servername: net.isIP(hostname) ? undefined : hostname") ||
+              !transport.includes("isPublicIPAddress = isPublicIP")) {
+            throw new Error("HTTPS hostname verification or production public-IP policy is missing.");
           }
 
           console.log("Pinned DNS connection guard checks passed.");
@@ -213,4 +219,35 @@ jobs:
           }
 
           console.log("Vercel security response header configuration passed.");
+          NODE
+
+      - name: Verify manual redirect safety guards
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const source = fs.readFileSync("api/scan.js", "utf8");
+          const redirectBlock = fs.readFileSync("api/_lib/safe-fetch.js", "utf8");
+          const requestBlock = fs.readFileSync("api/_lib/pinned-request.js", "utf8");
+
+          if (!source.includes("createPinnedRequest()") ||
+              !requestBlock.includes("createPinnedRequest") ||
+              !redirectBlock.includes("createSafeFetch")) {
+            throw new Error("Scanner transport or safe redirect module is missing.");
+          }
+
+          for (const [description, condition] of [
+            ["scanner must use the pinned native HTTP transport", requestBlock.includes("transport.request(") && source.includes("createPinnedRequest()")],
+            ["transport must use only the validated pinned DNS address", requestBlock.includes("lookup: createPinnedLookup(hostname, pinned)")],
+            ["each redirect hop must validate its current destination", redirectBlock.includes("validateTargetURL(currentURL)")],
+            ["redirect responses must be handled explicitly", redirectBlock.includes("response.status >= 300") && redirectBlock.includes("response.status < 400")],
+            ["redirect Location must be resolved relative to the current URL", redirectBlock.includes("new URL(location, currentURL.href)")],
+            ["redirect targets must be validated before the next request", redirectBlock.includes("validateTargetURL(nextURL)")],
+            ["private/local redirect destinations must be blocked", redirectBlock.includes("SSRF_REDIRECT_BLOCKED")],
+            ["redirect loops must be bounded to five hops", redirectBlock.includes("maxRedirects = 5") && redirectBlock.includes("TOO_MANY_REDIRECTS")],
+            ["redirect response bodies must be cancelled before continuing", redirectBlock.includes("response.body?.cancel()")]
+          ]) {
+            if (!condition) throw new Error(`Redirect safety check failed: ${description}`);
+            console.log(`PASS: ${description}`);
+          }
           NODE

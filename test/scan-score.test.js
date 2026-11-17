@@ -68,3 +68,17 @@ test("non-array input is rejected", () => {
     message: "checks must be an array."
   });
 });
+
+test("score normalizes legacy and case-insensitive status aliases", () => {
+  const result = calculateScanScore([
+    { status: "passed" },
+    { status: "warn" },
+    { status: "informational" }
+  ]);
+
+  assert.equal(result.passed, 1);
+  assert.equal(result.warnings, 1);
+  assert.equal(result.informational, 1);
+  assert.equal(result.score, 50);
+  assert.equal(result.riskLevel, "Medium");
+});

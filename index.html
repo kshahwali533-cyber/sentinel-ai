@@ -20,7 +20,7 @@
   <script defer src="/sentinel-actions.js"></script>
 <script defer src="/sentinel-analytics.js"></script>
   <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0"></script>
 
   <link rel="stylesheet" href="/sentinel.css">
 
@@ -375,12 +375,12 @@
 
   <div class="history">
     <p class="message">
-      Add a website you own. Sentinel AI verifies domain control through a DNS TXT record,
-      then checks its security posture daily and records meaningful changes.
+      Add a website you own. Sentinel AI verifies domain control through a DNS TXT record
+      and prepares the domain for scheduled security checks and meaningful change tracking.
     </p>
     <div class="notice">
       Monitoring is limited to verified domains you own or are authorized to manage.
-      The beta currently supports up to five websites per account and daily scans.
+      The beta supports up to five websites per account. Automated 15-minute scheduling is pending activation.
     </div>
     <input
       id="monitorWebsite"
