@@ -29,3 +29,13 @@ No release-blocking mobile/browser defects; latency and error budgets are explic
 - Load profile and results:
 - Open issues:
 - Decision: NOT RUN / BLOCKED / PASS / FAIL
+
+## Read-only deployment baseline — 2026-11-18
+
+- [x] HTML declares `lang="en"`, UTF-8 and a responsive viewport; the Vercel response-header CI gate verifies enforced CSP, X-Content-Type-Options, X-Frame-Options and Referrer-Policy.
+- [x] Current Preview deployments build successfully in Vercel region `iad1`.
+- [ ] Vercel project currently lists only its default `vercel.app` domains; no custom brand domain is attached. A custom domain and DNS ownership are required before a branded global launch.
+- [ ] Regional latency, real mobile device/browser matrix, accessibility audit and load testing are NOT RUN. A single `iad1` deployment is not evidence of globally optimized latency.
+- [ ] The current Preview branch has no isolated branch-scoped runtime environment variables; full mobile/account-backed flow tests remain blocked until a safe Preview configuration exists.
+
+**Decision:** NOT COMPLETE. Static markup/header checks are a starting point only; real device, accessibility, regional performance and domain readiness evidence remain required.
