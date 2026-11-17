@@ -23,6 +23,7 @@ on:
   push:
     branches:
       - main
+      - feature/final-release-audit-20261117
       - fix/atomic-scan-allowance-2026-11
       - security/pin-validated-dns-connection
       - integration/sentinel-evidence-2026-11
@@ -167,10 +168,11 @@ jobs:
             throw new Error("Unpinned fetch() calls remain in api/scan.js.");
           }
 
-          const helper = fs.readFileSync("api/_lib/pinned-lookup.js", "utf8");
+          const lookupHelper = fs.readFileSync("api/_lib/pinned-lookup.js", "utf8");
+          const transport = fs.readFileSync("api/_lib/pinned-request.js", "utf8");
 
-          if (!source.includes("lookup: createPinnedLookup(hostname, pinned)") ||
-              !helper.includes("return (lookupHostname, lookupOptions, callback)")) {
+          if (!transport.includes("lookup: createPinnedLookup(hostname, pinned)") ||
+              !lookupHelper.includes("return (lookupHostname, lookupOptions, callback)")) {
             throw new Error("Pinned DNS lookup callback is missing.");
           }
 
@@ -180,8 +182,9 @@ jobs:
             throw new Error("Validated DNS addresses are not passed to the request.");
           }
 
-          if (!source.includes("servername: net.isIP(hostname) ? undefined : hostname")) {
-            throw new Error("HTTPS hostname verification/SNI configuration is missing.");
+          if (!transport.includes("servername: net.isIP(hostname) ? undefined : hostname") ||
+              !transport.includes("isPublicIPAddress = isPublicIP")) {
+            throw new Error("HTTPS hostname verification or production public-IP policy is missing.");
           }
 
           console.log("Pinned DNS connection guard checks passed.");
@@ -224,17 +227,17 @@ jobs:
 
           const source = fs.readFileSync("api/scan.js", "utf8");
           const redirectBlock = fs.readFileSync("api/_lib/safe-fetch.js", "utf8");
-          const requestStart = source.indexOf("async function requestPinned(");
-          const requestEnd = source.indexOf("\n    const safeFetch =", requestStart);
+          const requestBlock = fs.readFileSync("api/_lib/pinned-request.js", "utf8");
 
-          if (requestStart < 0 || requestEnd < 0 || !redirectBlock.includes("createSafeFetch")) {
-            throw new Error("Pinned request or safe redirect module is missing.");
+          if (!source.includes("createPinnedRequest()") ||
+              !requestBlock.includes("createPinnedRequest") ||
+              !redirectBlock.includes("createSafeFetch")) {
+            throw new Error("Scanner transport or safe redirect module is missing.");
           }
 
-          const requestBlock = source.slice(requestStart, requestEnd);
-
           for (const [description, condition] of [
-            ["scanner must use the pinned native HTTP transport", requestBlock.includes("transport.request(")],
+            ["scanner must use the pinned native HTTP transport", requestBlock.includes("transport.request(") && source.includes("createPinnedRequest()")],
+            ["transport must use only the validated pinned DNS address", requestBlock.includes("lookup: createPinnedLookup(hostname, pinned)")],
             ["each redirect hop must validate its current destination", redirectBlock.includes("validateTargetURL(currentURL)")],
             ["redirect responses must be handled explicitly", redirectBlock.includes("response.status >= 300") && redirectBlock.includes("response.status < 400")],
             ["redirect Location must be resolved relative to the current URL", redirectBlock.includes("new URL(location, currentURL.href)")],
