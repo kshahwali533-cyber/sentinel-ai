@@ -421,6 +421,14 @@ if (!hostname) {
 
     // Rate limits, server failures and incomplete redirects are not a
     // trustworthy representation of the target's security posture.
+    if (response.status === 408) {
+      await response.body?.cancel();
+      return res.status(504).json({
+        code: "TARGET_TIMEOUT",
+        error: "The target website timed out while processing the request. Sentinel AI did not calculate a security score."
+      });
+    }
+
     if (response.status === 429) {
       await response.body?.cancel();
       return res.status(503).json({
