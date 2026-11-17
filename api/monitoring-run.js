@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { buildMonitoringAlert, fetchMonitoringScan, getMonitoringAppOrigin, getNextMonitoringScanAt } from "./_lib/monitoring.js";
+import { buildMonitoringAlert, fetchMonitoringScan, getMonitoringAppOrigin, getNextMonitoringScanAt, isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -24,7 +24,11 @@ export default async function handler(req, res) {
   }
 
   const secret = process.env.CRON_SECRET;
-  if (!secret || req.headers.authorization !== "Bearer " + secret) {
+  const authorization = req.headers.authorization;
+  const providedSecret = typeof authorization === "string" && authorization.startsWith("Bearer ")
+    ? authorization.slice(7)
+    : "";
+  if (!isValidMonitoringWorkerSecret(providedSecret, secret)) {
     return res.status(401).json({ error: "Unauthorized." });
   }
   if (!supabaseAdmin) return res.status(503).json({ error: "Monitoring worker is not configured." });
