@@ -10,3 +10,12 @@ test("scanner refuses to score access-restricted target responses", () => {
   assert.match(source, /cannot verify the page security headers or produce a reliable score/i);
   assert.match(source, /await response\.body\?\.cancel\(\)/);
 });
+
+test("scanner refuses to score an unrelated cross-domain redirect response", () => {
+  assert.match(source, /isSameSiteRedirectHost\(target\.hostname, mainResult\.finalURL\.hostname\)/);
+  assert.match(source, /code: "TARGET_REDIRECTED_OFF_SITE"/);
+  assert.match(source, /await response\.body\?\.cancel\(\)/);
+  const guardIndex = source.indexOf('code: "TARGET_REDIRECTED_OFF_SITE"');
+  const scoringIndex = source.indexOf("const checks = []", guardIndex);
+  assert.ok(guardIndex >= 0 && scoringIndex > guardIndex, "off-site redirect guard must run before security checks are scored");
+});
