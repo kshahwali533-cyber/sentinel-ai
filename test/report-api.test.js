@@ -5,7 +5,11 @@ import handler from "../api/report.js";
 async function invoke(body, method = "POST") {
   let statusCode = null;
   let payload = null;
+  const responseHeaders = {};
   const res = {
+    setHeader(name, value) {
+      responseHeaders[name] = value;
+    },
     status(code) {
       statusCode = code;
       return this;
@@ -17,13 +21,14 @@ async function invoke(body, method = "POST") {
   };
 
   await handler({ method, body }, res);
-  return { statusCode, payload };
+  return { statusCode, payload, responseHeaders };
 }
 
 test("report API rejects non-POST requests", async () => {
   const result = await invoke({}, "GET");
   assert.equal(result.statusCode, 405);
   assert.match(result.payload.error, /POST/);
+  assert.equal(result.responseHeaders["Cache-Control"], "no-store");
 });
 
 test("report API rejects malformed request bodies", async () => {
