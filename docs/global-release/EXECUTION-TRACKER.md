@@ -39,6 +39,8 @@ Use this tracker as the day-to-day record. Update only after checking actual out
 
 | 2026-11-18 | `0ca55d6368d69123c7b262abdb19cd30b7229eef` | Preview branch; Vercel deployment READY | GitHub Actions run `44191486142` | PASS: 167/167 tests; npm audit found 0 production vulnerabilities; browser source secret guard passed; quota concurrency, pinned DNS, security headers and redirect safety all passed. | [Workflow run](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44191486142); [Preview](https://project-3jyda-2c4cfvaom-sentinel-ai14.vercel.app); Workstream 01 |
 
+| 2026-11-18 | `0ca55d6368d69123c7b262abdb19cd30b7229eef` | Preview branch; deployment READY | GitHub Actions run `44191486142` | PASS: 167/167 tests; 0 production dependency vulnerabilities; browser secret guard; quota, pinned DNS, headers and redirect checks passed. Reviewer pack draft prepared in `docs/global-release/REVIEWER-PACK.md`; independent audit still not commissioned. | [Workflow run](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44191486142); [Preview](https://project-3jyda-2c4cfvaom-sentinel-ai14.vercel.app); Global Release reviewer pack |
+
 ## Release blockers
 - [ ] No unresolved critical security findings.
 - [ ] Resolve Supabase Auth Advisor warning: Leaked Password Protection is disabled.
