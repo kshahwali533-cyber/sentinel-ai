@@ -28,3 +28,13 @@ No mismatch with source scan; access control passes; exports render consistently
 - Export/print evidence:
 - Open issues:
 - Decision: NOT RUN / BLOCKED / PASS / FAIL
+
+## Code/test baseline review — 2026-11-18
+
+- [x] **RPT-01 accuracy baseline:** report API recalculates score/risk from submitted check statuses instead of trusting browser-supplied score/risk labels; summary counts and priority findings are derived from those checks.
+- [x] **RPT-03 input bounds:** report API limits checks to 200, validates URL scheme and score range, bounds text/evidence fields and normalizes evidence before inclusion.
+- [x] **RPT-05/06 existing tests:** automated suite includes API validation/summary/evidence tests, CSV export escaping, print-dialog behavior and report UI tests. These are part of the 167-test CI suite.
+- [ ] **RPT-02 authorization semantics:** report generation is stateless and accepts client-supplied scan data; it does not retrieve a stored report by ID. Confirm the UI never presents a generated report as a server-verified historical record. If persistent reports are added, enforce scan ownership on retrieval.
+- [ ] **RPT-04 real-device acceptance:** print preview, PDF save, large reports and narrow mobile layouts still need real browser/device checks. Current automated print test only verifies the print-dialog action.
+
+**Decision:** PARTIAL PASS for input validation, score recalculation and existing export/print tests; end-to-end report acceptance remains NOT COMPLETE.
