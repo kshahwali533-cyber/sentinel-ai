@@ -75,7 +75,8 @@ test("professional report CSV export downloads valid escaped data safely", async
   assert.equal(downloadName, "sentinel-security-report.csv");
   assert.ok(createdBlob);
   const csv = await createdBlob.text();
-  assert.ok(csv.startsWith("\uFEFF"));
+  const bytes = new Uint8Array(await createdBlob.arrayBuffer());
+  assert.deepEqual([...bytes.slice(0, 3)], [0xef, 0xbb, 0xbf]);
   assert.match(csv, /Website/);
   assert.match(csv, /https:\/\/example\.com/);
   assert.match(csv, /'=1\+1, should be treated as text/);
