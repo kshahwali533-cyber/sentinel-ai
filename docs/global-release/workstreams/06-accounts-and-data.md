@@ -42,3 +42,4 @@ Read-only review first. Do not modify live RLS, grants, users or data without a 
 - [ ] Auth lifecycle, session revocation/expiry and restore drill remain NOT RUN.
 
 **Decision:** PARTIAL PASS for static RLS/grant review and the team-asset privacy remediation; complete identity/data workstream remains NOT COMPLETE.
+- [x] **IAM-04 regression verification:** Preview commit `d7276d010fd0181e93925730d14fc8a184732d25` passed the team-asset role/wiring tests and the full CI workflow; the subsequent CI hardening run also passed. Vercel deployment for the branch is READY. The endpoint still needs an isolated live two-account test before the full IAM workstream can pass.
