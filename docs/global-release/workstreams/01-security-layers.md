@@ -41,3 +41,4 @@ No unresolved critical/high findings; negative authorization and SSRF tests pass
 - [ ] **SEC-01/03/04/06/07 full review:** edge/WAF rules, complete API authorization, session lifecycle, incident response/recovery, dependency risk and rollback exercises remain unverified.
 
 **Decision:** PARTIAL PASS for the inspected SSRF/redirect controls, monitoring RLS/RPC privileges and CI token scope. Overall seven-layer audit remains NOT COMPLETE; the Auth Advisor warning and Preview isolation are open.
+- [x] **SEC-01 Edge / Vercel baseline:** project-level SSO deployment protection is enabled (all except custom domains); trusted-IP and password protection are disabled. No custom firewall configuration is present, so Vercel's default firewall applies. The last-day active-attack query returned no anomalies; this is not proof that no attacks ever occur. Custom WAF/managed-rule posture still requires a deliberate policy review before any project-wide production change.
