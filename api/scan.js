@@ -5,6 +5,7 @@ import { isPublicIP } from "./_lib/public-ip.js";
 import { readTextLimited } from "./_lib/read-limited.js";
 import { calculateScanScore } from "./_lib/scan-score.js";
 import { createCheckEvidence } from "./_lib/finding-validation.js";
+import { hasValidFrameProtection } from "./_lib/security-header-analysis.js";
 import { createClient } from "@supabase/supabase-js";
 import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 import { getTrustedClientIp } from "./_lib/client-ip.js";
@@ -588,27 +589,28 @@ if (
     const xFrame =
       headers.get("x-frame-options");
 
-    const frameAncestors =
-      csp &&
-      /frame-ancestors/i.test(csp);
+    const frameProtectionValid = hasValidFrameProtection({
+      xFrameOptions: xFrame,
+      contentSecurityPolicy: csp
+    });
 
-    if (xFrame || frameAncestors) {
+    if (frameProtectionValid) {
       addCheck(
         "Clickjacking Protection",
         "PASS",
-        "Frame protection was detected."
+        "A valid X-Frame-Options or CSP frame-ancestors policy was detected."
       );
     } else {
       addCheck(
         "Clickjacking Protection",
         "WARNING",
-        "No clear clickjacking protection was detected.",
-        "Add X-Frame-Options or CSP frame-ancestors.",
+        "No valid clickjacking protection policy was detected.",
+        "Use X-Frame-Options: DENY or SAMEORIGIN, or configure a valid CSP frame-ancestors directive.",
         {
           source: "HTTP response headers",
           signal: "x-frame-options / content-security-policy frame-ancestors",
-          observed: `X-Frame-Options: ${xFrame || "not present"}; CSP frame-ancestors: ${frameAncestors ? "present" : "not present"}`,
-          expected: "X-Frame-Options or a Content-Security-Policy frame-ancestors directive"
+          observed: `X-Frame-Options: ${xFrame || "not present"}; CSP frame-ancestors: ${csp && /(?:^|;)\\s*frame-ancestors\\b/i.test(csp) ? "directive detected; policy validation failed or was incomplete" : "not present"}`,
+          expected: "X-Frame-Options: DENY or SAMEORIGIN, or a CSP frame-ancestors directive with at least one valid source"
         }
       );
     }
