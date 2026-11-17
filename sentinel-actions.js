@@ -28,8 +28,8 @@
     const checks = Array.isArray(data.checks) ? data.checks : [];
     const cell = value => {
       let text = value == null ? "" : String(value);
-      if (/^\\s*[=+@\\-]/.test(text)) text = "'" + text;
-      return '"' + text.replace(/"/g, '""').replace(/\\r?\\n/g, " ") + '"';
+      if (/^\s*[=+@\-]/.test(text)) text = "'" + text;
+      return '"' + text.replace(/"/g, '""').replace(/\r?\n/g, " ") + '"';
     };
 
     const rows = [
@@ -55,7 +55,7 @@
       ]);
     }
 
-    const csv = "\\uFEFF" + rows.map(row => row.map(cell).join(",")).join("\\r\\n");
+    const csv = "\uFEFF" + rows.map(row => row.map(cell).join(",")).join("\r\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
