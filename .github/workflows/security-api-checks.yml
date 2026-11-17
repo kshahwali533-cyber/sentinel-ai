@@ -233,14 +233,14 @@ jobs:
           const redirectBlock = source.slice(safeFetchStart, safeFetchEnd);
 
           for (const [description, condition] of [
-            ["scanner must use the pinned native HTTP transport", /transport\\.request\\(/.test(requestBlock)],
-            ["each redirect hop must validate its current destination", /validateTargetURL\\(currentURL\\)/.test(redirectBlock)],
-            ["redirect responses must be handled explicitly", /response\\.status >= 300[\\s\\S]*?response\\.status < 400/.test(redirectBlock)],
-            ["redirect Location must be resolved relative to the current URL", /new URL\\(\\s*location,\\s*currentURL\\.href\\s*\\)/.test(redirectBlock)],
-            ["redirect targets must be validated before the next request", /validateTargetURL\\(nextURL\\)/.test(redirectBlock)],
-            ["private/local redirect destinations must be blocked", /SSRF_REDIRECT_BLOCKED/.test(redirectBlock)],
-            ["redirect loops must be bounded to five hops", /const maxRedirects = 5/.test(redirectBlock) && /TOO_MANY_REDIRECTS/.test(redirectBlock)],
-            ["redirect response bodies must be cancelled before continuing", /response\\.body\\?\\.cancel\\(\\)/.test(redirectBlock)]
+            ["scanner must use the pinned native HTTP transport", requestBlock.includes("transport.request(")],
+            ["each redirect hop must validate its current destination", redirectBlock.includes("validateTargetURL(currentURL)")],
+            ["redirect responses must be handled explicitly", redirectBlock.includes("response.status >= 300") && redirectBlock.includes("response.status < 400")],
+            ["redirect Location must be resolved relative to the current URL", redirectBlock.includes("new URL(") && redirectBlock.includes("location,") && redirectBlock.includes("currentURL.href")],
+            ["redirect targets must be validated before the next request", redirectBlock.includes("validateTargetURL(nextURL)")],
+            ["private/local redirect destinations must be blocked", redirectBlock.includes("SSRF_REDIRECT_BLOCKED")],
+            ["redirect loops must be bounded to five hops", redirectBlock.includes("const maxRedirects = 5") && redirectBlock.includes("TOO_MANY_REDIRECTS")],
+            ["redirect response bodies must be cancelled before continuing", redirectBlock.includes("response.body?.cancel()")]
           ]) {
             if (!condition) throw new Error(`Redirect safety check failed: ${description}`);
             console.log(`PASS: ${description}`);
