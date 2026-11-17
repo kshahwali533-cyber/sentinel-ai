@@ -128,7 +128,7 @@ export default async function handler(req, res) {
         .select("id,url,hostname,status,verified_at,next_scan_at")
         .single();
       if (error) throw error;
-      return send(res, 200, { site: data, message: "Domain ownership verified. 15-minute monitoring is enabled." });
+      return send(res, 200, { site: data, message: "Domain ownership verified. The site is ready for scheduled monitoring once the scheduler is activated." });
     }
 
     if (action === "pause" || action === "resume") {
