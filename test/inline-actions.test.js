@@ -8,6 +8,7 @@ const actions = fs.readFileSync("sentinel-actions.js", "utf8");
 const app = fs.readFileSync("sentinel-app.js", "utf8");
 const styles = fs.readFileSync("sentinel.css", "utf8");
 const reportStyles = fs.readFileSync("sentinel-report.css", "utf8");
+const supabaseVersion = JSON.parse(fs.readFileSync("package.json", "utf8")).dependencies["@supabase/supabase-js"];
 
 test("all former inline click and change handlers are removed", () => {
   assert.equal((html.match(/\son(?:click|change)\s*=/gi) || []).length, 0);
@@ -35,7 +36,7 @@ test("professional report includes safe CSV export and report data payload", () 
 });
 
 test("Supabase SDK is deferred so it does not block initial HTML parsing", () => {
-  assert.match(html, /<script defer src="https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@2"><\/script>/);
+  assert.match(html, new RegExp(`<script defer src="https://cdn\\.jsdelivr\\.net/npm/@supabase/supabase-js@${supabaseVersion.replaceAll(".", "\\\\.")}"></script>`));
 });
 
 test("delegated action script parses", () => {
