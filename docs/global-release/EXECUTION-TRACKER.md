@@ -27,6 +27,7 @@ Use this tracker as the day-to-day record. Update only after checking actual out
 | Date (UTC) | Commit | Environment | Command/suite | Result | Evidence |
 |---|---|---|---|---|---|
 | 2026-11-18 | `ede8d1e9b8c90acd438b5f636a3ce3079076a198` | Preview branch `feature/final-release-audit-20261117`; Vercel deployment READY | GitHub Actions run `44188841292`, job `134412493881` (`syntax-and-ssrf-guard`) | PASS for this workflow only | [Workflow run](https://github.com/kshahwali533-cyber/sentinel-ai/actions/runs/44188841292); [Preview deployment](https://project-3jyda-izab2j5rp-sentinel-ai14.vercel.app) |
+| 2026-11-18 | Supabase project `vceqmqwszvisvxxbgbfs` | Live database, read-only | Cron job status/history; Vault secret presence (boolean only); `net._http_response`; monitoring RLS and RPC grants; monitoring row counts | PARTIAL PASS: scheduler active, five Cron runs succeeded, five worker dispatches HTTP 200; E2E BLOCKED because zero verified sites/runs | `docs/global-release/workstreams/04-continuous-monitoring.md` |
 
 ## Release blockers
 - [ ] No unresolved critical security findings.
