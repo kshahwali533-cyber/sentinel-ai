@@ -42,3 +42,11 @@ No unresolved critical/high findings; negative authorization and SSRF tests pass
 
 **Decision:** PARTIAL PASS for the inspected SSRF/redirect controls, monitoring RLS/RPC privileges and CI token scope. Overall seven-layer audit remains NOT COMPLETE; the Auth Advisor warning and Preview isolation are open.
 - [x] **SEC-01 Edge / Vercel baseline:** project-level SSO deployment protection is enabled (all except custom domains); trusted-IP and password protection are disabled. No custom firewall configuration is present, so Vercel's default firewall applies. The last-day active-attack query returned no anomalies; this is not proof that no attacks ever occur. Custom WAF/managed-rule posture still requires a deliberate policy review before any project-wide production change.
+
+### Expanded Supabase access review — 2026-11-18
+
+- [x] All 21 ordinary tables in the `public` schema currently have RLS enabled; no table was found with RLS disabled.
+- [x] No `anon` role has SELECT/INSERT privileges on those 21 tables. `authenticated` has SELECT only where intended, with INSERT/DELETE on `scan_history` and UPDATE on `profiles`; the related policies constrain rows to the owner or workspace membership. Client writes to monitoring, team, research and usage tables are not directly granted.
+- [x] Private helper `private.is_organization_member(uuid)` uses `SECURITY DEFINER`, `search_path=pg_catalog`, checks `auth.uid()` against organization membership, and is not executable by `anon`.
+- [x] Public SECURITY DEFINER functions reviewed in catalog are not executable by `anon` or `authenticated`, except the private membership helper is authenticated-executable; trigger functions are not client-executable. The `handle_new_user` trigger function writes only to fully-qualified `public.profiles`; public schema CREATE is denied to anon/authenticated.
+- [ ] This is a catalog/privilege review, not a live cross-account penetration test. Test two separate accounts against scan history, organizations, invitations, research, monitoring and reports before marking authorization PASS.
