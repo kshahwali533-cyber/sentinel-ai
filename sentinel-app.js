@@ -54,6 +54,154 @@ function escapeHTML(value) {
 
 
 /* =========================
+   SENTINEL PASSWORD SHIELD
+   Local strength checks + HIBP k-anonymity lookup.
+   The full password and full SHA-1 hash never leave this browser.
+========================= */
+
+const PASSWORD_SHIELD_MIN_LENGTH = 12;
+const passwordBreachCache = new Map();
+
+function validatePasswordStrength(password) {
+  if (typeof password !== "string" || password.length < PASSWORD_SHIELD_MIN_LENGTH) {
+    return "Use at least 12 characters.";
+  }
+
+  const normalized = password.toLowerCase();
+  const commonPasswords = new Set([
+    "password123", "password1234", "password12345", "qwerty123456",
+    "123456789012", "1234567890", "abcdefgh1234", "welcome12345",
+    "admin123456", "letmein12345", "iloveyou1234", "passw0rd1234"
+  ]);
+
+  if (commonPasswords.has(normalized)) {
+    return "This password is too common. Choose a unique passphrase.";
+  }
+
+  const characterGroups = [
+    /[a-z]/.test(password),
+    /[A-Z]/.test(password),
+    /[0-9]/.test(password),
+    /[^A-Za-z0-9]/.test(password)
+  ].filter(Boolean).length;
+
+  if (characterGroups < 3) {
+    return "Use at least 3 of these: lowercase, uppercase, numbers, symbols.";
+  }
+
+  if (/(.)\\1{4,}/.test(password)) {
+    return "Avoid repeating the same character five or more times.";
+  }
+
+  if (/^(12345|23456|34567|45678|56789|abcdef|qwerty)/i.test(password)) {
+    return "Avoid predictable keyboard or number sequences.";
+  }
+
+  return null;
+}
+
+async function checkPasswordBreach(password) {
+  if (!window.crypto?.subtle) {
+    throw new Error("Secure password checking is unavailable in this browser.");
+  }
+
+  const digest = await window.crypto.subtle.digest(
+    "SHA-1",
+    new TextEncoder().encode(password)
+  );
+  const hash = Array.from(new Uint8Array(digest))
+    .map(byte => byte.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase();
+
+  const prefix = hash.slice(0, 5);
+  const suffix = hash.slice(5);
+
+  if (!passwordBreachCache.has(prefix)) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    try {
+      const response = await fetch(
+        "https://api.pwnedpasswords.com/range/" + prefix,
+        {
+          method: "GET",
+          cache: "no-store",
+          credentials: "omit",
+          referrerPolicy: "no-referrer",
+          signal: controller.signal
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("The leaked-password check could not be completed. Please try again.");
+      }
+
+      passwordBreachCache.set(prefix, await response.text());
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        throw new Error("The leaked-password check timed out. Please try again.");
+      }
+      throw new Error(error?.message || "The leaked-password check is temporarily unavailable.");
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  const matchingLine = passwordBreachCache.get(prefix)
+    .split(/\\r?\\n/)
+    .find(line => line.split(":")[0]?.trim().toUpperCase() === suffix);
+
+  if (!matchingLine) return { breached: false, count: 0 };
+
+  const count = Number(matchingLine.split(":")[1]) || 0;
+  return { breached: count > 0, count };
+}
+
+async function validateWithPasswordShield(password, statusElement) {
+  const strengthError = validatePasswordStrength(password);
+
+  if (strengthError) {
+    if (statusElement) {
+      statusElement.className = "error";
+      statusElement.textContent = "🛡️ Password Shield: " + strengthError;
+    }
+    return false;
+  }
+
+  if (statusElement) {
+    statusElement.className = "notice";
+    statusElement.textContent = "🛡️ Checking password strength and known data breaches...";
+  }
+
+  try {
+    const result = await checkPasswordBreach(password);
+
+    if (result.breached) {
+      if (statusElement) {
+        statusElement.className = "error";
+        statusElement.textContent =
+          "🛡️ Password Shield blocked this password: it appears in known data breaches. Choose a completely different password.";
+      }
+      return false;
+    }
+
+    if (statusElement) {
+      statusElement.className = "success";
+      statusElement.textContent =
+        "🛡️ Password Shield passed: strong password and no match found in the breach dataset.";
+    }
+    return true;
+  } catch (error) {
+    if (statusElement) {
+      statusElement.className = "error";
+      statusElement.textContent = "🛡️ " + error.message;
+    }
+    return false;
+  }
+}
+
+/* =========================
    AUTH UI
 ========================= */
 
@@ -361,19 +509,18 @@ async function updatePassword() {
     return;
   }
 
-  if (newPassword.length < 6) {
-    authStatus.className = "error";
-    authStatus.textContent =
-      "⚠️ Password must be at least 6 characters.";
-    return;
-  }
-
   if (newPassword !== confirmPassword) {
     authStatus.className = "error";
     authStatus.textContent =
       "⚠️ Passwords do not match.";
     return;
   }
+
+  const shieldPassed = await validateWithPasswordShield(
+    newPassword,
+    document.getElementById("passwordShieldResetStatus") || authStatus
+  );
+  if (!shieldPassed) return;
 
   authStatus.className = "notice";
   authStatus.textContent =
@@ -440,12 +587,11 @@ async function signUpUser() {
     return;
   }
 
-  if (password.length < 6) {
-    authStatus.className = "error";
-    authStatus.textContent =
-      "⚠️ Password must be at least 6 characters.";
-    return;
-  }
+  const shieldPassed = await validateWithPasswordShield(
+    password,
+    document.getElementById("passwordShieldSignupStatus") || authStatus
+  );
+  if (!shieldPassed) return;
 
   authStatus.className = "notice";
   authStatus.textContent =
