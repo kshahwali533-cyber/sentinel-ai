@@ -30,3 +30,14 @@ No unresolved critical/high findings; negative authorization and SSRF tests pass
 - Open findings:
 - Reviewer/date:
 - Decision: NOT RUN / BLOCKED / PASS / FAIL
+
+## Read-only baseline findings — 2026-11-18
+
+- [x] **SEC-02 Network / SSRF baseline:** scanner uses validated DNS addresses and a pinned request transport; current CI includes pinned-DNS and manual-redirect guard checks. The scanner now rejects unrelated cross-domain final redirects before scoring (see Workstream 02).
+- [x] **SEC-05 Database baseline:** monitoring tables `monitoring_sites`, `monitoring_runs`, and `monitoring_alerts` all have RLS enabled with owner-scoped authenticated SELECT policies. `claim_due_monitoring_sites` is SECURITY DEFINER with `search_path=pg_catalog`; only `service_role` can execute it, not `anon` or `authenticated`.
+- [x] **SEC-07 CI least privilege:** workflow token is restricted to `contents: read`; GitHub Actions reports token permissions as Contents: read and Metadata: read.
+- [ ] **SEC-04 Identity / Auth warning:** Supabase Security Advisor reports **Leaked Password Protection Disabled**. Remediation is to enable compromised-password checks in Supabase Auth after reviewing the plan/availability and validating the signup/password-reset UX. It has not been changed during this read-only audit. [Supabase guidance](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+- [ ] **Preview isolation blocker:** Vercel environment-variable inventory returned no variables scoped to branch `feature/final-release-audit-20261117`. Do not copy Production secrets into Preview. Provision isolated Preview credentials/configuration before end-to-end runtime testing.
+- [ ] **SEC-01/03/04/06/07 full review:** edge/WAF rules, complete API authorization, session lifecycle, incident response/recovery, dependency risk and rollback exercises remain unverified.
+
+**Decision:** PARTIAL PASS for the inspected SSRF/redirect controls, monitoring RLS/RPC privileges and CI token scope. Overall seven-layer audit remains NOT COMPLETE; the Auth Advisor warning and Preview isolation are open.
