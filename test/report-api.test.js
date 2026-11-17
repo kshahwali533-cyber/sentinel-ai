@@ -33,13 +33,11 @@ test("report API rejects malformed request bodies", async () => {
 });
 
 test("report API accepts only HTTP and HTTPS website URLs", async () => {
-  const result = await invoke({
-    website: "javascript:alert(1)",
-    securityScore: 80,
-    checks: []
-  });
-  assert.equal(result.statusCode, 400);
-  assert.match(result.payload.error, /HTTP or HTTPS/);
+  for (const website of ["javascript:alert(1)", "https://user:pass@example.com"]) {
+    const result = await invoke({ website, securityScore: 80, checks: [] });
+    assert.equal(result.statusCode, 400);
+    assert.match(result.payload.error, /HTTP or HTTPS/);
+  }
 });
 
 test("report API rejects invalid scores and oversized check arrays", async () => {
@@ -56,6 +54,22 @@ test("report API rejects invalid scores and oversized check arrays", async () =>
     checks: Array(201).fill({ status: "INFO" })
   });
   assert.equal(tooManyChecks.statusCode, 400);
+});
+
+test("report API rejects oversized finding text and malformed evidence", async () => {
+  const oversized = await invoke({
+    website: "https://example.com",
+    securityScore: 80,
+    checks: [{ status: "WARN", message: "x".repeat(2001) }]
+  });
+  assert.equal(oversized.statusCode, 400);
+
+  const malformedEvidence = await invoke({
+    website: "https://example.com",
+    securityScore: 80,
+    checks: [{ status: "WARN", evidence: [] }]
+  });
+  assert.equal(malformedEvidence.statusCode, 400);
 });
 
 test("report API creates accurate summaries and normalized evidence", async () => {
@@ -103,4 +117,23 @@ test("report API creates accurate summaries and normalized evidence", async () =
     observed: "missing",
     expected: "A site-specific CSP"
   });
+});
+
+test("report API limits prioritized findings to five", async () => {
+  const checks = Array.from({ length: 8 }, (_, index) => ({
+    name: `Finding ${index + 1}`,
+    status: "WARN",
+    message: `Issue ${index + 1}`,
+    fix: `Fix ${index + 1}`
+  }));
+  const result = await invoke({
+    website: "https://example.com",
+    securityScore: 80,
+    checks
+  });
+
+  assert.equal(result.statusCode, 200);
+  assert.equal(result.payload.report.executiveSummary.warnings, 8);
+  assert.equal(result.payload.report.priorityFindings.length, 5);
+  assert.equal(result.payload.report.priorityFindings[0].title, "Finding 1");
 });
