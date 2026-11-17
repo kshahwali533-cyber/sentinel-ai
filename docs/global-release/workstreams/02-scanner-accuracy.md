@@ -43,3 +43,4 @@ Only scan systems the account owner explicitly owns or is authorized to test. Us
 - [ ] **SCN-04/05/07:** failure semantics, evidence correctness and representative authorized-site coverage remain open.
 
 **Decision:** PARTIAL PASS for the cross-domain attribution guard and its CI regression tests; the full scanner accuracy workstream remains NOT COMPLETE.
+- [x] **SCN-04 partial failure semantics:** scanner now returns explicit non-scoring errors for target HTTP 429, target HTTP 5xx and 3xx responses without a Location header; response bodies are cancelled. Regression assertions were added to `test/restricted-target.test.js`. Full fixture-based runtime coverage remains open.
