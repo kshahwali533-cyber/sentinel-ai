@@ -2497,6 +2497,7 @@ async function generateProfessionalReport(button) {
       </li>
     `).join("");
 
+    const reportDataJSON = JSON.stringify({ report, checks: reportChecks }).replace(/</g, "\\u003c");
     const reportHTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2508,6 +2509,7 @@ async function generateProfessionalReport(button) {
 </head>
 <body>
 <button class="print" data-action="print-report">Print / Save as PDF</button>
+<button class="print" type="button" data-action="export-security-report-csv">Download CSV</button>
 <header>
   <h1>🛡️ Sentinel AI</h1>
   <h2>Professional Security-Awareness Report</h2>
@@ -2546,6 +2548,7 @@ async function generateProfessionalReport(button) {
   <p>Sentinel AI checks publicly observable security signals. This report is not a substitute for a complete professional security assessment.</p>
 </section>
 <p>Sentinel AI · AI Cybersecurity Scanner &amp; Security Education Platform</p>
+<script type="application/json" id="sentinelReportData">${reportDataJSON}</script>
 </body>
 </html>`;
 
