@@ -1,5 +1,9 @@
 name: Sentinel AI security API checks
 
+# Least-privilege token: this workflow only checks out and tests repository code.
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches:
