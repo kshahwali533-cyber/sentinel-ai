@@ -89,7 +89,7 @@ function validatePasswordStrength(password) {
     return "Use at least 3 of these: lowercase, uppercase, numbers, symbols.";
   }
 
-  if (/(.)\\1{4,}/.test(password)) {
+  if (/(.)\1{4,}/.test(password)) {
     return "Avoid repeating the same character five or more times.";
   }
 
@@ -149,7 +149,7 @@ async function checkPasswordBreach(password) {
   }
 
   const matchingLine = passwordBreachCache.get(prefix)
-    .split(/\\r?\\n/)
+     .split(/\r?\n/)
     .find(line => line.split(":")[0]?.trim().toUpperCase() === suffix);
 
   if (!matchingLine) return { breached: false, count: 0 };
