@@ -27,3 +27,10 @@ test("scanner does not score target rate limits, server errors or incomplete red
   const scoringIndex = source.indexOf("const checks = []", guardIndex);
   assert.ok(guardIndex >= 0 && scoringIndex > guardIndex, "unreliable upstream responses must be rejected before scoring");
 });
+
+test("scanner does not score target request timeouts", () => {
+  assert.match(source, /code: "TARGET_TIMEOUT"/);
+  const guardIndex = source.indexOf('code: "TARGET_TIMEOUT"');
+  const scoringIndex = source.indexOf("const checks = []", guardIndex);
+  assert.ok(guardIndex >= 0 && scoringIndex > guardIndex, "target timeouts must be rejected before scoring");
+});
