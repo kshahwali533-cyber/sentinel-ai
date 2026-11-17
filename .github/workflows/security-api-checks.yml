@@ -75,6 +75,15 @@ jobs:
       - name: Audit locked production dependencies for high-severity advisories
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Verify privileged secrets are absent from browser source
+        run: |
+          set -euo pipefail
+          if grep -nEi 'SUPABASE_SERVICE_ROLE_KEY|OPENAI_API_KEY|CRON_SECRET|service_role' index.html sentinel-app.js sentinel-actions.js sentinel-analytics.js; then
+            echo "Privileged server-side secret reference found in browser source."
+            exit 1
+          fi
+          echo "No privileged server-side secret references found in browser source."
+
       - name: Validate JavaScript syntax and run unit tests
         run: |
           set -euo pipefail
