@@ -710,6 +710,7 @@ async function saveScanToSupabase(scan) {
 
 
     await loadSupabaseHistory();
+    await loadAnalyticsDashboard();
 
 
   } catch (error) {
@@ -3369,8 +3370,20 @@ async function loadMonitoringDashboard() {
   try {
     const data = await monitoringRequest();
     renderMonitoringDashboard(data);
-    status.className = "success";
-    status.textContent = "Monitoring is ready. Verified websites are checked every 15 minutes.";
+
+    const sites = Array.isArray(data.sites) ? data.sites : [];
+    const verifiedSites = sites.filter(site => site.status === "active" && site.verified_at);
+
+    if (!sites.length) {
+      status.className = "notice";
+      status.textContent = "No monitored websites yet. Add and verify a domain to prepare monitoring. Automatic 15-minute checks are not active in this deployment.";
+    } else if (!verifiedSites.length) {
+      status.className = "notice";
+      status.textContent = "Complete DNS ownership verification to prepare your website. Automatic 15-minute checks are not active in this deployment.";
+    } else {
+      status.className = "notice";
+      status.textContent = verifiedSites.length + " verified website(s) are ready. Automatic 15-minute execution is pending scheduler activation; completed runs will appear below.";
+    }
   } catch (error) {
     status.className = "notice";
     status.textContent = error?.message || "Log in to manage monitoring.";
@@ -3409,7 +3422,7 @@ async function verifyMonitoringSite(siteId) {
     await monitoringRequest({ action: "verify", siteId });
     await loadMonitoringDashboard();
     status.className = "success";
-    status.textContent = "Domain ownership verified. 15-minute monitoring is enabled.";
+    status.textContent = "Domain ownership verified. The website is ready for scheduled monitoring; automated runs are not yet active in this deployment.";
   } catch (error) {
     status.className = "error";
     status.textContent = error?.message || "DNS verification failed.";
