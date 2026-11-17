@@ -1764,7 +1764,7 @@ if (surfaceFindings.length > 0) {
 
 
       const mentorButton =
-        status === "WARNING"
+        status === "WARNING" || status === "INFO"
           ? `
 
             <button
@@ -2002,9 +2002,9 @@ if (surfaceFindings.length > 0) {
 
       <p class="message">
 
-        Select a WARNING below to ask
-        the AI Security Mentor for a
-        tailored explanation and fix.
+        Select a WARNING or INFO finding below to ask
+        the AI Security Mentor for an explanation
+        and practical defensive guidance.
 
       </p>
 
