@@ -719,6 +719,12 @@ async function saveScanToSupabase(scan) {
       "Supabase Save Error:",
       error
     );
+    const historyStatus = document.getElementById("historyStatus");
+    if (historyStatus) {
+      historyStatus.className = "error";
+      historyStatus.textContent = "Cloud history could not be saved. Your scan is still available in this browser; please check your connection and account permissions.";
+    }
+    return false;
 
   }
 
@@ -1165,7 +1171,7 @@ trackEvent(
 
     };
 
-   saveScanHistory(
+   await saveScanHistory(
       latestScan
     );
 console.log(
@@ -2567,7 +2573,7 @@ async function generateProfessionalReport(button) {
    LOCAL + CLOUD SCAN HISTORY
 ========================= */
 
-function saveScanHistory(scan) {
+async function saveScanHistory(scan) {
 
   try {
 
@@ -2625,7 +2631,7 @@ function saveScanHistory(scan) {
 
 
     /* Save to cloud if logged in */
-    saveScanToSupabase(
+    await saveScanToSupabase(
       scan
     );
 
