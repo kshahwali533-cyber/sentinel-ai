@@ -38,3 +38,4 @@ No unresolved critical/high findings; all material findings have documented disp
 - [x] **AUD-02 reviewer pack draft:** the same document records architecture/data flows, currently evidenced controls, known gaps and release decision.
 - [ ] **AUD-03 to AUD-06:** no assessor has been selected or commissioned; no independent assessment or retest has occurred.
 - [ ] **AUD-07:** current decision remains **NO-GO** for Global Ready Release until all critical gaps are closed and independent assessment is completed.
+- [ ] **Commercial readiness:** subscription/payment system is design-only; no provider is connected, no paid plans are active, and seller onboarding/payout verification must be completed by the owner before implementing or enabling live billing. See `docs/subscription-billing-design.md`.
