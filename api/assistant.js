@@ -1,4 +1,5 @@
 import { buildMentorFallback, normalizeMentorInput, normalizeMentorResponse } from "./_lib/mentor-validation.js";
+import { readOpenAIResponse } from "./_lib/mentor-openai-response.js";
 import { createClient } from "@supabase/supabase-js";
 import { getTrustedClientIp } from "./_lib/client-ip.js";
 
@@ -447,7 +448,8 @@ Do not provide exploitation instructions or invent facts about the website.`
           }
         );
 
-        const data = await response.json();
+        // Bound the upstream response while streaming it, not after JSON buffering.
+        const data = await readOpenAIResponse(response, 256 * 1024, 10000);
 
         /*
          * Raw HTTP Responses API text is returned in
