@@ -89,6 +89,7 @@ export default async function handler(req, res) {
     const evidence = mentorInput.evidence;
 
     const apiKey = process.env.OPENAI_API_KEY;
+    let fallbackReason = apiKey ? "upstream_unverified" : "missing_api_key";
 
     /*
      * Protect paid AI calls from automated abuse.
@@ -456,6 +457,10 @@ Do not provide exploitation instructions or invent facts about the website.`
          * output[].content[].text. output_text is a convenience
          * property exposed by some SDKs, not guaranteed in raw JSON.
          */
+        if (!response.ok) {
+          fallbackReason = `upstream_http_${response.status}`;
+        }
+
         const responseText =
           typeof data?.output_text === "string"
             ? data.output_text
@@ -504,6 +509,8 @@ Do not provide exploitation instructions or invent facts about the website.`
             return res.status(200).json({
               success: true,
               aiPowered: true,
+              fallback: false,
+              verificationStatus: "AI_VERIFIED",
               assistant: normalizedAssistant
             });
           }
@@ -514,14 +521,25 @@ Do not provide exploitation instructions or invent facts about the website.`
          * Do NOT return an error to the user.
          */
 
+        if (response.ok) {
+          fallbackReason = responseText ? "invalid_ai_output" : "empty_ai_output";
+        }
         console.warn(
-          "OpenAI unavailable. Using Sentinel AI built-in defensive guidance."
+          "OpenAI unavailable. Using Sentinel AI built-in defensive guidance.",
+          { status: response.status, fallbackReason }
         );
 
       } catch (openAIError) {
+        fallbackReason = openAIError?.code === "RESPONSE_TOO_LARGE"
+          ? "upstream_response_too_large"
+          : openAIError?.code === "RESPONSE_BODY_TIMEOUT"
+            ? "upstream_response_timeout"
+            : openAIError?.code === "INVALID_UPSTREAM_JSON"
+              ? "invalid_upstream_json"
+              : "upstream_request_failed";
         console.warn(
           "OpenAI connection failed. Using built-in guidance.",
-          openAIError?.message
+          { code: openAIError?.code || "UNKNOWN", fallbackReason }
         );
       }
     }
@@ -537,6 +555,8 @@ Do not provide exploitation instructions or invent facts about the website.`
       success: true,
       aiPowered: false,
       fallback: true,
+      verificationStatus: "AI_FAILED_FALLBACK_USED",
+      fallbackReason,
       assistant: buildMentorFallback(mentorInput, fallbackGuidance)
     });
 
