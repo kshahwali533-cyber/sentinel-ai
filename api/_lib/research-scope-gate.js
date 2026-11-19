@@ -50,6 +50,7 @@ export function evaluateResearchScope({
   targetUrl,
   method,
   testCategory,
+  trustedPlanHash,
   now = Date.now()
 }) {
   const deny = (reason) => ({ allowed: false, reason });
@@ -114,7 +115,8 @@ export function evaluateResearchScope({
   if (!planApproval || planApproval.status !== "approved" ||
       planApproval.case_id !== authorizationRecord.case_id ||
       planApproval.reviewer_user_id == null ||
-      typeof planApproval.plan_hash !== "string" || !/^[0-9a-f]{64}$/i.test(planApproval.plan_hash)) {
+      typeof planApproval.plan_hash !== "string" || !/^[0-9a-f]{64}$/i.test(planApproval.plan_hash) ||
+      typeof trustedPlanHash !== "string" || trustedPlanHash !== planApproval.plan_hash) {
     return deny("human_plan_approval_missing");
   }
   const approvalExpiry = parseIso(planApproval.expires_at);
