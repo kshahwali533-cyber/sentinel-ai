@@ -2,7 +2,7 @@
 
 Status: Branch implementation in progress; NOT production-ready.
 Branch: `feature/ai-research-lab-spec`
-Latest automated validation: 18 tests passed, 0 failed.
+Latest automated validation: 25 tests passed, 0 failed.
 
 ## Completed in this branch
 
@@ -25,6 +25,7 @@ Latest automated validation: 18 tests passed, 0 failed.
 - No staging database migration or two-user RLS test has been performed.
 - The scope evaluator is connected only to a read-only decision endpoint; it is NOT
   connected to any endpoint that can initiate external testing. No active testing is enabled.
+- The new Research Lab case UI is not yet integrated into the existing Research Workspace.
 - Authorization evidence intake, reviewer identity/role management, and approval
   creation/revocation endpoints are not yet implemented.
 - Research Lab user interface and report workflow are not yet integrated.
