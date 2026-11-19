@@ -91,6 +91,10 @@ export function evaluateResearchScope({
       BLOCKED_CATEGORIES.has(testCategory.trim().toLowerCase())) {
     return deny("test_category_blocked");
   }
+  if (!Array.isArray(authorizationRecord.allowed_test_categories) ||
+      !authorizationRecord.allowed_test_categories.includes(testCategory)) {
+    return deny("test_category_not_in_scope");
+  }
 
   const asset = authorizationRecord.authorized_assets.find((entry) =>
     entry && typeof entry === "object" &&
@@ -98,7 +102,8 @@ export function evaluateResearchScope({
     entry.origin.toLowerCase() === target.origin
   );
   if (!asset) return deny("target_origin_out_of_scope");
-  if (!Array.isArray(asset.paths) || !asset.paths.some((path) => isPathWithinScope(target.pathname, path))) {
+  if (!Array.isArray(asset.paths) || !Array.isArray(asset.excluded_paths ?? []) ||
+      !asset.paths.some((path) => isPathWithinScope(target.pathname, path))) {
     return deny("target_path_out_of_scope");
   }
   if (asset.excluded_paths?.some((path) => isPathWithinScope(target.pathname, path))) {
@@ -108,7 +113,8 @@ export function evaluateResearchScope({
   // Approval is a separate, trusted record for this exact test plan.
   if (!planApproval || planApproval.status !== "approved" ||
       planApproval.case_id !== authorizationRecord.case_id ||
-      planApproval.reviewer_user_id == null) {
+      planApproval.reviewer_user_id == null ||
+      typeof planApproval.plan_hash !== "string" || !/^[0-9a-f]{64}$/i.test(planApproval.plan_hash)) {
     return deny("human_plan_approval_missing");
   }
   const approvalExpiry = parseIso(planApproval.expires_at);
