@@ -23,6 +23,7 @@ Git branch: feature/ai-research-lab-spec
 - authorization_status text not null default 'not_provided'; allowed: not_provided, pending_review, authorized, denied, expired
 - authorized_assets jsonb not null default '[]', must be an array
 - allowed_methods jsonb not null default '[]', must be an array
+- allowed_test_categories jsonb not null default '[]', must be an array; only explicitly listed safe test categories can be considered
 - excluded_methods jsonb not null default '[]', must be an array
 - scope_starts_at and scope_expires_at timestamptz null
 - result_state text not null default 'inconclusive'; allowed: verified, refuted, inconclusive, solved
