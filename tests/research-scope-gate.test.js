@@ -34,6 +34,7 @@ const request = {
   targetUrl: "https://example.test/security/report",
   method: "GET",
   testCategory: "passive_header_review",
+  trustedPlanHash: "a".repeat(64),
   now: NOW
 };
 
@@ -75,6 +76,13 @@ test("denies a category not explicitly listed in the authorization scope", () =>
     ...request,
     testCategory: "unlisted_test"
   }).reason, "test_category_not_in_scope");
+});
+
+test("denies when the trusted server plan hash differs from the approval", () => {
+  assert.equal(evaluateResearchScope({
+    ...request,
+    trustedPlanHash: "b".repeat(64)
+  }).reason, "human_plan_approval_missing");
 });
 
 test("denies missing or mismatched human approval", () => {
