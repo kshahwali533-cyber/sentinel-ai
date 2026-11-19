@@ -21,6 +21,7 @@ const approval = {
   status: "approved",
   case_id: "case-123",
   reviewer_user_id: "reviewer-1",
+  approved_at: "2026-11-20T11:30:00.000Z",
   expires_at: "2026-11-20T12:30:00.000Z",
   target_origin: "https://example.test:443",
   target_path: "/security/report",
@@ -71,6 +72,11 @@ test("denies expired scope and future scope", () => {
   }).reason, "scope_not_started");
 });
 
+test("normalizes an HTTPS origin with or without an explicit default port", () => {
+  const withoutPort = { ...baseCase, authorized_assets: [{ origin: "https://example.test", paths: ["/security/"] }] };
+  assert.equal(evaluateResearchScope({ ...request, authorizationRecord: withoutPort }).allowed, true);
+});
+
 test("denies a category not explicitly listed in the authorization scope", () => {
   assert.equal(evaluateResearchScope({
     ...request,
@@ -83,6 +89,13 @@ test("denies when the trusted server plan hash differs from the approval", () =>
     ...request,
     trustedPlanHash: "b".repeat(64)
   }).reason, "human_plan_approval_missing");
+});
+
+test("denies an approval timestamp that is in the future", () => {
+  assert.equal(evaluateResearchScope({
+    ...request,
+    planApproval: { ...approval, approved_at: "2026-11-20T12:01:00.000Z" }
+  }).reason, "human_plan_approval_invalid");
 });
 
 test("denies missing or mismatched human approval", () => {
