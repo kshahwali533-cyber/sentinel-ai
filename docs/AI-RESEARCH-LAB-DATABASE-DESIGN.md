@@ -7,7 +7,7 @@ Git branch: feature/ai-research-lab-spec
 - Keep every research case private to its owner in the MVP.
 - Allow a case to exist before any scan or external testing.
 - Separate authorization/scope, research notes, evidence, conclusions, and audit events.
-- Keep evidence immutable after collection except for owner-controlled redaction/annotation; preserve an audit event for changes.
+- Keep notes and evidence append-only for client roles; corrections are new records. Any trusted-server redaction must be separately audited.
 - Never store passwords, API keys, session cookies, private keys, or raw authentication tokens.
 - No active testing is initiated by a database insert or case creation.
 
@@ -28,18 +28,19 @@ Git branch: feature/ai-research-lab-spec
 - result_state text not null default 'inconclusive'; allowed: verified, refuted, inconclusive, solved
 - confidence text not null default 'low'; allowed: low, medium, high
 - limitations and remediation text not null default ''
-- created_at, updated_at timestamptz not null default now()
+- created_at timestamptz not null default now(); cases are archived with archived_at rather than client-side hard deletion
 - constraints: scope expiry must be after scope start when both exist; JSON fields must be arrays.
 
 ### public.research_case_notes
 - id uuid primary key default gen_random_uuid()
-- case_id uuid not null references research_cases(id) on delete cascade
-- owner_user_id uuid not null references auth.users(id) on delete cascade
+- case_id uuid not null; owner_user_id uuid not null
+- composite foreign key (case_id, owner_user_id) references research_cases(id, owner_user_id) on delete cascade
+- owner_user_id references auth.users(id) on delete cascade
 - note_type text not null default 'observation'; allowed: observation, hypothesis, test_plan, conclusion, remediation
 - content text not null, length 1..10000
 - source_reference text null, max 2048
 - created_at timestamptz not null default now()
-- Ownership consistency must be enforced by RLS and a trusted server-side path.
+- Composite foreign key and RLS both enforce parent/owner consistency.
 
 ### public.research_case_evidence
 - id uuid primary key default gen_random_uuid()
@@ -48,7 +49,8 @@ Git branch: feature/ai-research-lab-spec
 - evidence_type text not null; allowed: text_excerpt, file_reference, hash, screenshot_reference, request_response_excerpt, log_excerpt, reproduction_step
 - title text not null, length 1..160
 - description text not null default '', max 5000
-- content_reference text null, max 2048; use a private Storage object reference, not a public URL
+- content_reference text null, max 512; private Storage object key only, not a URL
+- Client roles receive SELECT/INSERT only; no client UPDATE/DELETE
 - sha256 text null, exactly 64 hexadecimal characters when present
 - captured_at timestamptz not null default now()
 - redacted boolean not null default false
@@ -57,7 +59,8 @@ Git branch: feature/ai-research-lab-spec
 
 ### public.research_case_audit
 - id bigint generated always as identity primary key
-- case_id uuid not null references research_cases(id) on delete cascade
+- case_id uuid not null; case_owner_user_id uuid not null
+- composite foreign key (case_id, case_owner_user_id) references research_cases(id, owner_user_id) on delete cascade
 - actor_user_id uuid null references auth.users(id) on delete set null
 - event_type text not null, max 80
 - details jsonb not null default '{}'; must be an object and contain no credentials/secrets
@@ -72,18 +75,18 @@ Enable RLS on every table.
 - SELECT: authenticated, (select auth.uid()) = owner_user_id
 - INSERT: authenticated, WITH CHECK ((select auth.uid()) = owner_user_id)
 - UPDATE: authenticated, USING ((select auth.uid()) = owner_user_id), WITH CHECK ((select auth.uid()) = owner_user_id)
-- DELETE: authenticated, USING ((select auth.uid()) = owner_user_id)
-- Authorization status must not be self-promoted to authorized by an ordinary client update. Set/approve it through a trusted server workflow or constrain client updates to non-authorization fields.
+- No client DELETE policy; archive cases instead.
+- Column-level grants restrict client UPDATE to descriptive/remediation fields. Authorization, scope, result and confidence fields are not client-writable; a trusted server workflow must approve them.
 
 ### research_case_notes and research_case_evidence
 - SELECT: authenticated and owner_user_id = (select auth.uid()) and an EXISTS check that the parent research_cases row has the same id and owner_user_id.
 - INSERT: same ownership predicate in WITH CHECK.
-- UPDATE: owner-only USING and WITH CHECK; evidence updates should be limited to redaction/annotation through server-side workflow if immutability is adopted.
-- DELETE: owner-only; consider soft-delete/audit event instead of physical deletion for evidence.
+- No client UPDATE/DELETE policies; notes and evidence are append-only for client roles. Corrections are new records; redaction must use a trusted, audited server workflow.
 
 ### research_case_audit
 - SELECT: authenticated with EXISTS on parent case owned by auth.uid().
-- No INSERT/UPDATE/DELETE policies for anon/authenticated. Trusted server code uses service-role credentials only on the server and records actor identity explicitly after verifying the user token.
+- No INSERT/UPDATE/DELETE policies or grants for anon/authenticated. Trusted server code uses service-role credentials only on the server and records actor identity explicitly after verifying the user token.
+- Case/account deletion cascades remove associated child and audit rows under the MVP retention model.
 
 ## Important implementation cautions
 - TO authenticated alone is not sufficient; every policy must enforce ownership.
@@ -93,6 +96,8 @@ Enable RLS on every table.
 - Check Data API exposure and explicit grants for newly created public tables before client access; grants do not replace RLS.
 - Avoid SECURITY DEFINER functions unless strictly necessary; if used, restrict execution and validate auth.uid() inside.
 - Add indexes on owner_user_id, case_id, created_at, and common filters after reviewing query patterns.
+- Grant only required Data API table/column privileges; anon receives no access. Grants do not replace RLS.
+- File upload is excluded from the initial migration until private Storage bucket policies, size/type limits, malware handling and retention are separately reviewed.
 - Keep case creation separate from target scanning. A case may be created in analysis-only mode with no authorization evidence.
 - External active tests require a separate application-level scope gate, explicit human approval, allowlist, method restrictions, rate budget, expiry, and emergency stop. RLS is not a substitute for these controls.
 
@@ -106,6 +111,6 @@ Enable RLS on every table.
 ## Review gates before any migration
 1. Review exact DDL, policy expressions, indexes, and foreign-key behavior.
 2. Confirm how owner approval of authorization scope is represented and audited.
-3. Confirm Storage bucket privacy and evidence upload limits before adding file uploads.
-4. Run security advisors after migration and test cross-user SELECT/INSERT/UPDATE/DELETE isolation with two test users.
+3. Keep uploads disabled until Storage bucket privacy and evidence upload limits are separately reviewed.
+4. Run security advisors after staging migration and test cross-user SELECT/INSERT/UPDATE/DELETE isolation with two test users, including prohibited column updates and append-only behavior.
 5. Do not deploy the feature until all tests pass.
