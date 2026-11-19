@@ -112,3 +112,6 @@ These documents are design artifacts on the feature branch. They do not authoriz
 - [Implementation status and release gates](./AI-RESEARCH-LAB-IMPLEMENTATION-STATUS.md)
 - [Fail-closed scope evaluator](../api/_lib/research-scope-gate.js)
 - [Automated tests](../tests/research-scope-gate.test.js) and [migration safety tests](../tests/research-migration-safety.test.js)
+
+- [Read-only scope decision endpoint](../api/research-scope-check.js) — verifies stored authorization and exact per-plan approval without contacting the target.
+- [Plan fingerprinting helper](../api/_lib/research-plan-hash.js) — creates the server-side SHA-256 fingerprint bound to the approval.
