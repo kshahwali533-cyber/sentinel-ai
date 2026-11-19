@@ -98,3 +98,12 @@ Store secrets separately from case records; do not store passwords, API keys, se
 5. Add report generation and audit events.
 6. Test authorization gates and tenant isolation.
 7. Integrate with the existing product only after isolated tests pass.
+
+
+## Security implementation references
+
+- [Database and RLS design](./AI-RESEARCH-LAB-DATABASE-DESIGN.md) — proposed ownership model, table permissions, and append-only records.
+- [SQL migration draft](./AI-RESEARCH-LAB-MIGRATION-DRAFT.sql) — review-only SQL; not applied to Supabase.
+- [Authorization and scope gate](./AI-RESEARCH-LAB-AUTHORIZATION-GATE.md) — analysis-only defaults, evidence requirements, human approval, and active-test safety limits.
+
+These documents are design artifacts on the feature branch. They do not authorize external testing and have not been deployed to the production database or application.
