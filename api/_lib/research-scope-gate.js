@@ -18,7 +18,7 @@ function normalizeTarget(value) {
   try {
     const url = new URL(value);
     if (url.protocol !== "https:" || url.username || url.password) return null;
-    if (url.hash) return null;
+    if (url.hash || url.search) return null;
     const port = url.port || "443";
     return {
       origin: `https://${url.hostname.toLowerCase()}:${port}`,
