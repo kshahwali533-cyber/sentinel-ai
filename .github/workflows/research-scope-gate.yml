@@ -22,4 +22,4 @@ jobs:
         with:
           node-version: 24
       - name: Run scope gate unit tests
-        run: node --test tests/research-scope-gate.test.js
+        run: node --test tests/*.test.js
