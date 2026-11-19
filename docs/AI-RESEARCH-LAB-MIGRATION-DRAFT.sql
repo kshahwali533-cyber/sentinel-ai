@@ -21,7 +21,7 @@ begin;
 -- 1) CASES
 create table public.research_cases (
   id uuid primary key default gen_random_uuid(),
-  owner_user_id uuid not null references auth.users(id) on delete restrict,
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
   title text not null check (char_length(btrim(title)) between 1 and 160),
   challenge_type text not null check (
     challenge_type in ('ctf','bug_bounty','defensive_assessment','code_review','other')
@@ -69,7 +69,7 @@ create table public.research_case_notes (
   created_at timestamptz not null default now(),
   constraint research_case_notes_case_owner_fk
     foreign key (case_id, owner_user_id)
-    references public.research_cases(id, owner_user_id) on delete restrict
+    references public.research_cases(id, owner_user_id) on delete cascade
 );
 
 -- 3) EVIDENCE — append-only to client roles; store private object keys only.
@@ -147,6 +147,8 @@ create policy research_cases_update_own
   with check ((select auth.uid()) = owner_user_id);
 
 -- No client DELETE policy: cases are archived, not physically deleted.
+-- Trusted account deletion cascades through cases and their child records,
+-- including audit rows, to support account/data deletion requests.
 -- Client UPDATE is additionally column-limited below.
 
 create policy research_case_notes_select_own
@@ -205,6 +207,8 @@ create policy research_case_audit_select_own
   );
 
 -- Deliberately no client INSERT/UPDATE/DELETE policies on audit.
+-- Parent/account deletion cascades remove the associated audit rows; retain
+-- audit only while the owning account/case remains active under this MVP model.
 
 -- 7) LEAST-PRIVILEGE TABLE AND COLUMN GRANTS
 revoke all on table
