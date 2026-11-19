@@ -106,6 +106,11 @@ test("denies missing or mismatched human approval", () => {
   }).reason, "approved_plan_does_not_match_request");
 });
 
+test("denies query strings and fragments in exact-scope URLs", () => {
+  assert.equal(evaluateResearchScope({ ...request, targetUrl: "https://example.test/security/report?x=1" }).reason, "target_url_invalid");
+  assert.equal(evaluateResearchScope({ ...request, targetUrl: "https://example.test/security/report#part" }).reason, "target_url_invalid");
+});
+
 test("denies insecure URLs and dangerous test categories", () => {
   assert.equal(evaluateResearchScope({ ...request, targetUrl: "http://example.test/security/report" }).reason, "target_url_invalid");
   assert.equal(evaluateResearchScope({ ...request, testCategory: "denial_of_service" }).reason, "test_category_blocked");
