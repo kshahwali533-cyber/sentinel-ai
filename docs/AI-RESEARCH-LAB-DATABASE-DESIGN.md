@@ -69,7 +69,7 @@ Git branch: feature/ai-research-lab-spec
 - method text not null; MVP permits GET, HEAD, OPTIONS only
 - test_category text not null; must also appear in the case's allowed_test_categories
 - status text not null; approved, rejected, revoked
-- reviewer_user_id uuid null references auth.users(id); required for approved decisions
+- reviewer_user_id uuid not null references auth.users(id) on delete restrict for approved decisions; preserve reviewer attribution
 - approved_at, expires_at, revoked_at, created_at timestamps
 - RLS enabled; owner can SELECT; no client INSERT/UPDATE/DELETE. A trusted server-side review workflow creates and revokes approval records.
 
