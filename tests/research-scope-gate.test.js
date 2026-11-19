@@ -14,6 +14,7 @@ const baseCase = {
     excluded_paths: ["/security/admin/"]
   }],
   allowed_methods: ["GET"],
+  allowed_test_categories: ["passive_header_review"],
   excluded_methods: ["POST"]
 };
 const approval = {
@@ -24,7 +25,8 @@ const approval = {
   target_origin: "https://example.test:443",
   target_path: "/security/report",
   method: "GET",
-  test_category: "passive_header_review"
+  test_category: "passive_header_review",
+  plan_hash: "a".repeat(64)
 };
 const request = {
   authorizationRecord: baseCase,
@@ -66,6 +68,13 @@ test("denies expired scope and future scope", () => {
     ...request,
     authorizationRecord: { ...baseCase, scope_starts_at: "2026-11-20T12:01:00.000Z" }
   }).reason, "scope_not_started");
+});
+
+test("denies a category not explicitly listed in the authorization scope", () => {
+  assert.equal(evaluateResearchScope({
+    ...request,
+    testCategory: "unlisted_test"
+  }).reason, "test_category_not_in_scope");
 });
 
 test("denies missing or mismatched human approval", () => {
