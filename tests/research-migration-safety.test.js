@@ -19,26 +19,26 @@ test("migration is explicitly marked review-only and transaction-wrapped", () =>
 
 test("creates each expected table exactly once", () => {
   for (const table of tables) {
-    const matches = sql.match(new RegExp("create table public\\." + table + "\\b", "g")) || [];
+    const matches = sql.match(new RegExp("create table public\." + table + "\b", "g")) || [];
     assert.equal(matches.length, 1, table);
   }
 });
 
 test("enables RLS on every Research Lab table", () => {
   for (const table of tables) {
-    assert.match(sql, new RegExp("alter table public\\." + table + " enable row level security"));
+    assert.match(sql, new RegExp("alter table public\." + table + " enable row level security"));
   }
 });
 
 test("client roles cannot write approvals or audit records", () => {
-  assert.doesNotMatch(sql, /grant\\s+(?:all|insert|update|delete)[^;]*research_case_approvals[^;]*to authenticated/is);
-  assert.doesNotMatch(sql, /grant\\s+(?:all|insert|update|delete)[^;]*research_case_audit[^;]*to authenticated/is);
-  assert.match(sql, /revoke all on table[\\s\\S]*from public, anon, authenticated;/);
+  assert.doesNotMatch(sql, /grant\s+(?:all|insert|update|delete)[^;]*research_case_approvals[^;]*to authenticated/is);
+  assert.doesNotMatch(sql, /grant\s+(?:all|insert|update|delete)[^;]*research_case_audit[^;]*to authenticated/is);
+  assert.match(sql, /revoke all on table[\s\S]*from public, anon, authenticated;/);
 });
 
 test("authorization and scope columns are excluded from client write grants", () => {
-  const caseInsert = sql.match(/grant insert \\(([^)]*)\\)\\s+on public\\.research_cases to authenticated/i)?.[1] || "";
-  const caseUpdate = sql.match(/grant update \\(([^)]*)\\)\\s+on public\\.research_cases to authenticated/i)?.[1] || "";
+  const caseInsert = sql.match(/grant insert \(([^)]*)\)\s+on public\.research_cases to authenticated/i)?.[1] || "";
+  const caseUpdate = sql.match(/grant update \(([^)]*)\)\s+on public\.research_cases to authenticated/i)?.[1] || "";
   for (const forbidden of ["authorization_status", "authorized_assets", "allowed_methods", "allowed_test_categories", "scope_starts_at", "scope_expires_at", "result_state", "confidence"]) {
     assert.equal(caseInsert.includes(forbidden), false, forbidden + " insert");
     assert.equal(caseUpdate.includes(forbidden), false, forbidden + " update");
@@ -46,8 +46,8 @@ test("authorization and scope columns are excluded from client write grants", ()
 });
 
 test("notes and evidence are client append-only", () => {
-  assert.match(sql, /grant select, insert on public\\.research_case_notes to authenticated/);
-  assert.match(sql, /grant select, insert on public\\.research_case_evidence to authenticated/);
-  assert.doesNotMatch(sql, /grant[^;]*\\bupdate\\b[^;]*research_case_(?:notes|evidence)/is);
-  assert.doesNotMatch(sql, /grant[^;]*\\bdelete\\b[^;]*research_case_(?:notes|evidence)/is);
+  assert.match(sql, /grant select, insert on public\.research_case_notes to authenticated/);
+  assert.match(sql, /grant select, insert on public\.research_case_evidence to authenticated/);
+  assert.doesNotMatch(sql, /grant[^;]*\bupdate\b[^;]*research_case_(?:notes|evidence)/is);
+  assert.doesNotMatch(sql, /grant[^;]*\bdelete\b[^;]*research_case_(?:notes|evidence)/is);
 });
