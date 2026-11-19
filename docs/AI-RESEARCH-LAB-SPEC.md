@@ -107,3 +107,8 @@ Store secrets separately from case records; do not store passwords, API keys, se
 - [Authorization and scope gate](./AI-RESEARCH-LAB-AUTHORIZATION-GATE.md) — analysis-only defaults, evidence requirements, human approval, and active-test safety limits.
 
 These documents are design artifacts on the feature branch. They do not authorize external testing and have not been deployed to the production database or application.
+
+
+- [Implementation status and release gates](./AI-RESEARCH-LAB-IMPLEMENTATION-STATUS.md)
+- [Fail-closed scope evaluator](../api/_lib/research-scope-gate.js)
+- [Automated tests](../tests/research-scope-gate.test.js) and [migration safety tests](../tests/research-migration-safety.test.js)
