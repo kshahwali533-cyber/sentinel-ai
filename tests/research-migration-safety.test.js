@@ -19,14 +19,14 @@ test("migration is explicitly marked review-only and transaction-wrapped", () =>
 
 test("creates each expected table exactly once", () => {
   for (const table of tables) {
-    const matches = sql.match(new RegExp("create table public\." + table + "\b", "g")) || [];
-    assert.equal(matches.length, 1, table);
+    const matches = sql.split("create table public." + table + " (").length - 1;
+    assert.equal(matches, 1, table);
   }
 });
 
 test("enables RLS on every Research Lab table", () => {
   for (const table of tables) {
-    assert.match(sql, new RegExp("alter table public\." + table + " enable row level security"));
+    assert.equal(sql.includes("alter table public." + table + " enable row level security;"), true, table);
   }
 });
 
