@@ -11,6 +11,8 @@ Latest automated validation: 18 tests passed, 0 failed.
 - Owner-isolated RLS policies and least-privilege grants in the draft.
 - Server-only per-test approval record design, bound to a SHA-256 plan hash.
 - Fail-closed scope evaluator at `api/_lib/research-scope-gate.js`.
+- Read-only server endpoint `api/research-scope-check.js` that loads authorization and approval records server-side and returns a decision only; it never contacts the target.
+- Canonical SHA-256 test-plan fingerprinting at `api/_lib/research-plan-hash.js`.
 - Unit tests for authorization status, exact HTTPS origin/path, allowed methods,
   explicitly allowed test categories, scope expiry, human approval, reviewer
   timestamp, and plan-hash matching.
@@ -21,8 +23,8 @@ Latest automated validation: 18 tests passed, 0 failed.
 
 - The migration has NOT been applied to Supabase.
 - No staging database migration or two-user RLS test has been performed.
-- The scope evaluator is a tested pure helper; it is NOT yet connected to a live
-  endpoint that can initiate external testing. No active testing is enabled.
+- The scope evaluator is connected only to a read-only decision endpoint; it is NOT
+  connected to any endpoint that can initiate external testing. No active testing is enabled.
 - Authorization evidence intake, reviewer identity/role management, and approval
   creation/revocation endpoints are not yet implemented.
 - Research Lab user interface and report workflow are not yet integrated.
