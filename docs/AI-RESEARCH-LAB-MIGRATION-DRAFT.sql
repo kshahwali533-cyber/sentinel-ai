@@ -37,6 +37,8 @@ create table public.research_cases (
     check (jsonb_typeof(authorized_assets) = 'array'),
   allowed_methods jsonb not null default '[]'::jsonb
     check (jsonb_typeof(allowed_methods) = 'array'),
+  allowed_test_categories jsonb not null default '[]'::jsonb
+    check (jsonb_typeof(allowed_test_categories) = 'array'),
   excluded_methods jsonb not null default '[]'::jsonb
     check (jsonb_typeof(excluded_methods) = 'array'),
   scope_starts_at timestamptz,
