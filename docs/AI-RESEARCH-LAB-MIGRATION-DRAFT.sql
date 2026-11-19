@@ -81,7 +81,7 @@ create table public.research_case_approvals (
   method text not null check (method in ('GET','HEAD','OPTIONS')),
   test_category text not null check (char_length(btrim(test_category)) between 1 and 80),
   status text not null check (status in ('approved','rejected','revoked')),
-  reviewer_user_id uuid references auth.users(id) on delete set null,
+  reviewer_user_id uuid references auth.users(id) on delete restrict,
   approved_at timestamptz,
   expires_at timestamptz not null,
   revoked_at timestamptz,
