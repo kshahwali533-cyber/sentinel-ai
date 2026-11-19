@@ -28,7 +28,8 @@ Git branch: feature/ai-research-lab-spec
 - result_state text not null default 'inconclusive'; allowed: verified, refuted, inconclusive, solved
 - confidence text not null default 'low'; allowed: low, medium, high
 - limitations and remediation text not null default ''
-- created_at timestamptz not null default now(); cases are archived with archived_at rather than client-side hard deletion
+- archived_at timestamptz null
+- created_at timestamptz not null default now(); cases are archived rather than client-side hard-deleted
 - constraints: scope expiry must be after scope start when both exist; JSON fields must be arrays.
 
 ### public.research_case_notes
@@ -44,8 +45,9 @@ Git branch: feature/ai-research-lab-spec
 
 ### public.research_case_evidence
 - id uuid primary key default gen_random_uuid()
-- case_id uuid not null references research_cases(id) on delete cascade
-- owner_user_id uuid not null references auth.users(id) on delete cascade
+- case_id uuid not null; owner_user_id uuid not null
+- composite foreign key (case_id, owner_user_id) references research_cases(id, owner_user_id) on delete cascade
+- owner_user_id references auth.users(id) on delete cascade
 - evidence_type text not null; allowed: text_excerpt, file_reference, hash, screenshot_reference, request_response_excerpt, log_excerpt, reproduction_step
 - title text not null, length 1..160
 - description text not null default '', max 5000
