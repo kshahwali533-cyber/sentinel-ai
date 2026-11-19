@@ -97,11 +97,12 @@ export function evaluateResearchScope({
     return deny("test_category_not_in_scope");
   }
 
-  const asset = authorizationRecord.authorized_assets.find((entry) =>
-    entry && typeof entry === "object" &&
-    typeof entry.origin === "string" &&
-    entry.origin.toLowerCase() === target.origin
-  );
+  const asset = authorizationRecord.authorized_assets.find((entry) => {
+    if (!entry || typeof entry !== "object" || typeof entry.origin !== "string") return false;
+    const approvedOrigin = normalizeTarget(entry.origin);
+    return approvedOrigin !== null && approvedOrigin.pathname === "/" &&
+      approvedOrigin.origin === target.origin;
+  });
   if (!asset) return deny("target_origin_out_of_scope");
   if (!Array.isArray(asset.paths) || !Array.isArray(asset.excluded_paths ?? []) ||
       !asset.paths.some((path) => isPathWithinScope(target.pathname, path))) {
@@ -119,10 +120,13 @@ export function evaluateResearchScope({
       typeof trustedPlanHash !== "string" || trustedPlanHash !== planApproval.plan_hash) {
     return deny("human_plan_approval_missing");
   }
+  const approvalStart = parseIso(planApproval.approved_at);
   const approvalExpiry = parseIso(planApproval.expires_at);
-  if (!Number.isFinite(approvalExpiry) || now >= approvalExpiry) {
-    return deny("human_plan_approval_expired");
+  if (!Number.isFinite(approvalStart) || !Number.isFinite(approvalExpiry) ||
+      approvalExpiry <= approvalStart || now < approvalStart) {
+    return deny("human_plan_approval_invalid");
   }
+  if (now >= approvalExpiry) return deny("human_plan_approval_expired");
   if (planApproval.target_origin !== target.origin ||
       planApproval.target_path !== target.pathname ||
       planApproval.method !== normalizedMethod ||
