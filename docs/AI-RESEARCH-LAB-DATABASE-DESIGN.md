@@ -60,6 +60,19 @@ Git branch: feature/ai-research-lab-spec
 - created_at timestamptz not null default now()
 - Do not store secret material or unrelated personal data in content/description.
 
+### public.research_case_approvals
+- id uuid primary key default gen_random_uuid()
+- case_id uuid and case_owner_user_id uuid; composite foreign key to research_cases(id, owner_user_id)
+- plan_hash text not null, exactly 64 hexadecimal characters; unique per case
+- target_origin text not null; HTTPS origin only
+- target_path text not null; exact approved path
+- method text not null; MVP permits GET, HEAD, OPTIONS only
+- test_category text not null; must also appear in the case's allowed_test_categories
+- status text not null; approved, rejected, revoked
+- reviewer_user_id uuid null references auth.users(id); required for approved decisions
+- approved_at, expires_at, revoked_at, created_at timestamps
+- RLS enabled; owner can SELECT; no client INSERT/UPDATE/DELETE. A trusted server-side review workflow creates and revokes approval records.
+
 ### public.research_case_audit
 - id bigint generated always as identity primary key
 - case_id uuid not null; case_owner_user_id uuid not null
@@ -85,6 +98,10 @@ Enable RLS on every table.
 - SELECT: authenticated and owner_user_id = (select auth.uid()) and an EXISTS check that the parent research_cases row has the same id and owner_user_id.
 - INSERT: same ownership predicate in WITH CHECK.
 - No client UPDATE/DELETE policies; notes and evidence are append-only for client roles. Corrections are new records; redaction must use a trusted, audited server workflow.
+
+### research_case_approvals
+- SELECT: authenticated owner of parent case only.
+- No client INSERT/UPDATE/DELETE policies or grants; trusted server only.
 
 ### research_case_audit
 - SELECT: authenticated with EXISTS on parent case owned by auth.uid().
