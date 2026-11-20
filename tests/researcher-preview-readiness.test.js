@@ -14,7 +14,7 @@ test("Researcher Preview accurately describes the API foundation and current saf
   assert.match(guide, /available in the private API foundation/i);
   assert.match(guide, /complete researcher-facing controls are still under development/i);
   assert.match(page, /Current beta limitation:[\s\S]*?are not yet enabled\./i);
-  assert.match(page, /does not issue active-testing authorization or run exploit traffic/i);
+  assert.match(page, /does not\\s+issue active-testing authorization or run exploit traffic/i);
 });
 
 test("researcher guide defines non-destructive rules and evidence redaction", () => {
