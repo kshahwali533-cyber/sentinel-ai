@@ -1,0 +1,26 @@
+name: Research Scope Gate Tests
+
+on:
+  push:
+    branches:
+      - feature/ai-research-lab-spec
+      - work/bug-bounty-researcher-hardening
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  scope-gate-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Run scope gate unit tests
+        run: node --test tests/*.test.js
