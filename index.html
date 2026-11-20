@@ -434,6 +434,32 @@
     <div id="researchStatus" class="notice">Sign in to use your private research workspace.</div>
 
     <div class="analytics-panel">
+      <h3>Researcher Preview — controlled evaluation</h3>
+      <p class="research-meta">
+        This beta workspace records findings, evidence, remediation notes, and status for websites verified in your account.
+        It is not a public bug-bounty program and does not itself grant permission to test any target.
+      </p>
+      <div class="notice">
+        <strong>Safety boundary:</strong> Do not test third-party systems or production assets unless the asset owner has given you
+        explicit written authorization covering the exact host, paths, methods, dates, and exclusions. This Preview does not
+        issue active-testing authorization or run exploit traffic.
+      </div>
+      <h4>Before an external assessment</h4>
+      <ul>
+        <li>Obtain a signed scope and a named point of contact from the asset owner.</li>
+        <li>Use a dedicated test account and non-production test data supplied for the assessment.</li>
+        <li>Keep testing non-destructive; no denial-of-service, credential theft, social engineering, persistence, destructive writes, or data exfiltration.</li>
+        <li>Stop immediately if real user data, secrets, or an out-of-scope system is encountered.</li>
+        <li>Submit findings privately with timestamps, reproducible steps, redacted evidence, impact, and remediation.</li>
+      </ul>
+      <p class="research-meta">
+        Current beta limitation: research cases, independent approval records, and an active bug-bounty submission/triage portal
+        are not yet enabled. Findings entered below are private account records, not a formal vulnerability disclosure submission.
+      </p>
+      <a href="/researcher-preview-guide.md" target="_blank" rel="noopener noreferrer">Open Researcher Preview Guide</a>
+    </div>
+
+    <div class="analytics-panel">
       <h3>Create a research project</h3>
       <input id="researchProjectName" type="text" maxlength="120" placeholder="Project name">
       <textarea id="researchProjectDescription" rows="2" maxlength="1000" placeholder="Short project description (optional)"></textarea>
