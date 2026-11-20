@@ -10,9 +10,10 @@ test("Researcher Preview clearly states it is not a public bug bounty", () => {
   assert.match(page, /does not itself grant permission to test any target/i);
 });
 
-test("Researcher Preview warns that active authorization and approval workflow are not enabled", () => {
-  assert.match(page, /research cases, independent approval records/i);
-  assert.match(page, /active-testing engine/i);
+test("Researcher Preview accurately distinguishes API foundation from unfinished UI and active testing", () => {
+  assert.match(page, /private API foundation/i);
+  assert.match(page, /researcher-facing case and reviewer controls are still under development/i);
+  assert.match(page, /does not yet provide a public bug-bounty intake or execute active tests/i);
 });
 
 test("researcher guide defines non-destructive rules and evidence redaction", () => {
