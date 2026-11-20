@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 
 const api = readFileSync(new URL("../api/research.js", import.meta.url), "utf8");
 const gate = readFileSync(new URL("../api/_lib/research-scope-gate.js", import.meta.url), "utf8");
-const migration = readFileSync(new URL("../supabase/migrations/20261120170000_sentinel_research_authorization_foundation.sql", import.meta.url), "utf8");
+const migration = readFileSync(new URL("../supabase/migrations/20261120115348_sentinel_research_authorization_foundation.sql", import.meta.url), "utf8");
 
 test("research case creation requires bounded written authorization and HTTPS scope", () => {
   assert.match(api, /action === "create_case"/);
