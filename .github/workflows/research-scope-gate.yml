@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/ai-research-lab-spec
+      - work/bug-bounty-researcher-hardening
   pull_request:
     branches:
       - main
