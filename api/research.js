@@ -128,6 +128,193 @@ export default async function handler(req, res) {
       });
     }
 
+    if (action === "create_case") {
+      const title = textField(body.title, 160, true);
+      const description = textField(body.description, 5000);
+      const authorizationReference = textField(body.authorizationReference, 500, true);
+      const assets = Array.isArray(body.authorizedAssets) ? body.authorizedAssets : [];
+      const evidence = Array.isArray(body.authorizationEvidence) ? body.authorizationEvidence : [];
+      const methods = Array.isArray(body.allowedMethods) ? body.allowedMethods : [];
+      const categories = Array.isArray(body.allowedTestCategories) ? body.allowedTestCategories : [];
+      const starts = Date.parse(body.scopeStartsAt);
+      const expires = Date.parse(body.scopeExpiresAt);
+      const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
+      const validAssets = assets.length > 0 && assets.length <= 10 && assets.every((asset) => {
+        if (!asset || typeof asset !== "object" || typeof asset.origin !== "string" ||
+            !Array.isArray(asset.paths) || asset.paths.length < 1 || asset.paths.length > 30 ||
+            !Array.isArray(asset.excluded_paths ?? [])) return false;
+        try {
+          const url = new URL(asset.origin);
+          return url.protocol === "https:" && !url.username && !url.password &&
+            !url.search && !url.hash && url.pathname === "/" &&
+            asset.paths.every((path) => typeof path === "string" && path.startsWith("/") &&
+              !path.startsWith("//") && !path.includes("..") && path.length <= 1024) &&
+            (asset.excluded_paths ?? []).every((path) => typeof path === "string" &&
+              path.startsWith("/") && !path.startsWith("//") && !path.includes("..") && path.length <= 1024);
+        } catch { return false; }
+      });
+      if (!title || description === null || !authorizationReference ||
+          evidence.length < 1 || evidence.length > 10 ||
+          !evidence.every((item) => item && typeof item === "object" &&
+            typeof item.label === "string" && item.label.trim().length <= 120 &&
+            typeof item.reference === "string" && item.reference.trim().length <= 500) ||
+          !validAssets || methods.length < 1 || methods.some((m) => !safeMethods.has(m)) ||
+          categories.length < 1 || categories.length > 10 ||
+          categories.some((x) => typeof x !== "string" || !x.trim() || x.length > 80) ||
+          !Number.isFinite(starts) || !Number.isFinite(expires) || expires <= starts ||
+          expires - starts > 31 * 24 * 60 * 60 * 1000) {
+        return send(res, 400, { error: "Provide written authorization evidence, HTTPS assets, safe methods, categories, and a scope window of no more than 31 days." });
+      }
+      const { data, error } = await supabaseAdmin.from("research_cases").insert({
+        owner_user_id: user.id, title, description, authorization_reference: authorizationReference,
+        authorization_evidence: evidence, authorized_assets: assets,
+        allowed_methods: [...new Set(methods)], allowed_test_categories: [...new Set(categories)],
+        excluded_methods: [], scope_starts_at: new Date(starts).toISOString(),
+        scope_expires_at: new Date(expires).toISOString(), authorization_status: "draft"
+      }).select("id,title,authorization_status,created_at").single();
+      if (error) throw error;
+      await supabaseAdmin.from("research_case_events").insert({
+        case_id: data.id, actor_user_id: user.id, event_type: "case.created",
+        details: { authorization_reference_present: true, asset_count: assets.length }
+      });
+      return send(res, 201, { case: data });
+    }
+
+    if (action === "assign_reviewer") {
+      if (!validId(body.caseId) || !validId(body.reviewerUserId) || body.reviewerUserId === user.id) {
+        return send(res, 400, { error: "Choose a valid case and a different reviewer account." });
+      }
+      const { data: researchCase, error: caseError } = await supabaseAdmin.from("research_cases")
+        .select("id").eq("id", body.caseId).eq("owner_user_id", user.id).maybeSingle();
+      if (caseError) throw caseError;
+      if (!researchCase) return send(res, 404, { error: "Research case not found." });
+      const reviewer = await supabaseAdmin.auth.admin.getUserById(body.reviewerUserId);
+      if (reviewer.error || !reviewer.data?.user?.id) return send(res, 404, { error: "Reviewer account not found." });
+      const { error } = await supabaseAdmin.from("research_case_reviewers").upsert({
+        case_id: researchCase.id, reviewer_user_id: body.reviewerUserId,
+        assigned_by: user.id, status: "active"
+      }, { onConflict: "case_id,reviewer_user_id" });
+      if (error) throw error;
+      await supabaseAdmin.from("research_case_events").insert({
+        case_id: researchCase.id, actor_user_id: user.id,
+        event_type: "reviewer.assigned", details: { reviewer_user_id: body.reviewerUserId }
+      });
+      return send(res, 200, { assigned: true });
+    }
+
+    if (action === "submit_case_for_review") {
+      if (!validId(body.caseId)) return send(res, 400, { error: "Choose a valid research case." });
+      const { data, error } = await supabaseAdmin.from("research_cases")
+        .update({ authorization_status: "pending_review", updated_at: new Date().toISOString() })
+        .eq("id", body.caseId).eq("owner_user_id", user.id)
+        .in("authorization_status", ["draft", "rejected"])
+        .select("id,authorization_status").maybeSingle();
+      if (error) throw error;
+      if (!data) return send(res, 409, { error: "Case cannot be submitted in its current state." });
+      await supabaseAdmin.from("research_case_events").insert({
+        case_id: data.id, actor_user_id: user.id, event_type: "case.submitted_for_review"
+      });
+      return send(res, 200, { case: data });
+    }
+
+    if (action === "review_case") {
+      if (!validId(body.caseId) || !["authorized", "rejected"].includes(body.decision)) {
+        return send(res, 400, { error: "Choose a case and an authorized/rejected decision." });
+      }
+      const { data: researchCase, error: caseError } = await supabaseAdmin.from("research_cases")
+        .select("id,owner_user_id,authorization_status,authorization_reference,authorization_evidence,authorized_assets,allowed_methods,allowed_test_categories,scope_starts_at,scope_expires_at")
+        .eq("id", body.caseId).maybeSingle();
+      if (caseError) throw caseError;
+      if (!researchCase) return send(res, 404, { error: "Research case not found." });
+      if (researchCase.owner_user_id === user.id) return send(res, 403, { error: "A case owner cannot approve their own authorization." });
+      const { data: assignment, error: assignmentError } = await supabaseAdmin.from("research_case_reviewers")
+        .select("case_id").eq("case_id", body.caseId).eq("reviewer_user_id", user.id).eq("status", "active").maybeSingle();
+      if (assignmentError) throw assignmentError;
+      if (!assignment) return send(res, 403, { error: "You are not an assigned reviewer for this case." });
+      if (researchCase.authorization_status !== "pending_review") return send(res, 409, { error: "Case is not awaiting review." });
+      if (body.decision === "authorized" &&
+          (!researchCase.authorization_reference || !Array.isArray(researchCase.authorization_evidence) ||
+           !researchCase.authorization_evidence.length || !Array.isArray(researchCase.authorized_assets) ||
+           !researchCase.authorized_assets.length || !researchCase.allowed_methods?.length ||
+           !researchCase.allowed_test_categories?.length ||
+           !researchCase.scope_starts_at || !researchCase.scope_expires_at ||
+           Date.parse(researchCase.scope_expires_at) <= Date.now())) {
+        return send(res, 400, { error: "Authorization evidence and a valid future scope window are required." });
+      }
+      const { data, error } = await supabaseAdmin.from("research_cases")
+        .update({ authorization_status: body.decision, updated_at: new Date().toISOString() })
+        .eq("id", body.caseId).eq("authorization_status", "pending_review")
+        .select("id,authorization_status").maybeSingle();
+      if (error) throw error;
+      if (!data) return send(res, 409, { error: "Case state changed; reload and review again." });
+      await supabaseAdmin.from("research_case_events").insert({
+        case_id: data.id, actor_user_id: user.id, event_type: "case.reviewed",
+        details: { decision: body.decision }
+      });
+      return send(res, 200, { case: data });
+    }
+
+    if (action === "request_plan_approval") {
+      const plan = createResearchPlanFingerprint({
+        caseId: body.caseId, targetUrl: body.targetUrl, method: body.method, testCategory: body.testCategory
+      });
+      if (!plan) return send(res, 400, { error: "The proposed plan is invalid." });
+      const { data: researchCase, error: caseError } = await supabaseAdmin.from("research_cases")
+        .select("id,owner_user_id,authorization_status,scope_expires_at")
+        .eq("id", plan.case_id).eq("owner_user_id", user.id).maybeSingle();
+      if (caseError) throw caseError;
+      if (!researchCase || researchCase.authorization_status !== "authorized" ||
+          Date.parse(researchCase.scope_expires_at) <= Date.now()) {
+        return send(res, 403, { error: "Only an independently reviewed, currently authorized case can request plan approval." });
+      }
+      if (!["GET", "HEAD", "OPTIONS"].includes(plan.method)) return send(res, 403, { error: "Only safe read-only methods are supported." });
+      const { data: reviewers, error: reviewerError } = await supabaseAdmin.from("research_case_reviewers")
+        .select("reviewer_user_id").eq("case_id", plan.case_id).eq("status", "active").neq("reviewer_user_id", user.id).limit(1);
+      if (reviewerError) throw reviewerError;
+      if (!reviewers?.length) return send(res, 403, { error: "An independent active reviewer must be assigned first." });
+      const { data, error } = await supabaseAdmin.from("research_case_approvals").upsert({
+        case_id: plan.case_id, plan_hash: plan.plan_hash, target_origin: plan.target_origin,
+        target_path: plan.target_path, method: plan.method, test_category: plan.test_category,
+        reviewer_user_id: reviewers[0].reviewer_user_id, status: "pending"
+      }, { onConflict: "case_id,plan_hash" })
+        .select("id,case_id,plan_hash,status,reviewer_user_id,created_at").single();
+      if (error) throw error;
+      await supabaseAdmin.from("research_case_events").insert({
+        case_id: plan.case_id, actor_user_id: user.id, event_type: "plan.submitted_for_approval",
+        details: { plan_hash: plan.plan_hash, target_origin: plan.target_origin, target_path: plan.target_path, method: plan.method, test_category: plan.test_category }
+      });
+      return send(res, 201, { approval: data });
+    }
+
+    if (action === "decide_plan_approval") {
+      if (!validId(body.approvalId) || !["approved", "rejected"].includes(body.decision)) {
+        return send(res, 400, { error: "Choose a valid approval and decision." });
+      }
+      const { data: approval, error: approvalError } = await supabaseAdmin.from("research_case_approvals")
+        .select("id,case_id,reviewer_user_id,status").eq("id", body.approvalId)
+        .eq("reviewer_user_id", user.id).maybeSingle();
+      if (approvalError) throw approvalError;
+      if (!approval || approval.status !== "pending") return send(res, 404, { error: "Pending approval not found for this reviewer." });
+      const { data: assignment, error: assignmentError } = await supabaseAdmin.from("research_case_reviewers")
+        .select("case_id").eq("case_id", approval.case_id).eq("reviewer_user_id", user.id).eq("status", "active").maybeSingle();
+      if (assignmentError) throw assignmentError;
+      if (!assignment) return send(res, 403, { error: "Reviewer assignment is no longer active." });
+      const { data, error } = await supabaseAdmin.from("research_case_approvals")
+        .update({
+          status: body.decision, reviewer_notes: textField(body.notes, 3000) || "",
+          approved_at: body.decision === "approved" ? new Date().toISOString() : null,
+          expires_at: body.decision === "approved" ? new Date(Math.min(Date.now() + 60 * 60 * 1000, Date.now() + 60 * 60 * 1000)).toISOString() : null
+        }).eq("id", approval.id).eq("status", "pending")
+        .select("id,case_id,status,approved_at,expires_at").maybeSingle();
+      if (error) throw error;
+      if (!data) return send(res, 409, { error: "Approval was already processed." });
+      await supabaseAdmin.from("research_case_events").insert({
+        case_id: approval.case_id, actor_user_id: user.id, event_type: "plan.reviewed",
+        details: { approval_id: approval.id, decision: body.decision }
+      });
+      return send(res, 200, { approval: data });
+    }
+
     if (action === "create_project") {
       const name = textField(body.name, 120, true);
       const description = textField(body.description, 1000);
