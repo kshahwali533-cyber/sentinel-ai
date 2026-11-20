@@ -113,8 +113,9 @@ export function evaluateResearchScope({
   }
 
   // Approval is a separate, trusted record for this exact test plan.
+  const authorizationCaseId = authorizationRecord.case_id ?? authorizationRecord.id;
   if (!planApproval || planApproval.status !== "approved" ||
-      planApproval.case_id !== authorizationRecord.case_id ||
+      !authorizationCaseId || planApproval.case_id !== authorizationCaseId ||
       planApproval.reviewer_user_id == null ||
       typeof planApproval.plan_hash !== "string" || !/^[0-9a-f]{64}$/i.test(planApproval.plan_hash) ||
       typeof trustedPlanHash !== "string" || trustedPlanHash !== planApproval.plan_hash) {
