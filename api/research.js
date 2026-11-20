@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { createResearchPlanFingerprint } from "./_lib/research-plan-hash.js";
+import { evaluateResearchScope } from "./_lib/research-scope-gate.js";
 import {
   normalizeResearchText as textField,
   isValidResearchId as validId,
@@ -32,6 +34,7 @@ async function getUser(req) {
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
+  res.setHeader("X-Content-Type-Options", "nosniff");
   if (!supabaseAdmin) return send(res, 503, { error: "Research workspace is not configured." });
   if (!["GET", "POST"].includes(req.method)) {
     res.setHeader("Allow", "GET, POST");
@@ -76,7 +79,54 @@ export default async function handler(req, res) {
     }
 
     const body = req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
-    const action = body.action;
+    const action = req.query?.__action === "check_scope" ? "check_scope" : body.action;
+
+    if (action === "check_scope") {
+      if (req.method !== "POST") {
+        res.setHeader("Allow", "POST");
+        return send(res, 405, { error: "Method not allowed." });
+      }
+      const plan = createResearchPlanFingerprint({
+        caseId: body.caseId,
+        targetUrl: body.targetUrl,
+        method: body.method,
+        testCategory: body.testCategory
+      });
+      if (!plan) return send(res, 400, { error: "The proposed plan is invalid. Use an exact HTTPS URL without query strings or fragments." });
+
+      const { data: authorizationRecord, error: caseError } = await supabaseAdmin
+        .from("research_cases")
+        .select("id,owner_user_id,authorization_status,authorized_assets,allowed_methods,allowed_test_categories,excluded_methods,scope_starts_at,scope_expires_at")
+        .eq("id", plan.case_id)
+        .eq("owner_user_id", user.id)
+        .maybeSingle();
+      if (caseError) return send(res, 503, { error: "Unable to verify the case authorization record." });
+      if (!authorizationRecord) return send(res, 404, { error: "Research case not found." });
+
+      const { data: planApproval, error: approvalError } = await supabaseAdmin
+        .from("research_case_approvals")
+        .select("case_id,plan_hash,target_origin,target_path,method,test_category,status,reviewer_user_id,approved_at,expires_at")
+        .eq("case_id", plan.case_id)
+        .eq("plan_hash", plan.plan_hash)
+        .maybeSingle();
+      if (approvalError) return send(res, 503, { error: "Unable to verify the human approval record." });
+
+      const decision = evaluateResearchScope({
+        authorizationRecord,
+        planApproval,
+        targetUrl: body.targetUrl,
+        method: body.method,
+        testCategory: body.testCategory,
+        trustedPlanHash: plan.plan_hash,
+        now: Date.now()
+      });
+      // Decision only: this action never sends traffic to the target.
+      return send(res, decision.allowed ? 200 : 403, {
+        allowed: decision.allowed,
+        reason: decision.reason,
+        decision_only: true
+      });
+    }
 
     if (action === "create_project") {
       const name = textField(body.name, 120, true);
