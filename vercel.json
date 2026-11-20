@@ -30,5 +30,11 @@
     "api/monitoring-run.js": {
       "maxDuration": 300
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/research-scope-check",
+      "destination": "/api/research?__action=check_scope"
+    }
+  ]
 }
