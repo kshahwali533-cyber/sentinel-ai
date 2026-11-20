@@ -43,6 +43,25 @@ test("allows an exact, current, human-approved in-scope plan", () => {
   assert.equal(evaluateResearchScope(request).allowed, true);
 });
 
+test("accepts the database case shape where the primary key is id", () => {
+  const databaseCase = { ...baseCase, id: baseCase.case_id };
+  delete databaseCase.case_id;
+  assert.equal(evaluateResearchScope({
+    ...request,
+    authorizationRecord: databaseCase
+  }).allowed, true);
+});
+
+test("denies an approval linked to a different database case id", () => {
+  const databaseCase = { ...baseCase, id: baseCase.case_id };
+  delete databaseCase.case_id;
+  assert.equal(evaluateResearchScope({
+    ...request,
+    authorizationRecord: databaseCase,
+    planApproval: { ...approval, case_id: "different-case-id" }
+  }).reason, "human_plan_approval_missing");
+});
+
 test("denies when authorization is absent or not approved", () => {
   assert.equal(evaluateResearchScope({ ...request, authorizationRecord: null }).allowed, false);
   assert.equal(evaluateResearchScope({
