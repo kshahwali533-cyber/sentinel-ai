@@ -18,8 +18,8 @@ This preview lets an invited reviewer assess Sentinel AI's user-facing security 
 ## What is not yet available
 
 - A public bug-bounty program, reward terms, or public submission intake.
-- Research-case creation and independent human approval records for active test plans.
-- An enabled active-testing engine or an authorization workflow that grants permission to send test traffic.
+- Research-case and independent reviewer approval records are available in the private API foundation; the complete researcher-facing controls are still under development.
+- An enabled active-testing engine. Scope checks are decision-only and do not authorize or send test traffic.
 - Automated monitoring scheduling (15-minute jobs remain pending activation).
 - A formal security certification or independent audit attestation.
 
