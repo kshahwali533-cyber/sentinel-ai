@@ -2,22 +2,31 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const endpoint = readFileSync(new URL("../api/research-scope-check.js", import.meta.url), "utf8");
+const handler = readFileSync(new URL("../api/research.js", import.meta.url), "utf8");
+const vercelConfig = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
 
-test("scope-check endpoint is decision-only and accepts POST only", () => {
-  assert.match(endpoint, /req\.method !== "POST"/);
-  assert.match(endpoint, /decision_only: true/);
-  assert.match(endpoint, /never makes a request to the target/i);
+test("legacy scope-check route is rewritten to the shared Researcher handler", () => {
+  assert.ok(vercelConfig.rewrites.some((rule) =>
+    rule.source === "/api/research-scope-check" &&
+    rule.destination === "/api/research?__action=check_scope"
+  ));
+  assert.match(handler, /req\.query\?\.__action === "check_scope"/);
 });
 
-test("authorization records are loaded from server-side storage and owner-filtered", () => {
-  assert.match(endpoint, /supabaseAdmin\.auth\.getUser\(token\)/);
-  assert.match(endpoint, /\.eq\("owner_user_id", user\.id\)/);
-  assert.match(endpoint, /\.from\("research_case_approvals"\)/);
+test("scope decision is POST-only and explicitly decision-only", () => {
+  assert.match(handler, /if \(req\.method !== "POST"\)/);
+  assert.match(handler, /decision_only: true/);
+  assert.match(handler, /evaluateResearchScope\(/);
 });
 
-test("scope-check endpoint contains no outbound HTTP client call", () => {
-  assert.doesNotMatch(endpoint, /\bfetch\s*\(/);
-  assert.doesNotMatch(endpoint, /axios\./i);
-  assert.doesNotMatch(endpoint, /http\.request\s*\(/);
+test("authorization records are loaded server-side and owner-filtered", () => {
+  assert.match(handler, /supabaseAdmin\.auth\.getUser\(token\)/);
+  assert.match(handler, /\.eq\("owner_user_id", user\.id\)/);
+  assert.match(handler, /\.from\("research_case_approvals"\)/);
+});
+
+test("scope decision handler contains no outbound HTTP client call", () => {
+  assert.doesNotMatch(handler, /\bfetch\s*\(/);
+  assert.doesNotMatch(handler, /axios\./i);
+  assert.doesNotMatch(handler, /http\.request\s*\(/);
 });
