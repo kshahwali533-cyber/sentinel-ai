@@ -160,6 +160,9 @@ export default async function handler(req, res) {
       if (!isValidOrganizationInviteEmail(email)) {
         return send(res, 400, { error: "Enter a valid invitation email address." });
       }
+      if (typeof user.email === "string" && email === user.email.trim().toLowerCase()) {
+        return send(res, 409, { error: "You already belong to this workspace. Invite a different account." });
+      }
       const [{ count: memberCount, error: memberCountError }, { count: inviteCount, error: inviteCountError }] = await Promise.all([
         supabaseAdmin.from("organization_members").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
         supabaseAdmin.from("organization_invitations").select("id", { count: "exact", head: true })
