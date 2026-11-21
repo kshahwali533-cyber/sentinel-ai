@@ -45,9 +45,10 @@ function fakeClient() {
 
 test("two-user isolation: each owner sees their own cases and only cases assigned to them", async () => {
   const client = fakeClient();
-  const [userA, userB] = await Promise.all([
+  const [userA, userB, userC] = await Promise.all([
     loadResearchCaseWorkspace(client, "user-a"),
-    loadResearchCaseWorkspace(client, "user-b")
+    loadResearchCaseWorkspace(client, "user-b"),
+    loadResearchCaseWorkspace(client, "user-c")
   ]);
   assert.deepEqual(userA.research_cases.map(item => [item.id, item.viewer_role]).sort(), [
     ["case-a", "owner"], ["case-b", "reviewer"]
@@ -55,6 +56,10 @@ test("two-user isolation: each owner sees their own cases and only cases assigne
   assert.deepEqual(userB.research_cases.map(item => [item.id, item.viewer_role]).sort(), [
     ["case-a", "reviewer"], ["case-b", "owner"]
   ]);
+  assert.deepEqual(userC.research_cases, []);
+  assert.deepEqual(userC.case_approvals, []);
+  assert.deepEqual(userC.reviewer_approvals, []);
+  assert.deepEqual(userC.case_events, []);
 });
 
 test("two-user isolation: approvals and audit events are restricted to owned or assigned cases", async () => {
