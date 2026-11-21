@@ -14,6 +14,11 @@ test("research case creation requires bounded written authorization and HTTPS sc
   assert.match(api, /31 \* 24 \* 60 \* 60 \* 1000/);
 });
 
+test("authorization evidence labels and references must be non-empty", () => {
+  assert.match(api, /item\.label\.trim\(\)\.length >= 1/);
+  assert.match(api, /item\.reference\.trim\(\)\.length >= 1/);
+});
+
 test("case authorization requires a separate assigned reviewer", () => {
   assert.match(api, /action === "assign_reviewer"/);
   assert.match(api, /action === "submit_case_for_review"/);
