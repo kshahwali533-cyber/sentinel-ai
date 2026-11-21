@@ -180,8 +180,8 @@ export default async function handler(req, res) {
       if (!title || description === null || !authorizationReference ||
           evidence.length < 1 || evidence.length > 10 ||
           !evidence.every((item) => item && typeof item === "object" &&
-            typeof item.label === "string" && item.label.trim().length <= 120 &&
-            typeof item.reference === "string" && item.reference.trim().length <= 500) ||
+            typeof item.label === "string" && item.label.trim().length >= 1 && item.label.trim().length <= 120 &&
+            typeof item.reference === "string" && item.reference.trim().length >= 1 && item.reference.trim().length <= 500) ||
           !validAssets || methods.length < 1 || methods.some((m) => !safeMethods.has(m)) ||
           categories.length < 1 || categories.length > 10 ||
           categories.some((x) => typeof x !== "string" || !x.trim() || x.length > 80) ||
