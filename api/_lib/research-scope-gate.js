@@ -1,4 +1,29 @@
+import { isIP } from "node:net";
+
 const ALLOWED_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+// The current Research Lab MVP is public-web only. Reject obvious local and
+// special-use destinations before any scope decision can be marked allowed.
+// DNS names still require resolution/pinning checks before any future network execution.
+function isNonPublicHost(hostname) {
+  const host = hostname.toLowerCase().replace("[", "").replace("]", "");
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") ||
+      host.endsWith(".internal") || host === "metadata") return true;
+
+  const ipVersion = isIP(host);
+  if (ipVersion === 6) return true; // IPv6 literals are unsupported in this MVP.
+  if (ipVersion !== 4) return false;
+
+  const octets = host.split(".").map(Number);
+  const [a, b, c] = octets;
+  return a === 0 || a === 10 || a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && (b === 168 || (b === 0 && c === 0) || (b === 0 && c === 2))) ||
+    (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) ||
+    (a === 203 && b === 0 && c === 113) || a >= 224;
+}
 const BLOCKED_CATEGORIES = new Set([
   "denial_of_service",
   "credential_theft",
@@ -17,7 +42,7 @@ function parseIso(value) {
 function normalizeTarget(value) {
   try {
     const url = new URL(value);
-    if (url.protocol !== "https:" || url.username || url.password) return null;
+    if (url.protocol !== "https:" || url.username || url.password || isNonPublicHost(url.hostname)) return null;
     if (url.hash || url.search) return null;
     const port = url.port || "443";
     return {
