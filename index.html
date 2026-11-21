@@ -506,6 +506,9 @@
 
     <div class="analytics-panel">
       <h3>Create a research project</h3>
+      <label><input id="researchExportIncludeEvidence" type="checkbox"> Include evidence details in copied project report</label>
+      <label><input id="researchExportIncludeNotes" type="checkbox"> Include private research notes in copied project report</label>
+      <p class="research-meta">Exports exclude raw evidence and private notes by default. Review and redact all copied content before sharing it outside your account.</p>
       <input id="researchProjectName" type="text" maxlength="120" placeholder="Project name">
       <textarea id="researchProjectDescription" rows="2" maxlength="1000" placeholder="Short project description (optional)"></textarea>
       <button type="button" data-action="create-research-project">Create Project</button>
