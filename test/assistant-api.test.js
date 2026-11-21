@@ -142,3 +142,10 @@ test("AI Mentor does not label structural response checks as factual verificatio
   assert.doesNotMatch(source, /verificationStatus: "AI_VERIFIED"/);
   assert.match(source, /store: false/);
 });
+
+test("AI Mentor UI does not claim generated advice is fact-verified", () => {
+  const source = fs.readFileSync(new URL("../sentinel-app.js", import.meta.url), "utf8");
+  assert.match(source, /factual claims are not independently verified/);
+  assert.doesNotMatch(source, /verified AI-generated response/i);
+});
+
