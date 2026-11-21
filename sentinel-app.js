@@ -1346,7 +1346,7 @@ function displayScanResults(data) {
         <br><br>
 
         ${discoveredSurface.length}
-        candidate public paths identified (availability is checked separately).
+        candidate public paths identified. Guessed common paths may return soft-404 or catch-all pages; verify a route before treating it as an application endpoint.
 
         ${
           surfaceFindings.length > 0
@@ -1362,7 +1362,7 @@ function displayScanResults(data) {
               <br><br>
 
               <strong>
-                Candidate Resources (not all confirmed available)
+                Candidate Resources (unverified candidates)
               </strong>
 
               <ul>
