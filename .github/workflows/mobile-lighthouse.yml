@@ -1,0 +1,52 @@
+name: Mobile Lighthouse Audit
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "13 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse-mobile:
+    name: Mobile performance and accessibility
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Run Lighthouse mobile audit
+        run: |
+          npx --yes lighthouse@13.6.0 https://project-3jyda.vercel.app \
+            --form-factor=mobile \
+            --only-categories=performance,accessibility,best-practices,seo \
+            --chrome-flags="--headless=new --no-sandbox" \
+            --output=json \
+            --output-path=./lighthouse-mobile.json \
+            --quiet
+      - name: Print mobile audit scores
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const report = JSON.parse(fs.readFileSync("./lighthouse-mobile.json", "utf8"));
+            const categories = report.categories || {};
+            for (const key of ["performance", "accessibility", "best-practices", "seo"]) {
+              const score = categories[key]?.score;
+              console.log(key + ": " + (score === undefined ? "not available" : Math.round(score * 100) + "/100"));
+            }
+            for (const key of ["largest-contentful-paint", "cumulative-layout-shift", "total-blocking-time", "first-contentful-paint"]) {
+              const metric = report.audits?.[key];
+              if (metric) console.log(key + ": " + metric.displayValue);
+            }
+          '
+      - name: Upload Lighthouse report
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentinel-ai-mobile-lighthouse
+          path: lighthouse-mobile.json
+          if-no-files-found: error
+          retention-days: 14
