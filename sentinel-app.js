@@ -3402,13 +3402,13 @@ async function loadMonitoringDashboard() {
 
     if (!sites.length) {
       status.className = "notice";
-      status.textContent = "No monitored websites yet. Add and verify a domain to prepare monitoring. Automatic 15-minute checks are not active in this deployment.";
+      status.textContent = "No monitored websites yet. Add and verify a domain; scheduled security checks run every 15 minutes.";
     } else if (!verifiedSites.length) {
       status.className = "notice";
-      status.textContent = "Complete DNS ownership verification to prepare your website. Automatic 15-minute checks are not active in this deployment.";
+      status.textContent = "Complete DNS ownership verification. Scheduled security checks begin after verification.";
     } else {
       status.className = "notice";
-      status.textContent = verifiedSites.length + " verified website(s) are ready. Automatic 15-minute execution is pending scheduler activation; completed runs will appear below.";
+      status.textContent = verifiedSites.length + " verified website(s) are scheduled for automatic checks every 15 minutes; completed runs will appear below.";
     }
   } catch (error) {
     status.className = "notice";
