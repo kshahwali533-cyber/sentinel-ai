@@ -3,31 +3,34 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const api = readFileSync(new URL("../api/research.js", import.meta.url), "utf8");
+const access = readFileSync(new URL("../api/_lib/research-access.js", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../supabase/migrations/20261120115348_sentinel_research_authorization_foundation.sql", import.meta.url), "utf8");
 
-test("research case lists are filtered to the signed-in owner", () => {
-  assert.match(api, /from\("research_cases"\)[\s\S]{0,700}?eq\("owner_user_id", user\.id\)/);
+test("research workspace loader filters owned cases by authenticated owner ID", () => {
+  assert.match(access, /from\("research_cases"\)[\s\S]{0,700}?eq\("owner_user_id", userId\)/);
 });
 
-test("reviewer case lists and approvals are filtered to the signed-in reviewer", () => {
-  assert.match(api, /from\("research_case_reviewers"\)[\s\S]{0,350}?eq\("reviewer_user_id", user\.id\)/);
-  assert.match(api, /from\("research_case_approvals"\)[\s\S]{0,350}?eq\("reviewer_user_id", user\.id\)/);
+test("reviewer assignments and approvals are filtered by authenticated reviewer ID", () => {
+  assert.match(access, /from\("research_case_reviewers"\)[\s\S]{0,350}?eq\("reviewer_user_id", userId\)/);
+  assert.match(access, /from\("research_case_approvals"\)[\s\S]{0,500}?eq\("reviewer_user_id", userId\)/);
 });
 
-test("audit events are only fetched for owner or assigned-reviewer case IDs", () => {
-  assert.match(api, /accessibleCaseIds = \[\.\.\.new Set\(\[\.\.\.ownedCaseIds, \.\.\.assignedCaseIds\]\)\]/);
-  assert.match(api, /from\("research_case_events"\)[\s\S]{0,350}?in\("case_id", accessibleCaseIds\)/);
+test("audit events are only fetched for owned or actively assigned case IDs", () => {
+  assert.match(access, /assignedCaseIds = \(reviewerAssignments\.data \|\| \[\]\)[\s\S]{0,150}?filter\(item => item\.status === "active"\)/);
+  assert.match(access, /accessibleCaseIds = \[\.\.\.new Set\(\[\.\.\.ownedCaseIds, \.\.\.assignedCaseIds\]\)\]/);
+  assert.match(access, /from\("research_case_events"\)[\s\S]{0,350}?in\("case_id", accessibleCaseIds\)/);
 });
 
-test("reviewers cannot approve their own case and must have an active assignment", () => {
+test("API loads the tested workspace access boundary and blocks self-approval", () => {
+  assert.match(api, /loadResearchCaseWorkspace\(supabaseAdmin, user\.id\)/);
   assert.match(api, /researchCase\.owner_user_id === user\.id/);
   assert.match(api, /eq\("reviewer_user_id", user\.id\)\.eq\("status", "active"\)/);
 });
 
 test("research authorization tables remain RLS enabled and client-inaccessible", () => {
   for (const table of ["research_cases", "research_case_reviewers", "research_case_approvals", "research_case_events"]) {
-    assert.match(migration, new RegExp("alter table public\." + table + " enable row level security"));
-    assert.match(migration, new RegExp("revoke all on public\." + table + " from anon, authenticated"));
+    assert.ok(migration.includes("alter table public." + table + " enable row level security"), table);
+    assert.ok(migration.includes("revoke all on public." + table + " from anon, authenticated"), table);
   }
 });
 
