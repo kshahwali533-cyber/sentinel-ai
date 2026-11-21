@@ -149,3 +149,11 @@ test("AI Mentor UI does not claim generated advice is fact-verified", () => {
   assert.doesNotMatch(source, /verified AI-generated response/i);
 });
 
+
+test("AI Mentor usage diagnostics record only model, fallback reason, severity, and validation state", () => {
+  const source = fs.readFileSync(new URL("../api/assistant.js", import.meta.url), "utf8");
+  assert.match(source, /ai_model: aiPowered \? "gpt-6-luna" : null/);
+  assert.match(source, /fallback_reason: aiPowered \? null : reason \|\| "unknown"/);
+  assert.match(source, /verification_status: aiPowered \? "AI_RESPONSE_VALIDATED" : "AI_FAILED_FALLBACK_USED"/);
+  assert.match(source, /recordMentorUsage\(false, fallbackReason\)/);
+});

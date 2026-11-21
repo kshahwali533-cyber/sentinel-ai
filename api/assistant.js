@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       authenticatedUser = authData.user;
     }
 
-    const recordMentorUsage = async (aiPowered) => {
+    const recordMentorUsage = async (aiPowered, reason = null) => {
       if (!authenticatedUser || !supabaseAdmin) return;
       let resourceHost = null;
       try { resourceHost = website ? new URL(website).hostname : null; } catch {}
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
         user_id: authenticatedUser.id,
         event_type: "mentor.used",
         resource_host: resourceHost,
-        metadata: { ai_powered: aiPowered, severity }
+        metadata: { ai_powered: aiPowered, ai_model: aiPowered ? "gpt-6-luna" : null, fallback_reason: aiPowered ? null : reason || "unknown", severity, verification_status: aiPowered ? "AI_RESPONSE_VALIDATED" : "AI_FAILED_FALLBACK_USED" }
       });
       if (error) console.error("Mentor usage event could not be recorded:", error);
     };
@@ -542,7 +542,7 @@ Do not provide exploitation instructions or invent facts about the website.`
      * ---------------------------------------------------------
      */
 
-    await recordMentorUsage(false);
+    await recordMentorUsage(false, fallbackReason);
     return res.status(200).json({
       success: true,
       aiPowered: false,
