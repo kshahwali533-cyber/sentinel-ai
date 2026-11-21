@@ -204,6 +204,33 @@ export default async function handler(req, res) {
       return send(res, 201, { case: data });
     }
 
+    if (action === "revoke_case_authorization") {
+      if (!validId(body.caseId)) return send(res, 400, { error: "Choose a valid authorization case." });
+      const { data: researchCase, error: caseError } = await supabaseAdmin.from("research_cases")
+        .select("id,authorization_status").eq("id", body.caseId).eq("owner_user_id", user.id).maybeSingle();
+      if (caseError) throw caseError;
+      if (!researchCase || !["authorized", "pending_review"].includes(researchCase.authorization_status)) {
+        return send(res, 404, { error: "Active authorization case not found." });
+      }
+      const { data, error } = await supabaseAdmin.from("research_cases")
+        .update({ authorization_status: "revoked", updated_at: new Date().toISOString() })
+        .eq("id", researchCase.id).eq("owner_user_id", user.id)
+        .in("authorization_status", ["authorized", "pending_review"])
+        .select("id,authorization_status").maybeSingle();
+      if (error) throw error;
+      if (!data) return send(res, 409, { error: "Case authorization changed; reload and try again." });
+      const { data: revokedApprovals, error: approvalError } = await supabaseAdmin.from("research_case_approvals")
+        .update({ status: "revoked", reviewer_notes: "Parent case authorization revoked by its owner." })
+        .eq("case_id", researchCase.id).in("status", ["pending", "approved"])
+        .select("id");
+      if (approvalError) throw approvalError;
+      await recordResearchCaseEvent(supabaseAdmin, {
+        caseId: researchCase.id, actorUserId: user.id, eventType: "case.authorization_revoked",
+        details: { revoked_approval_count: (revokedApprovals || []).length }
+      });
+      return send(res, 200, { case: data, revoked_approvals: (revokedApprovals || []).length });
+    }
+
     if (action === "assign_reviewer") {
       if (!validId(body.caseId) || !validId(body.reviewerUserId) || body.reviewerUserId === user.id) {
         return send(res, 400, { error: "Choose a valid case and a different reviewer account." });
@@ -224,6 +251,32 @@ export default async function handler(req, res) {
         eventType: "reviewer.assigned", details: { reviewer_user_id: body.reviewerUserId }
       });
       return send(res, 200, { assigned: true });
+    }
+
+    if (action === "revoke_reviewer") {
+      if (!validId(body.caseId) || !validId(body.reviewerUserId)) {
+        return send(res, 400, { error: "Choose a valid case and reviewer account." });
+      }
+      const { data: researchCase, error: caseError } = await supabaseAdmin.from("research_cases")
+        .select("id").eq("id", body.caseId).eq("owner_user_id", user.id).maybeSingle();
+      if (caseError) throw caseError;
+      if (!researchCase) return send(res, 404, { error: "Research case not found." });
+      const { data: assignment, error: assignmentError } = await supabaseAdmin.from("research_case_reviewers")
+        .update({ status: "revoked" })
+        .eq("case_id", researchCase.id).eq("reviewer_user_id", body.reviewerUserId).eq("status", "active")
+        .select("case_id,reviewer_user_id,status").maybeSingle();
+      if (assignmentError) throw assignmentError;
+      if (!assignment) return send(res, 404, { error: "Active reviewer assignment not found." });
+      const { data: revokedApprovals, error: approvalError } = await supabaseAdmin.from("research_case_approvals")
+        .update({ status: "revoked", reviewer_notes: "Reviewer assignment revoked by the case owner." })
+        .eq("case_id", researchCase.id).eq("reviewer_user_id", body.reviewerUserId)
+        .in("status", ["pending", "approved"]).select("id");
+      if (approvalError) throw approvalError;
+      await recordResearchCaseEvent(supabaseAdmin, {
+        caseId: researchCase.id, actorUserId: user.id, eventType: "reviewer.revoked",
+        details: { reviewer_user_id: body.reviewerUserId, revoked_approval_count: (revokedApprovals || []).length }
+      });
+      return send(res, 200, { assignment, revoked_approvals: (revokedApprovals || []).length });
     }
 
     if (action === "submit_case_for_review") {
