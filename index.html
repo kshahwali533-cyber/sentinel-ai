@@ -10,6 +10,7 @@
   >
 
   <title>Sentinel AI | Cybersecurity Scanner</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
   <meta
     name="description"
@@ -482,6 +483,7 @@
 
     <div class="analytics-panel">
       <h3>Independent reviewer assignment</h3>
+      <label for="researchReviewerCaseSelect">Case to assign a reviewer</label>
       <select id="researchReviewerCaseSelect"><option value="">Select your case</option></select>
       <input id="researchReviewerUserId" type="text" maxlength="64" placeholder="Reviewer account UUID (must be another user)">
       <button type="button" data-action="assign-research-reviewer">Assign Reviewer</button>
@@ -490,8 +492,10 @@
 
     <div class="analytics-panel">
       <h3>Per-plan approval request</h3>
+      <label for="researchPlanCaseSelect">Authorized case</label>
       <select id="researchPlanCaseSelect"><option value="">Select an authorized case</option></select>
       <input id="researchPlanTargetUrl" type="url" maxlength="2048" placeholder="Exact HTTPS URL within the approved scope">
+      <label for="researchPlanMethod">HTTP method</label>
       <select id="researchPlanMethod">
         <option value="GET">GET</option>
         <option value="HEAD">HEAD</option>
@@ -518,13 +522,16 @@
     <div class="analytics-panel">
       <h3>Record a security finding</h3>
       <p class="research-meta">First verify your website in the Monitoring section. Findings can only be linked to your verified domains.</p>
+      <label for="researchProjectSelect">Research project</label>
       <select id="researchProjectSelect">
         <option value="">Select a research project</option>
       </select>
+      <label for="researchAssetSelect">Verified website</label>
       <select id="researchAssetSelect">
         <option value="">Select a verified website</option>
       </select>
       <input id="researchFindingTitle" type="text" maxlength="160" placeholder="Finding title">
+      <label for="researchFindingSeverity">Finding severity</label>
       <select id="researchFindingSeverity">
         <option value="critical">Critical</option>
         <option value="high">High</option>
