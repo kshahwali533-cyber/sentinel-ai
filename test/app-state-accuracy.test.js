@@ -23,6 +23,7 @@ test("monitoring dashboard accurately describes the active 15-minute scheduler",
   assert.ok(app.includes("scheduled security checks run every 15 minutes."));
   assert.ok(app.includes("Scheduled security checks begin after verification."));
   assert.ok(app.includes("scheduled for automatic checks every 15 minutes"));
+  assert.ok(!app.includes("automated runs are not yet active in this deployment"));
 });
 
 test("monitoring page and verification API describe scheduler activation honestly", () => {
