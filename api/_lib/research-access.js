@@ -24,11 +24,16 @@ export async function loadResearchCaseWorkspace(client, userId) {
     .map(item => item.case_id);
   const accessibleCaseIds = [...new Set([...ownedCaseIds, ...assignedCaseIds])];
 
-  const [assignedCases, ownerApprovals, reviewerApprovals, caseEvents] = await Promise.all([
+  const [assignedCases, ownerReviewers, ownerApprovals, reviewerApprovals, caseEvents] = await Promise.all([
     assignedCaseIds.length
       ? client.from("research_cases")
           .select("id,owner_user_id,title,description,authorization_status,authorization_reference,authorization_evidence,authorized_assets,allowed_methods,allowed_test_categories,excluded_methods,scope_starts_at,scope_expires_at,created_at,updated_at")
           .in("id", assignedCaseIds).limit(50)
+      : Promise.resolve({ data: [], error: null }),
+    ownedCaseIds.length
+      ? client.from("research_case_reviewers")
+          .select("case_id,reviewer_user_id,status,assigned_at")
+          .in("case_id", ownedCaseIds).order("assigned_at", { ascending: false }).limit(100)
       : Promise.resolve({ data: [], error: null }),
     ownedCaseIds.length
       ? client.from("research_case_approvals")
@@ -44,7 +49,7 @@ export async function loadResearchCaseWorkspace(client, userId) {
           .in("case_id", accessibleCaseIds).order("created_at", { ascending: false }).limit(300)
       : Promise.resolve({ data: [], error: null })
   ]);
-  const secondError = [assignedCases.error, ownerApprovals.error, reviewerApprovals.error, caseEvents.error].find(Boolean);
+  const secondError = [assignedCases.error, ownerReviewers.error, ownerApprovals.error, reviewerApprovals.error, caseEvents.error].find(Boolean);
   if (secondError) throw secondError;
 
   const caseMap = new Map();
@@ -56,6 +61,7 @@ export async function loadResearchCaseWorkspace(client, userId) {
   return {
     research_cases: [...caseMap.values()],
     reviewer_assignments: reviewerAssignments.data || [],
+    owner_reviewers: ownerReviewers.data || [],
     case_approvals: ownerApprovals.data || [],
     reviewer_approvals: reviewerApprovals.data || [],
     case_events: caseEvents.data || []
