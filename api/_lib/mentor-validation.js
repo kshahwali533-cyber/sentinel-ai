@@ -56,12 +56,12 @@ export function normalizeMentorResponse(value, input) {
   const steps = Array.isArray(value.steps) ? value.steps : [];
   const combinedText = [title, explanation, whyItMatters, defensiveAction, verification, ...steps]
     .filter(item => typeof item === "string")
-    .join("\\n");
+    .join("\n");
 
   const unsafeActionPatterns = [
-    /\\b(?:run|execute|send|inject|paste|use)\\b.{0,100}\\b(?:exploit(?:ation)?|payload|reverse shell|sql injection|xss attack|credential stuffing)\\b/i,
-    /\\b(?:steal|exfiltrate|dump|extract)\\b.{0,100}\\b(?:credentials|passwords|tokens|database|private data)\\b/i,
-    /\\b(?:disable|bypass)\\b.{0,80}\\b(?:authentication|logging|security controls|access controls)\\b/i
+    /\b(?:run|execute|send|inject|paste|use)\b.{0,100}\b(?:exploit(?:ation)?|payload|reverse shell|sql injection|xss attack|credential stuffing)\b/i,
+    /\b(?:steal|exfiltrate|dump|extract)\b.{0,100}\b(?:credentials|passwords|tokens|database|private data)\b/i,
+    /\b(?:disable|bypass)\b.{0,80}\b(?:authentication|logging|security controls|access controls)\b/i
   ];
 
   if (!title || !explanation || !whyItMatters || !defensiveAction || !verification ||
