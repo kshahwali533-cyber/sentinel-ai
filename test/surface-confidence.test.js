@@ -9,11 +9,11 @@ test("accepts the exact URL submitted for scanning", () => {
   }), true);
 });
 
-test("accepts same-origin routes explicitly linked by the scanned page", () => {
+test("does not treat a link in page markup as proof that the route exists or is sensitive", () => {
   assert.equal(isConfirmedSurfaceReference({
     url: "https://example.test/dashboard",
     source: "html-link"
-  }), true);
+  }), false);
 });
 
 test("does not promote guessed common paths into confirmed sensitive findings", () => {
