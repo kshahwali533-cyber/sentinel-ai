@@ -4,7 +4,7 @@
 
 ## Purpose
 
-This preview lets an invited reviewer assess Sentinel AI's user-facing security features and, where the reviewer owns or has written authorization for an asset, record a finding against a verified HTTPS domain. The workspace supports private projects, findings, severity, remediation notes, evidence items, and finding status.
+This preview lets an invited reviewer assess Sentinel AI's user-facing security features and, where the reviewer owns or has written authorization for an asset, record a finding against a verified HTTPS domain. The workspace supports private projects, findings, written-authorization cases, independent reviewer assignment, case decisions, per-plan approvals, scope-decision checks, severity, remediation notes, and finding status.
 
 ## What is currently available
 
@@ -13,17 +13,17 @@ This preview lets an invited reviewer assess Sentinel AI's user-facing security 
 - Finding severity and lifecycle status.
 - Evidence fields for source, signal, observed behavior, and expected behavior.
 - Private notes attached to findings.
-- Project export controls where shown in the application.
+- Project export controls with evidence and private notes excluded by default, opt-in controls, and common secret-pattern redaction.
+- Written-authorization case creation, independent reviewer assignment, reviewer decisions, and short-lived per-plan approval records.
 
 ## What is not yet available
 
-- A public bug-bounty program, reward terms, or public submission intake.
-- Research-case and independent reviewer approval records are available in the private API foundation; the complete researcher-facing controls are still under development.
+- A public bug-bounty program, reward terms, public submission intake, automated triage, or formal external disclosure workflow.
 - An enabled active-testing engine. Scope checks are decision-only and do not authorize or send test traffic.
-- Automated monitoring scheduling (15-minute jobs remain pending activation).
+- Verified-domain monitoring runs are not yet demonstrated for this account. The 15-minute scheduler is active, but no sites are DNS-verified, so no monitoring runs have occurred.
 - A formal security certification or independent audit attestation.
 
-The scope-check route is decision-only and must not be treated as permission to run a test. Until the case/approval data model and reviewer workflow are deployed and independently verified, treat active testing as disabled.
+The scope-check route is decision-only and must not be treated as permission to run a test. The case and approval workflow records permission decisions only. No active testing engine is enabled; treat all target traffic generation as disabled.
 
 ## Mandatory rules of engagement
 

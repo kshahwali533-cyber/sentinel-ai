@@ -14,6 +14,11 @@ test("research case creation requires bounded written authorization and HTTPS sc
   assert.match(api, /31 \* 24 \* 60 \* 60 \* 1000/);
 });
 
+test("authorization evidence labels and references must be non-empty", () => {
+  assert.match(api, /item\.label\.trim\(\)\.length >= 1/);
+  assert.match(api, /item\.reference\.trim\(\)\.length >= 1/);
+});
+
 test("case authorization requires a separate assigned reviewer", () => {
   assert.match(api, /action === "assign_reviewer"/);
   assert.match(api, /action === "submit_case_for_review"/);
@@ -38,11 +43,25 @@ test("authorization tables are additive, RLS-protected, and client-inaccessible"
   }
 });
 
+test("case owners can revoke authorization and invalidate every pending or approved plan", () => {
+  assert.match(api, /action === "revoke_case_authorization"/);
+  assert.match(api, /eq\("owner_user_id", user\.id\)/);
+  assert.match(api, /authorization_status: "revoked"/);
+  assert.match(api, /case\.authorization_revoked/);
+  assert.match(api, /in\("status", \["pending", "approved"\]\)/);
+});
+
+test("case owners can revoke reviewers and invalidate that reviewer's plans", () => {
+  assert.match(api, /action === "revoke_reviewer"/);
+  assert.match(api, /eq\("reviewer_user_id", body\.reviewerUserId\)\.eq\("status", "active"\)/);
+  assert.match(api, /reviewer\.revoked/);
+});
+
 test("approved plans can be revoked only by their assigned active reviewer", () => {
   assert.match(api, /action === "revoke_plan_approval"/);
   assert.match(api, /\.eq\("reviewer_user_id", user\.id\)/);
   assert.match(api, /\.eq\("status", "active"\)/);
   assert.match(api, /\.eq\("status", "approved"\)/);
   assert.match(api, /status: "revoked"/);
-  assert.match(api, /event_type: "plan\.revoked"/);
+  assert.match(api, /eventType: "plan\.revoked"/);
 });

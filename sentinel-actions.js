@@ -103,6 +103,16 @@
       case "add-monitoring-site": window.addMonitoringSite(); break;
       case "lookup-vulnerability": window.lookupVulnerability(); break;
       case "create-research-project": window.createResearchProject(); break;
+      case "create-research-case": window.createResearchCase(); break;
+      case "assign-research-reviewer": window.assignResearchReviewer(); break;
+      case "submit-research-case": window.submitResearchCase(data.caseId); break;
+      case "review-research-case": window.reviewResearchCase(data.caseId, data.decision); break;
+      case "revoke-research-case": window.revokeResearchCase(data.caseId); break;
+      case "revoke-research-reviewer": window.revokeResearchReviewer(data.caseId, data.reviewerId); break;
+      case "request-research-plan-approval": window.requestResearchPlanApproval(); break;
+      case "decide-research-plan-approval": window.decideResearchPlanApproval(data.approvalId, data.decision); break;
+      case "revoke-research-plan-approval": window.revokeResearchPlanApproval(data.approvalId); break;
+      case "check-research-scope": window.checkResearchScope(); break;
       case "create-research-finding": window.createResearchFinding(); break;
       case "create-organization": window.createOrganization(); break;
       case "accept-organization-invitation": window.acceptOrganizationInvitation(); break;

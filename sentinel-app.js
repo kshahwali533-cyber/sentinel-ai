@@ -167,6 +167,11 @@ if (error) {
         researchStatus.className = "notice";
         researchStatus.textContent = "Log in to use your private research workspace.";
       }
+      researchWorkspaceData = {
+        projects: [], verified_assets: [], findings: [], notes: [],
+        research_cases: [], reviewer_assignments: [], case_approvals: [],
+        reviewer_approvals: [], case_events: []
+      };
       const researchProjects = document.getElementById("researchProjects");
       const researchFindings = document.getElementById("researchFindings");
       if (researchProjects) researchProjects.innerHTML = "";
@@ -2951,7 +2956,11 @@ async function researchRequest(payload = null) {
     ...(payload ? { body: JSON.stringify(payload) } : {})
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error || "Research workspace request failed.");
+  if (!response.ok) {
+    const failure = new Error(result.error || "Research workspace request failed.");
+    failure.payload = result;
+    throw failure;
+  }
   return result;
 }
 
@@ -3032,6 +3041,88 @@ function renderResearchWorkspace(data) {
       `;
     }).join("") : '<div class="empty-history">No findings yet. Create a project and add a finding for a verified asset.</div>';
   }
+
+  renderResearchCaseWorkflow(data);
+}
+
+function renderResearchCaseWorkflow(data) {
+  const cases = Array.isArray(data.research_cases) ? data.research_cases : [];
+  const ownerCases = cases.filter(item => item.viewer_role === "owner");
+  const ownerReviewers = Array.isArray(data.owner_reviewers) ? data.owner_reviewers : [];
+  const approvals = [
+    ...(Array.isArray(data.case_approvals) ? data.case_approvals.map(item => ({ ...item, viewer_role: "owner" })) : []),
+    ...(Array.isArray(data.reviewer_approvals) ? data.reviewer_approvals.map(item => ({ ...item, viewer_role: "reviewer" })) : [])
+  ];
+  const caseNode = document.getElementById("researchCases");
+  if (caseNode) {
+    caseNode.innerHTML = cases.length ? cases.map(item => {
+      const assets = Array.isArray(item.authorized_assets) ? item.authorized_assets : [];
+      const paths = assets.flatMap(asset => Array.isArray(asset.paths) ? asset.paths : []);
+      const caseEvents = (data.case_events || []).filter(event => event.case_id === item.id);
+      const assignedReviewers = ownerReviewers.filter(reviewer => reviewer.case_id === item.id);
+      const reviewerMarkup = assignedReviewers.map(reviewer =>
+        '<div class="research-meta">Reviewer: ' + escapeHTML(reviewer.reviewer_user_id) + ' · ' + escapeHTML(reviewer.status) +
+        (reviewer.status === "active"
+          ? ' <button class="secondary-button" type="button" data-action="revoke-research-reviewer" data-case-id="' + escapeHTML(item.id) + '" data-reviewer-id="' + escapeHTML(reviewer.reviewer_user_id) + '">Revoke Reviewer</button>'
+          : "") + '</div>'
+      ).join("");
+      let actions = "";
+      if (item.viewer_role === "owner") {
+        if (["draft", "rejected"].includes(item.authorization_status)) {
+          actions += '<button class="secondary-button" type="button" data-action="submit-research-case" data-case-id="' + escapeHTML(item.id) + '">Submit for Independent Review</button>';
+        }
+        if (["authorized", "pending_review"].includes(item.authorization_status)) {
+          actions += '<button class="secondary-button" type="button" data-action="revoke-research-case" data-case-id="' + escapeHTML(item.id) + '">Revoke Case Authorization</button>';
+        }
+      } else if (item.authorization_status === "pending_review") {
+        actions += '<button class="secondary-button" type="button" data-action="review-research-case" data-case-id="' + escapeHTML(item.id) + '" data-decision="authorized">Approve Authorization</button><button class="secondary-button" type="button" data-action="review-research-case" data-case-id="' + escapeHTML(item.id) + '" data-decision="rejected">Reject</button>';
+      }
+      return '<div class="research-project">' +
+        '<h4>' + escapeHTML(item.title) + '</h4>' +
+        '<div class="research-meta">' + escapeHTML(item.authorization_status) + ' · ' + escapeHTML(item.viewer_role) + '</div>' +
+        '<p>' + escapeHTML(item.description || "") + '</p>' +
+        '<div class="research-meta">Authorized assets: ' + escapeHTML(assets.map(asset => asset.origin).join(", ")) + '</div>' +
+        '<div class="research-meta">Allowed paths: ' + escapeHTML(paths.join(", ")) + '</div>' +
+        '<div class="research-meta">Scope expires: ' + escapeHTML(item.scope_expires_at || "Not set") + '</div>' +
+        reviewerMarkup +
+        '<div class="research-meta">Audit events: ' + caseEvents.length + '</div>' +
+        '<div class="research-actions">' + actions + '</div>' +
+        '</div>';
+    }).join("") : '<div class="empty-history">No authorization cases yet. Create a written-authorization case above.</div>';
+  }
+
+  const reviewerCaseSelect = document.getElementById("researchReviewerCaseSelect");
+  if (reviewerCaseSelect) {
+    reviewerCaseSelect.innerHTML = '<option value="">Select your case</option>' +
+      ownerCases.map(item => '<option value="' + escapeHTML(item.id) + '">' +
+        escapeHTML(item.title + " · " + item.authorization_status) + '</option>').join("");
+  }
+  const planCaseSelect = document.getElementById("researchPlanCaseSelect");
+  if (planCaseSelect) {
+    planCaseSelect.innerHTML = '<option value="">Select an authorized case</option>' +
+      ownerCases.filter(item => item.authorization_status === "authorized").map(item =>
+        '<option value="' + escapeHTML(item.id) + '">' + escapeHTML(item.title) + '</option>'
+      ).join("");
+  }
+
+  const approvalsNode = document.getElementById("researchApprovals");
+  if (approvalsNode) {
+    approvalsNode.innerHTML = approvals.length ? approvals.map(item => {
+      const actionButtons = item.viewer_role === "reviewer"
+        ? (item.status === "pending"
+          ? '<button class="secondary-button" type="button" data-action="decide-research-plan-approval" data-approval-id="' + escapeHTML(item.id) + '" data-decision="approved">Approve Plan</button><button class="secondary-button" type="button" data-action="decide-research-plan-approval" data-approval-id="' + escapeHTML(item.id) + '" data-decision="rejected">Reject Plan</button>'
+          : item.status === "approved"
+            ? '<button class="secondary-button" type="button" data-action="revoke-research-plan-approval" data-approval-id="' + escapeHTML(item.id) + '">Revoke Approval</button>'
+            : "")
+        : "";
+      return '<div class="research-project">' +
+        '<h4>' + escapeHTML(item.target_origin + item.target_path) + '</h4>' +
+        '<div class="research-meta">' + escapeHTML(item.method + " · " + item.test_category + " · " + item.status) + '</div>' +
+        '<div class="research-meta">Role: ' + escapeHTML(item.viewer_role) + ' · Expires: ' + escapeHTML(item.expires_at || "Not approved") + '</div>' +
+        '<div class="research-actions">' + actionButtons + '</div>' +
+        '</div>';
+    }).join("") : '<div class="empty-history">No per-plan approvals have been requested.</div>';
+  }
 }
 
 async function loadResearchWorkspace() {
@@ -3051,6 +3142,185 @@ async function loadResearchWorkspace() {
     const findings = document.getElementById("researchFindings");
     if (projects) projects.innerHTML = "";
     if (findings) findings.innerHTML = "";
+  }
+}
+
+function researchListInput(value) {
+  return String(value || "").split(/[\n,]+/).map(item => item.trim()).filter(Boolean);
+}
+
+async function createResearchCase() {
+  const status = document.getElementById("researchStatus");
+  try {
+    const starts = document.getElementById("researchScopeStartsAt")?.value;
+    const expires = document.getElementById("researchScopeExpiresAt")?.value;
+    const origin = document.getElementById("researchAuthorizedOrigin")?.value.trim();
+    const payload = {
+      action: "create_case",
+      title: document.getElementById("researchCaseTitle")?.value.trim(),
+      description: document.getElementById("researchCaseDescription")?.value.trim() || "",
+      authorizationReference: document.getElementById("researchAuthorizationReference")?.value.trim(),
+      authorizationEvidence: [{
+        label: document.getElementById("researchAuthorizationEvidenceLabel")?.value.trim(),
+        reference: document.getElementById("researchAuthorizationEvidenceReference")?.value.trim()
+      }],
+      authorizedAssets: [{
+        origin,
+        paths: researchListInput(document.getElementById("researchAuthorizedPaths")?.value),
+        excluded_paths: researchListInput(document.getElementById("researchExcludedPaths")?.value)
+      }],
+      allowedMethods: researchListInput(document.getElementById("researchAllowedMethods")?.value).map(value => value.toUpperCase()),
+      allowedTestCategories: researchListInput(document.getElementById("researchAllowedCategories")?.value),
+      scopeStartsAt: starts ? new Date(starts).toISOString() : "",
+      scopeExpiresAt: expires ? new Date(expires).toISOString() : ""
+    };
+    await researchRequest(payload);
+    await loadResearchWorkspace();
+    status.className = "success";
+    status.textContent = "Authorization case created as a draft. Assign an independent reviewer before submitting it.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to create the authorization case.";
+  }
+}
+
+async function assignResearchReviewer() {
+  const status = document.getElementById("researchStatus");
+  try {
+    await researchRequest({
+      action: "assign_reviewer",
+      caseId: document.getElementById("researchReviewerCaseSelect")?.value,
+      reviewerUserId: document.getElementById("researchReviewerUserId")?.value.trim()
+    });
+    await loadResearchWorkspace();
+    status.className = "success";
+    status.textContent = "Independent reviewer assigned.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to assign the reviewer.";
+  }
+}
+
+async function submitResearchCase(caseId) {
+  const status = document.getElementById("researchStatus");
+  try {
+    await researchRequest({ action: "submit_case_for_review", caseId });
+    await loadResearchWorkspace();
+    status.className = "success";
+    status.textContent = "Case submitted for independent review.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to submit the case.";
+  }
+}
+
+async function reviewResearchCase(caseId, decision) {
+  const status = document.getElementById("researchStatus");
+  try {
+    await researchRequest({ action: "review_case", caseId, decision });
+    await loadResearchWorkspace();
+    status.className = "success";
+    status.textContent = "Authorization review recorded.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to review the case.";
+  }
+}
+
+async function revokeResearchCase(caseId) {
+  if (!confirm("Revoke this authorization case and all pending or approved plans?")) return;
+  const status = document.getElementById("researchStatus");
+  try {
+    await researchRequest({ action: "revoke_case_authorization", caseId });
+    await loadResearchWorkspace();
+    status.className = "success";
+    status.textContent = "Case authorization revoked. Its pending and approved plans were also revoked.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to revoke the case authorization.";
+  }
+}
+
+async function revokeResearchReviewer(caseId, reviewerUserId) {
+  if (!confirm("Revoke this reviewer assignment and their pending or approved plans?")) return;
+  const status = document.getElementById("researchStatus");
+  try {
+    await researchRequest({ action: "revoke_reviewer", caseId, reviewerUserId });
+    await loadResearchWorkspace();
+    status.className = "success";
+    status.textContent = "Reviewer assignment revoked. Their pending and approved plans were also revoked.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to revoke the reviewer assignment.";
+  }
+}
+
+async function requestResearchPlanApproval() {
+  const status = document.getElementById("researchStatus");
+  try {
+    const result = await researchRequest({
+      action: "request_plan_approval",
+      caseId: document.getElementById("researchPlanCaseSelect")?.value,
+      targetUrl: document.getElementById("researchPlanTargetUrl")?.value.trim(),
+      method: document.getElementById("researchPlanMethod")?.value,
+      testCategory: document.getElementById("researchPlanCategory")?.value.trim()
+    });
+    await loadResearchWorkspace();
+    status.className = "success";
+    status.textContent = "Plan sent to the assigned independent reviewer. No target traffic was sent.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to request plan approval.";
+  }
+}
+
+async function decideResearchPlanApproval(approvalId, decision) {
+  const status = document.getElementById("researchStatus");
+  try {
+    await researchRequest({ action: "decide_plan_approval", approvalId, decision });
+    await loadResearchWorkspace();
+    status.className = "success";
+    status.textContent = "Per-plan review decision recorded.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to review the plan.";
+  }
+}
+
+async function revokeResearchPlanApproval(approvalId) {
+  const status = document.getElementById("researchStatus");
+  if (!confirm("Revoke this plan approval immediately?")) return;
+  try {
+    await researchRequest({ action: "revoke_plan_approval", approvalId });
+    await loadResearchWorkspace();
+    status.className = "success";
+    status.textContent = "Plan approval revoked.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to revoke the plan approval.";
+  }
+}
+
+async function checkResearchScope() {
+  const output = document.getElementById("researchScopeDecision");
+  try {
+    const result = await researchRequest({
+      action: "check_scope",
+      caseId: document.getElementById("researchPlanCaseSelect")?.value,
+      targetUrl: document.getElementById("researchPlanTargetUrl")?.value.trim(),
+      method: document.getElementById("researchPlanMethod")?.value,
+      testCategory: document.getElementById("researchPlanCategory")?.value.trim()
+    });
+    output.className = result.allowed ? "success" : "notice";
+    output.textContent = result.allowed
+      ? "Scope decision: ALLOWED for this exact approved plan. This is a decision only; no request was sent to the target."
+      : "Scope decision: DENIED (" + (result.reason || "not permitted") + "). No request was sent to the target.";
+  } catch (error) {
+    const reason = error?.payload?.reason;
+    output.className = "notice";
+    output.textContent = reason
+      ? "Scope decision: DENIED (" + reason + "). No request was sent to the target."
+      : error?.message || "Unable to check the research scope.";
   }
 }
 
@@ -3167,48 +3437,74 @@ async function addResearchNote(findingId) {
   }
 }
 
+function redactResearchExportText(value) {
+  return String(value ?? "")
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [REDACTED]")
+    .replace(/\b(api[_ -]?key|access[_ -]?token|client[_ -]?secret|password|passwd|secret)\b(\s*[:=]\s*)[^\s,;]+/gi, "$1$2[REDACTED]")
+    .replace(/\bAKIA[0-9A-Z]{16}\b/g, "[REDACTED_AWS_KEY]")
+    .replace(/\bgh[pousr]_[A-Za-z0-9]{20,}\b/g, "[REDACTED_GITHUB_TOKEN]")
+    .replace(/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, "[REDACTED_JWT]");
+}
+
 async function exportResearchProject(projectId) {
   const project = researchWorkspaceData.projects.find(item => item.id === projectId);
   if (!project) return;
   const findings = researchWorkspaceData.findings.filter(item => item.project_id === projectId);
+  const includeEvidence = document.getElementById("researchExportIncludeEvidence")?.checked === true;
+  const includeNotes = document.getElementById("researchExportIncludeNotes")?.checked === true;
+  if ((includeEvidence || includeNotes) &&
+      !confirm("This report may include private evidence or research notes. Review and redact it before sharing. Continue?")) {
+    return;
+  }
+
+  const safe = redactResearchExportText;
   const lines = [
-    "# " + project.name,
+    "# " + safe(project.name),
     "",
-    project.description || "Security research project",
+    safe(project.description || "Security research project"),
     "",
     "Generated by Sentinel AI",
+    "Private account export — review and redact before external disclosure.",
+    "Evidence included: " + (includeEvidence ? "yes (secret patterns redacted)" : "no"),
+    "Private notes included: " + (includeNotes ? "yes (secret patterns redacted)" : "no"),
     ""
   ];
   for (const finding of findings) {
-    lines.push("## [" + finding.severity.toUpperCase() + "] " + finding.title);
+    lines.push("## [" + safe(finding.severity).toUpperCase() + "] " + safe(finding.title));
     lines.push("");
-    lines.push("- Status: " + finding.status);
-    lines.push("- Asset: " + finding.asset_hostname);
-    lines.push("- Endpoint: " + finding.endpoint_path);
+    lines.push("- Status: " + safe(finding.status));
+    lines.push("- Asset: " + safe(finding.asset_hostname));
+    lines.push("- Endpoint: " + safe(finding.endpoint_path));
     lines.push("");
-    lines.push(finding.description);
-    if (finding.impact) lines.push("\nImpact: " + finding.impact);
-    if (finding.remediation) lines.push("\nRemediation: " + finding.remediation);
-    const evidence = Array.isArray(finding.evidence) ? finding.evidence : [];
-    for (const item of evidence) lines.push("\nEvidence (" + item.source + "): " + item.observed);
-    const notes = researchWorkspaceData.notes.filter(note => note.finding_id === finding.id);
-    for (const note of notes) lines.push("\nResearch note: " + note.content);
+    lines.push(safe(finding.description));
+    if (finding.impact) lines.push("\\nImpact: " + safe(finding.impact));
+    if (finding.remediation) lines.push("\\nRemediation: " + safe(finding.remediation));
+    if (includeEvidence) {
+      const evidence = Array.isArray(finding.evidence) ? finding.evidence : [];
+      for (const item of evidence) {
+        lines.push("\\nEvidence (" + safe(item.source) + "): " + safe(item.observed));
+      }
+    }
+    if (includeNotes) {
+      const notes = researchWorkspaceData.notes.filter(note => note.finding_id === finding.id);
+      for (const note of notes) lines.push("\\nPrivate research note: " + safe(note.content));
+    }
     lines.push("");
   }
-  const markdown = lines.join("\n");
+  const markdown = lines.join("\\n");
   try {
     await navigator.clipboard.writeText(markdown);
     const status = document.getElementById("researchStatus");
     status.className = "success";
-    status.textContent = "Project report copied. You can paste it into your disclosure report.";
+    status.textContent = "Privacy-reviewed project report copied. Review it again before external disclosure.";
   } catch {
-    const manualCopy = prompt("Copy your Sentinel AI research report:", markdown);
+    const manualCopy = prompt("Copy your privacy-reviewed Sentinel AI research report:", markdown);
     const status = document.getElementById("researchStatus");
     if (status) {
       status.className = manualCopy === null ? "notice" : "success";
       status.textContent = manualCopy === null
         ? "Report export was cancelled."
-        : "Report text is ready to copy from the prompt.";
+        : "Report text is ready to copy. Review it before sharing.";
     }
   }
 }
