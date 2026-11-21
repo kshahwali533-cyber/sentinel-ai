@@ -30,3 +30,17 @@ test("scope decision handler contains no outbound HTTP client call", () => {
   assert.doesNotMatch(handler, /axios\./i);
   assert.doesNotMatch(handler, /http\.request\s*\(/);
 });
+
+
+test("scope decision requires the plan's assigned reviewer to remain active", () => {
+  const approvalLookup = handler.indexOf('.from("research_case_approvals")');
+  const reviewerLookup = handler.indexOf('.from("research_case_reviewers")', approvalLookup);
+  const inactiveDenial = handler.indexOf('reviewer_assignment_inactive', reviewerLookup);
+  const scopeDecision = handler.indexOf('evaluateResearchScope(', reviewerLookup);
+  assert.ok(approvalLookup >= 0);
+  assert.ok(reviewerLookup > approvalLookup);
+  assert.ok(inactiveDenial > reviewerLookup);
+  assert.ok(scopeDecision > inactiveDenial);
+  assert.match(handler, /\.eq\("reviewer_user_id", planApproval\.reviewer_user_id\)/);
+  assert.match(handler, /\.eq\("status", "active"\)/);
+});
