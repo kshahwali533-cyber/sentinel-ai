@@ -141,3 +141,20 @@ test("fails closed when the scope schema is incomplete", () => {
     authorizationRecord: { ...baseCase, authorized_assets: null }
   }).reason, "scope_definition_invalid");
 });
+
+test("denies localhost, private IPv4, link-local metadata, and IPv6 literal targets", () => {
+  for (const targetUrl of [
+    "https://localhost/security/report",
+    "https://service.localhost/security/report",
+    "https://127.0.0.1/security/report",
+    "https://10.1.2.3/security/report",
+    "https://172.16.0.1/security/report",
+    "https://192.168.1.1/security/report",
+    "https://169.254.169.254/latest/meta-data/",
+    "https://[::1]/security/report",
+    "https://[fd00::1]/security/report"
+  ]) {
+    assert.equal(evaluateResearchScope({ ...request, targetUrl }).reason, "target_url_invalid", targetUrl);
+  }
+});
+
