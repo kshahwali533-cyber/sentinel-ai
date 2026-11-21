@@ -315,6 +315,40 @@ export default async function handler(req, res) {
       return send(res, 200, { approval: data });
     }
 
+    if (action === "revoke_plan_approval") {
+      if (!validId(body.approvalId)) {
+        return send(res, 400, { error: "Choose a valid plan approval." });
+      }
+      const notes = textField(body.notes, 3000) ?? "Approval revoked by the assigned reviewer.";
+      if (notes === null) return send(res, 400, { error: "Reviewer notes must be under 3,000 characters." });
+
+      const { data: approval, error: approvalError } = await supabaseAdmin.from("research_case_approvals")
+        .select("id,case_id,reviewer_user_id,status")
+        .eq("id", body.approvalId).eq("reviewer_user_id", user.id).maybeSingle();
+      if (approvalError) throw approvalError;
+      if (!approval || approval.status !== "approved") {
+        return send(res, 404, { error: "Active approved plan not found for this reviewer." });
+      }
+      const { data: assignment, error: assignmentError } = await supabaseAdmin.from("research_case_reviewers")
+        .select("case_id").eq("case_id", approval.case_id)
+        .eq("reviewer_user_id", user.id).eq("status", "active").maybeSingle();
+      if (assignmentError) throw assignmentError;
+      if (!assignment) return send(res, 403, { error: "Reviewer assignment is no longer active." });
+
+      const { data, error } = await supabaseAdmin.from("research_case_approvals")
+        .update({ status: "revoked", reviewer_notes: notes })
+        .eq("id", approval.id).eq("status", "approved")
+        .select("id,case_id,status").maybeSingle();
+      if (error) throw error;
+      if (!data) return send(res, 409, { error: "Approval changed; reload and try again." });
+      const { error: eventError } = await supabaseAdmin.from("research_case_events").insert({
+        case_id: approval.case_id, actor_user_id: user.id, event_type: "plan.revoked",
+        details: { approval_id: approval.id }
+      });
+      if (eventError) throw eventError;
+      return send(res, 200, { approval: data });
+    }
+
     if (action === "create_project") {
       const name = textField(body.name, 120, true);
       const description = textField(body.description, 1000);
