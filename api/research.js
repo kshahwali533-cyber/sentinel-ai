@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createResearchPlanFingerprint } from "./_lib/research-plan-hash.js";
 import { evaluateResearchScope } from "./_lib/research-scope-gate.js";
+import { recordResearchCaseEvent } from "./_lib/research-case-events.js";
 import {
   normalizeResearchText as textField,
   isValidResearchId as validId,
@@ -46,7 +47,7 @@ export default async function handler(req, res) {
     if (!user) return send(res, 401, { error: "Please sign in to use the research workspace." });
 
     if (req.method === "GET") {
-      const [projects, assets, findings, notes] = await Promise.all([
+      const [projects, assets, findings, notes, ownedCases, reviewerAssignments] = await Promise.all([
         supabaseAdmin.from("research_projects")
           .select("id,name,description,status,created_at,updated_at")
           .eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
@@ -59,10 +60,52 @@ export default async function handler(req, res) {
           .eq("user_id", user.id).order("created_at", { ascending: false }).limit(100),
         supabaseAdmin.from("research_notes")
           .select("id,finding_id,project_id,content,created_at")
-          .eq("user_id", user.id).order("created_at", { ascending: false }).limit(200)
+          .eq("user_id", user.id).order("created_at", { ascending: false }).limit(200),
+        supabaseAdmin.from("research_cases")
+          .select("id,owner_user_id,title,description,authorization_status,authorization_reference,authorization_evidence,authorized_assets,allowed_methods,allowed_test_categories,excluded_methods,scope_starts_at,scope_expires_at,created_at,updated_at")
+          .eq("owner_user_id", user.id).order("created_at", { ascending: false }).limit(50),
+        supabaseAdmin.from("research_case_reviewers")
+          .select("case_id,reviewer_user_id,status,assigned_at")
+          .eq("reviewer_user_id", user.id).order("assigned_at", { ascending: false }).limit(50)
       ]);
-      const failure = [projects.error, assets.error, findings.error, notes.error].find(Boolean);
+      const failure = [projects.error, assets.error, findings.error, notes.error, ownedCases.error, reviewerAssignments.error].find(Boolean);
       if (failure) throw failure;
+
+      const ownedCaseIds = (ownedCases.data || []).map((item) => item.id);
+      const assignedCaseIds = (reviewerAssignments.data || [])
+        .filter((item) => item.status === "active")
+        .map((item) => item.case_id);
+      const accessibleCaseIds = [...new Set([...ownedCaseIds, ...assignedCaseIds])];
+
+      const [assignedCases, ownerApprovals, reviewerApprovals, caseEvents] = await Promise.all([
+        assignedCaseIds.length
+          ? supabaseAdmin.from("research_cases")
+              .select("id,owner_user_id,title,description,authorization_status,authorization_reference,authorization_evidence,authorized_assets,allowed_methods,allowed_test_categories,excluded_methods,scope_starts_at,scope_expires_at,created_at,updated_at")
+              .in("id", assignedCaseIds).limit(50)
+          : Promise.resolve({ data: [], error: null }),
+        ownedCaseIds.length
+          ? supabaseAdmin.from("research_case_approvals")
+              .select("id,case_id,plan_hash,target_origin,target_path,method,test_category,status,reviewer_user_id,reviewer_notes,created_at,approved_at,expires_at")
+              .in("case_id", ownedCaseIds).order("created_at", { ascending: false }).limit(100)
+          : Promise.resolve({ data: [], error: null }),
+        supabaseAdmin.from("research_case_approvals")
+          .select("id,case_id,plan_hash,target_origin,target_path,method,test_category,status,reviewer_user_id,reviewer_notes,created_at,approved_at,expires_at")
+          .eq("reviewer_user_id", user.id).order("created_at", { ascending: false }).limit(100),
+        accessibleCaseIds.length
+          ? supabaseAdmin.from("research_case_events")
+              .select("id,case_id,actor_user_id,event_type,details,created_at")
+              .in("case_id", accessibleCaseIds).order("created_at", { ascending: false }).limit(300)
+          : Promise.resolve({ data: [], error: null })
+      ]);
+      const secondaryFailure = [assignedCases.error, ownerApprovals.error, reviewerApprovals.error, caseEvents.error].find(Boolean);
+      if (secondaryFailure) throw secondaryFailure;
+
+      const caseMap = new Map();
+      for (const item of ownedCases.data || []) caseMap.set(item.id, { ...item, viewer_role: "owner" });
+      for (const item of assignedCases.data || []) {
+        if (!caseMap.has(item.id)) caseMap.set(item.id, { ...item, viewer_role: "reviewer" });
+      }
+
       const verifiedAssets = (assets.data || []).map((asset) => ({
         id: asset.id,
         hostname: asset.hostname,
@@ -74,7 +117,12 @@ export default async function handler(req, res) {
         projects: projects.data || [],
         verified_assets: verifiedAssets,
         findings: findings.data || [],
-        notes: notes.data || []
+        notes: notes.data || [],
+        research_cases: [...caseMap.values()],
+        reviewer_assignments: reviewerAssignments.data || [],
+        case_approvals: ownerApprovals.data || [],
+        reviewer_approvals: reviewerApprovals.data || [],
+        case_events: caseEvents.data || []
       });
     }
 
@@ -193,8 +241,8 @@ export default async function handler(req, res) {
         scope_expires_at: new Date(expires).toISOString(), authorization_status: "draft"
       }).select("id,title,authorization_status,created_at").single();
       if (error) throw error;
-      await supabaseAdmin.from("research_case_events").insert({
-        case_id: data.id, actor_user_id: user.id, event_type: "case.created",
+      await recordResearchCaseEvent(supabaseAdmin, {
+        caseId: data.id, actorUserId: user.id, eventType: "case.created",
         details: { authorization_reference_present: true, asset_count: assets.length }
       });
       return send(res, 201, { case: data });
@@ -215,9 +263,9 @@ export default async function handler(req, res) {
         assigned_by: user.id, status: "active"
       }, { onConflict: "case_id,reviewer_user_id" });
       if (error) throw error;
-      await supabaseAdmin.from("research_case_events").insert({
-        case_id: researchCase.id, actor_user_id: user.id,
-        event_type: "reviewer.assigned", details: { reviewer_user_id: body.reviewerUserId }
+      await recordResearchCaseEvent(supabaseAdmin, {
+        caseId: researchCase.id, actorUserId: user.id,
+        eventType: "reviewer.assigned", details: { reviewer_user_id: body.reviewerUserId }
       });
       return send(res, 200, { assigned: true });
     }
@@ -231,8 +279,8 @@ export default async function handler(req, res) {
         .select("id,authorization_status").maybeSingle();
       if (error) throw error;
       if (!data) return send(res, 409, { error: "Case cannot be submitted in its current state." });
-      await supabaseAdmin.from("research_case_events").insert({
-        case_id: data.id, actor_user_id: user.id, event_type: "case.submitted_for_review"
+      await recordResearchCaseEvent(supabaseAdmin, {
+        caseId: data.id, actorUserId: user.id, eventType: "case.submitted_for_review"
       });
       return send(res, 200, { case: data });
     }
@@ -267,8 +315,8 @@ export default async function handler(req, res) {
         .select("id,authorization_status").maybeSingle();
       if (error) throw error;
       if (!data) return send(res, 409, { error: "Case state changed; reload and review again." });
-      await supabaseAdmin.from("research_case_events").insert({
-        case_id: data.id, actor_user_id: user.id, event_type: "case.reviewed",
+      await recordResearchCaseEvent(supabaseAdmin, {
+        caseId: data.id, actorUserId: user.id, eventType: "case.reviewed",
         details: { decision: body.decision }
       });
       return send(res, 200, { case: data });
@@ -299,8 +347,8 @@ export default async function handler(req, res) {
       }, { onConflict: "case_id,plan_hash" })
         .select("id,case_id,plan_hash,status,reviewer_user_id,created_at").single();
       if (error) throw error;
-      await supabaseAdmin.from("research_case_events").insert({
-        case_id: plan.case_id, actor_user_id: user.id, event_type: "plan.submitted_for_approval",
+      await recordResearchCaseEvent(supabaseAdmin, {
+        caseId: plan.case_id, actorUserId: user.id, eventType: "plan.submitted_for_approval",
         details: { plan_hash: plan.plan_hash, target_origin: plan.target_origin, target_path: plan.target_path, method: plan.method, test_category: plan.test_category }
       });
       return send(res, 201, { approval: data });
@@ -328,8 +376,8 @@ export default async function handler(req, res) {
         .select("id,case_id,status,approved_at,expires_at").maybeSingle();
       if (error) throw error;
       if (!data) return send(res, 409, { error: "Approval was already processed." });
-      await supabaseAdmin.from("research_case_events").insert({
-        case_id: approval.case_id, actor_user_id: user.id, event_type: "plan.reviewed",
+      await recordResearchCaseEvent(supabaseAdmin, {
+        caseId: approval.case_id, actorUserId: user.id, eventType: "plan.reviewed",
         details: { approval_id: approval.id, decision: body.decision }
       });
       return send(res, 200, { approval: data });
@@ -361,11 +409,10 @@ export default async function handler(req, res) {
         .select("id,case_id,status").maybeSingle();
       if (error) throw error;
       if (!data) return send(res, 409, { error: "Approval changed; reload and try again." });
-      const { error: eventError } = await supabaseAdmin.from("research_case_events").insert({
-        case_id: approval.case_id, actor_user_id: user.id, event_type: "plan.revoked",
+      await recordResearchCaseEvent(supabaseAdmin, {
+        caseId: approval.case_id, actorUserId: user.id, eventType: "plan.revoked",
         details: { approval_id: approval.id }
       });
-      if (eventError) throw eventError;
       return send(res, 200, { approval: data });
     }
 
@@ -534,6 +581,11 @@ export default async function handler(req, res) {
     return send(res, 400, { error: "Unsupported research workspace action." });
   } catch (error) {
     console.error("Sentinel research API error:", error);
+    if (error?.code === "RESEARCH_AUDIT_WRITE_FAILED") {
+      return send(res, 503, {
+        error: "The action may have been saved, but its audit event could not be recorded. Reload the workspace before retrying."
+      });
+    }
     return send(res, 500, { error: "Unable to process the research workspace request safely." });
   }
 }
