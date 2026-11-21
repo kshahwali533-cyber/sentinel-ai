@@ -453,10 +453,54 @@
         <li>Submit findings privately with timestamps, reproducible steps, redacted evidence, impact, and remediation.</li>
       </ul>
       <p class="research-meta">
-        Current beta limitation: research cases, independent approval records, and an active bug-bounty submission/triage portal
-        are not yet enabled. Findings entered below are private account records, not a formal vulnerability disclosure submission.
+        Written-authorization cases, independent reviewer decisions, and per-plan approval records are available in this private workspace.
+        Scope decisions are decision-only: Sentinel AI does not send active test traffic or provide a public bug-bounty submission portal.
       </p>
       <a href="/public/researcher-preview-guide.md" target="_blank" rel="noopener noreferrer">Open Researcher Preview Guide</a>
+    </div>
+
+    <div class="analytics-panel">
+      <h3>Written authorization and case approval</h3>
+      <p class="research-meta">Create a case only after receiving written permission from the asset owner. The case starts as a draft. An independent reviewer must approve it before any per-plan approval can be requested. Sentinel AI currently performs scope decisions only; it does not send test traffic.</p>
+      <input id="researchCaseTitle" type="text" maxlength="160" placeholder="Authorization case title">
+      <textarea id="researchCaseDescription" rows="2" maxlength="5000" placeholder="Short purpose and assessment description"></textarea>
+      <input id="researchAuthorizationReference" type="text" maxlength="500" placeholder="Written authorization reference (document ID or secure reference)">
+      <input id="researchAuthorizationEvidenceLabel" type="text" maxlength="120" placeholder="Evidence label, e.g. signed scope letter">
+      <input id="researchAuthorizationEvidenceReference" type="text" maxlength="500" placeholder="Evidence reference (do not paste secrets)">
+      <input id="researchAuthorizedOrigin" type="url" maxlength="2048" placeholder="Authorized HTTPS origin, e.g. https://example.com">
+      <textarea id="researchAuthorizedPaths" rows="2" maxlength="3000" placeholder="Allowed paths, one per line, e.g. /security/"></textarea>
+      <textarea id="researchExcludedPaths" rows="2" maxlength="3000" placeholder="Excluded paths, one per line (optional)"></textarea>
+      <input id="researchAllowedMethods" type="text" maxlength="40" value="GET, HEAD, OPTIONS" placeholder="Allowed safe methods">
+      <input id="researchAllowedCategories" type="text" maxlength="500" value="passive_header_review" placeholder="Allowed test categories, comma separated">
+      <label for="researchScopeStartsAt">Authorization starts</label>
+      <input id="researchScopeStartsAt" type="datetime-local">
+      <label for="researchScopeExpiresAt">Authorization expires</label>
+      <input id="researchScopeExpiresAt" type="datetime-local">
+      <button type="button" data-action="create-research-case">Create Authorization Case</button>
+      <div id="researchCases"></div>
+    </div>
+
+    <div class="analytics-panel">
+      <h3>Independent reviewer assignment</h3>
+      <select id="researchReviewerCaseSelect"><option value="">Select your case</option></select>
+      <input id="researchReviewerUserId" type="text" maxlength="64" placeholder="Reviewer account UUID (must be another user)">
+      <button type="button" data-action="assign-research-reviewer">Assign Reviewer</button>
+      <p class="research-meta">The case owner cannot approve their own case. The reviewer must have a separate Sentinel AI account.</p>
+    </div>
+
+    <div class="analytics-panel">
+      <h3>Per-plan approval request</h3>
+      <select id="researchPlanCaseSelect"><option value="">Select an authorized case</option></select>
+      <input id="researchPlanTargetUrl" type="url" maxlength="2048" placeholder="Exact HTTPS URL within the approved scope">
+      <select id="researchPlanMethod">
+        <option value="GET">GET</option>
+        <option value="HEAD">HEAD</option>
+        <option value="OPTIONS">OPTIONS</option>
+      </select>
+      <input id="researchPlanCategory" type="text" maxlength="80" value="passive_header_review" placeholder="Approved test category">
+      <button type="button" data-action="request-research-plan-approval">Request Plan Approval</button>
+      <div id="researchApprovals"></div>
+      <div id="researchScopeDecision" class="message" aria-live="polite"></div>
     </div>
 
     <div class="analytics-panel">
