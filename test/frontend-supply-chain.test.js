@@ -14,7 +14,7 @@ test("browser Supabase SDK is pinned to the exact lockfile version", async () =>
   const lock = JSON.parse(lockText);
   const vercel = JSON.parse(vercelText);
   const expectedVersion = packageJson.dependencies["@supabase/supabase-js"];
-  const browserScript = html.match(/<script defer src="(https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@[^"]+)"><\/script>/);
+  const browserScript = html.match(/<script defer src="(https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@[^"]+)" integrity="(sha384-[^"]+)" crossorigin="anonymous"><\/script>/);
 
   assert.ok(expectedVersion, "Supabase SDK must be a declared dependency");
   assert.equal(lock.packages["node_modules/@supabase/supabase-js"].version, expectedVersion);
@@ -24,6 +24,7 @@ test("browser Supabase SDK is pinned to the exact lockfile version", async () =>
     `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@${expectedVersion}`,
     "Browser SDK version must exactly match package.json and package-lock.json"
   );
+  assert.match(browserScript[2], /^sha384-[A-Za-z0-9+/]{64}$/, "Browser SDK must use a SHA-384 integrity hash");
 
   const csp = vercel.headers
     .flatMap((entry) => entry.headers || [])
