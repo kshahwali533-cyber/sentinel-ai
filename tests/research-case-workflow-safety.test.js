@@ -37,3 +37,12 @@ test("authorization tables are additive, RLS-protected, and client-inaccessible"
     assert.match(migration, new RegExp("revoke all on public\\." + table + " from anon, authenticated"));
   }
 });
+
+test("approved plans can be revoked only by their assigned active reviewer", () => {
+  assert.match(api, /action === "revoke_plan_approval"/);
+  assert.match(api, /\.eq\("reviewer_user_id", user\.id\)/);
+  assert.match(api, /\.eq\("status", "active"\)/);
+  assert.match(api, /\.eq\("status", "approved"\)/);
+  assert.match(api, /status: "revoked"/);
+  assert.match(api, /event_type: "plan\.revoked"/);
+});
