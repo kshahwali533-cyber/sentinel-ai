@@ -1,0 +1,4 @@
+Contact: mailto:securitysentinelai093@gmail.com
+Expires: 2027-11-21T00:00:00.000Z
+Preferred-Languages: en, ur
+Canonical: https://project-3jyda.vercel.app/.well-known/security.txt
