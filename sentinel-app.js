@@ -2526,8 +2526,8 @@ async function generateProfessionalReport(button) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sentinel AI Professional Security Report</title>
-<script defer src="${safe(window.location.origin)}/sentinel-actions.js"><\/script>
-<link rel="stylesheet" href="${safe(window.location.origin)}/sentinel-report.css">
+<script defer src="/sentinel-actions.js"><\/script>
+<link rel="stylesheet" href="/sentinel-report.css">
 </head>
 <body>
 <button class="print" data-action="print-report">Print / Save as PDF</button>
