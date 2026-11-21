@@ -15,6 +15,8 @@ jobs:
     name: Passive ZAP baseline
     runs-on: ubuntu-latest
     steps:
+      - name: Wait for the latest production deployment
+        run: sleep 60
       - name: Run passive baseline against production
         uses: zaproxy/action-baseline@v0.15.0
         with:

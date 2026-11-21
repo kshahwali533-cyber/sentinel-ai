@@ -19,6 +19,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Wait for the latest production deployment
+        run: sleep 60
+      - name: Configure npm retries
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 10000
+          npm config set fetch-retry-maxtimeout 60000
       - name: Run Lighthouse mobile audit
         run: |
           npx --yes lighthouse@13.6.0 https://project-3jyda.vercel.app \

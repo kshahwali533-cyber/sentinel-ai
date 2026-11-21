@@ -1,0 +1,56 @@
+name: Production Scanner Smoke Test
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "27 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan-own-production:
+    name: Scan Sentinel AI's own public homepage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Wait for the production deployment to settle
+        run: sleep 45
+      - name: Run one non-invasive scan against the owned production site
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+
+          const target = "https://project-3jyda.vercel.app";
+          const response = await fetch(target + "/api/scan", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ url: target })
+          });
+          const responseText = await response.text();
+          assert.equal(response.ok, true, "Production scan API failed: " + response.status + " " + responseText.slice(0, 500));
+
+          const result = JSON.parse(responseText);
+          assert.equal(new URL(result.finalUrl).origin, new URL(target).origin, "Scanner changed the requested host");
+          assert.ok(Array.isArray(result.checks) && result.checks.length === 20, "Expected 20 structured checks");
+          assert.ok(Array.isArray(result.surfaceFindings), "Surface findings must be an array");
+          assert.equal(result.summary?.totalChecks, result.checks.length, "Summary count must match checks");
+          assert.ok(Number.isInteger(result.score) && result.score >= 0 && result.score <= 100, "Score must be within 0-100");
+
+          const unconfirmedSensitive = result.surfaceFindings.filter(item => item.title === "Sensitive Surface");
+          assert.equal(unconfirmedSensitive.length, 0, "Homepage links or guessed paths must not become sensitive-surface findings");
+
+          console.log(JSON.stringify({
+            target,
+            finalUrl: result.finalUrl,
+            checks: result.checks.length,
+            score: result.score,
+            surfaceCandidates: result.discoveredSurface?.length ?? 0,
+            sensitiveSurfaceFindings: unconfirmedSensitive.length
+          }, null, 2));
+          NODE

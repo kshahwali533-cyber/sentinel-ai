@@ -28,3 +28,24 @@ jobs:
           node --check api/_lib/read-limited.js
       - name: Run security tests
         run: node --test
+      - name: Live scanner smoke test for PR 80 only
+        if: github.event_name == 'pull_request' && github.event.pull_request.number == 80
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          const target = "https://project-3jyda.vercel.app";
+          const response = await fetch(target + "/api/scan", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ url: target })
+          });
+          const body = await response.text();
+          assert.equal(response.ok, true, "Scanner API returned " + response.status + ": " + body.slice(0, 500));
+          const result = JSON.parse(body);
+          assert.equal(new URL(result.finalUrl).origin, new URL(target).origin);
+          assert.equal(result.checks?.length, 20);
+          assert.equal(result.summary?.totalChecks, result.checks.length);
+          assert.ok(Array.isArray(result.surfaceFindings));
+          assert.equal(result.surfaceFindings.filter(item => item.title === "Sensitive Surface").length, 0);
+          console.log(JSON.stringify({ finalUrl: result.finalUrl, score: result.score, checks: result.checks.length, surfaceFindings: result.surfaceFindings.length }, null, 2));
+          NODE
