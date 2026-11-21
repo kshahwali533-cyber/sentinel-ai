@@ -37,6 +37,21 @@
       color: #38bdf8;
     }
 
+    a {
+      color: #8ab4f8;
+    }
+
+    a:hover {
+      color: #c5dcff;
+    }
+
+    label {
+      display: block;
+      margin: 8px 0 4px;
+      color: #dbeafe;
+      font-size: 14px;
+    }
+
     nav a {
       color: #cbd5e1;
       text-decoration: none;
