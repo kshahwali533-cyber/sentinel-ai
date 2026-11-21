@@ -3448,7 +3448,7 @@ async function verifyMonitoringSite(siteId) {
     await monitoringRequest({ action: "verify", siteId });
     await loadMonitoringDashboard();
     status.className = "success";
-    status.textContent = "Domain ownership verified. The website is ready for scheduled monitoring; automated runs are not yet active in this deployment.";
+    status.textContent = "Domain ownership verified. The website will be checked on the next scheduled 15-minute run.";
   } catch (error) {
     status.className = "error";
     status.textContent = error?.message || "DNS verification failed.";
