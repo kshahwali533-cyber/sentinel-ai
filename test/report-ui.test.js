@@ -16,6 +16,16 @@ test("external browser scripts parse without inline scripts", () => {
   }
 });
 
+test("generated report loads local assets through relative same-origin paths", () => {
+  const start = app.indexOf("const reportHTML =");
+  assert.notEqual(start, -1);
+  const reportTemplate = app.slice(start);
+  assert.ok(reportTemplate.includes('src="/sentinel-actions.js"'));
+  assert.ok(reportTemplate.includes('href="/sentinel-report.css"'));
+  assert.equal(reportTemplate.includes("window.location.origin)/sentinel-actions.js"), false);
+  assert.equal(reportTemplate.includes("window.location.origin)/sentinel-report.css"), false);
+});
+
 test("generated professional report markup contains no inline style attributes", () => {
   const start = app.indexOf("const reportHTML =");
   assert.notEqual(start, -1, "report HTML template should exist");

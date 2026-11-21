@@ -37,7 +37,7 @@ test("research selects have explicit labels and links meet dark-background contr
 });
 
 test("site provides an explicit SVG favicon to avoid browser 404 requests", () => {
-  assert.match(html, /rel="icon" type="image\/svg\+xml" href="\/favicon\.svg"/);
+  assert.match(html, /rel="icon" type="image\/svg\+xml" href="\/public\/favicon\.svg"/);
   const favicon = readFileSync(new URL("../public/favicon.svg", import.meta.url), "utf8");
   assert.match(favicon, /<svg[\s\S]*viewBox="0 0 64 64"/);
 });
