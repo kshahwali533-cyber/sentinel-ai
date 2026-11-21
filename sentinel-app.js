@@ -2951,7 +2951,11 @@ async function researchRequest(payload = null) {
     ...(payload ? { body: JSON.stringify(payload) } : {})
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error || "Research workspace request failed.");
+  if (!response.ok) {
+    const failure = new Error(result.error || "Research workspace request failed.");
+    failure.payload = result;
+    throw failure;
+  }
   return result;
 }
 
@@ -3039,7 +3043,6 @@ function renderResearchWorkspace(data) {
 function renderResearchCaseWorkflow(data) {
   const cases = Array.isArray(data.research_cases) ? data.research_cases : [];
   const ownerCases = cases.filter(item => item.viewer_role === "owner");
-  const reviewerCases = cases.filter(item => item.viewer_role === "reviewer");
   const approvals = [
     ...(Array.isArray(data.case_approvals) ? data.case_approvals.map(item => ({ ...item, viewer_role: "owner" })) : []),
     ...(Array.isArray(data.reviewer_approvals) ? data.reviewer_approvals.map(item => ({ ...item, viewer_role: "reviewer" })) : [])
@@ -3125,7 +3128,7 @@ async function loadResearchWorkspace() {
 }
 
 function researchListInput(value) {
-  return String(value || "").split(/[\\n,]+/).map(item => item.trim()).filter(Boolean);
+  return String(value || "").split(/[\n,]+/).map(item => item.trim()).filter(Boolean);
 }
 
 async function createResearchCase() {
@@ -3267,8 +3270,11 @@ async function checkResearchScope() {
       ? "Scope decision: ALLOWED for this exact approved plan. This is a decision only; no request was sent to the target."
       : "Scope decision: DENIED (" + (result.reason || "not permitted") + "). No request was sent to the target.";
   } catch (error) {
-    output.className = "error";
-    output.textContent = error?.message || "Unable to check the research scope.";
+    const reason = error?.payload?.reason;
+    output.className = "notice";
+    output.textContent = reason
+      ? "Scope decision: DENIED (" + reason + "). No request was sent to the target."
+      : error?.message || "Unable to check the research scope.";
   }
 }
 
@@ -3387,11 +3393,11 @@ async function addResearchNote(findingId) {
 
 function redactResearchExportText(value) {
   return String(value ?? "")
-    .replace(/\\bBearer\\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [REDACTED]")
-    .replace(/\\b(api[_ -]?key|access[_ -]?token|client[_ -]?secret|password|passwd|secret)\\b(\\s*[:=]\\s*)[^\\s,;]+/gi, "$1$2[REDACTED]")
-    .replace(/\\bAKIA[0-9A-Z]{16}\\b/g, "[REDACTED_AWS_KEY]")
-    .replace(/\\bgh[pousr]_[A-Za-z0-9]{20,}\\b/g, "[REDACTED_GITHUB_TOKEN]")
-    .replace(/\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\b/g, "[REDACTED_JWT]");
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [REDACTED]")
+    .replace(/\b(api[_ -]?key|access[_ -]?token|client[_ -]?secret|password|passwd|secret)\b(\s*[:=]\s*)[^\s,;]+/gi, "$1$2[REDACTED]")
+    .replace(/\bAKIA[0-9A-Z]{16}\b/g, "[REDACTED_AWS_KEY]")
+    .replace(/\bgh[pousr]_[A-Za-z0-9]{20,}\b/g, "[REDACTED_GITHUB_TOKEN]")
+    .replace(/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, "[REDACTED_JWT]");
 }
 
 async function exportResearchProject(projectId) {
