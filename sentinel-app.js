@@ -167,6 +167,11 @@ if (error) {
         researchStatus.className = "notice";
         researchStatus.textContent = "Log in to use your private research workspace.";
       }
+      researchWorkspaceData = {
+        projects: [], verified_assets: [], findings: [], notes: [],
+        research_cases: [], reviewer_assignments: [], case_approvals: [],
+        reviewer_approvals: [], case_events: []
+      };
       const researchProjects = document.getElementById("researchProjects");
       const researchFindings = document.getElementById("researchFindings");
       if (researchProjects) researchProjects.innerHTML = "";
