@@ -52,6 +52,43 @@ test("AI response cannot change scanner severity or status", () => {
   assert.equal(response.status, "WARNING");
 });
 
+test("AI response cannot rename the scanner finding", () => {
+  const response = normalizeMentorResponse({
+    title: "A different issue",
+    explanation: "Explanation",
+    why_it_matters: "Why",
+    defensive_action: "Action",
+    verification: "Verify",
+    steps: ["Review the response."]
+  }, { finding: "HSTS", severity: "Medium", status: "WARNING" });
+  assert.equal(response.title, "HSTS");
+  assert.equal(response.severity, "Medium");
+  assert.equal(response.status, "WARNING");
+});
+
+test("AI response rejects actionable exploit and credential-theft instructions", () => {
+  const base = {
+    title: "HSTS",
+    explanation: "Explanation",
+    why_it_matters: "Why",
+    defensive_action: "Action",
+    verification: "Verify",
+    steps: ["Review the response."]
+  };
+  assert.equal(normalizeMentorResponse({
+    ...base,
+    steps: ["Run this exploit payload against the login page."]
+  }, { finding: "HSTS", severity: "Medium", status: "WARNING" }), null);
+  assert.equal(normalizeMentorResponse({
+    ...base,
+    defensive_action: "Use a SQL injection payload to dump the database."
+  }, { finding: "HSTS", severity: "Medium", status: "WARNING" }), null);
+  assert.equal(normalizeMentorResponse({
+    ...base,
+    steps: ["Steal user credentials and exfiltrate private data."]
+  }, { finding: "HSTS", severity: "Medium", status: "WARNING" }), null);
+});
+
 test("AI response rejects empty, excessive, or malformed steps", () => {
   const input = { severity: "Unknown", status: "INFO" };
   const base = {
