@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import fs from "node:fs";
 import handler from "../api/assistant.js";
 
 async function invoke(body, method = "POST", headers = {}) {
@@ -134,3 +135,17 @@ test("AI Security Mentor treats informational fallback as an observation, not a 
     else process.env.OPENAI_API_KEY = previousKey;
   }
 });
+
+test("AI Mentor does not label structural response checks as factual verification", () => {
+  const source = fs.readFileSync(new URL("../api/assistant.js", import.meta.url), "utf8");
+  assert.match(source, /verificationStatus: "AI_RESPONSE_VALIDATED"/);
+  assert.doesNotMatch(source, /verificationStatus: "AI_VERIFIED"/);
+  assert.match(source, /store: false/);
+});
+
+test("AI Mentor UI does not claim generated advice is fact-verified", () => {
+  const source = fs.readFileSync(new URL("../sentinel-app.js", import.meta.url), "utf8");
+  assert.match(source, /factual claims are not independently verified/);
+  assert.doesNotMatch(source, /verified AI-generated response/i);
+});
+

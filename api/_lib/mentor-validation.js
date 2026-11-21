@@ -54,15 +54,26 @@ export function normalizeMentorResponse(value, input) {
   const defensiveAction = cleanText(value.defensive_action, 2000);
   const verification = cleanText(value.verification, 2000);
   const steps = Array.isArray(value.steps) ? value.steps : [];
+  const combinedText = [title, explanation, whyItMatters, defensiveAction, verification, ...steps]
+    .filter(item => typeof item === "string")
+    .join("\n");
+
+  const unsafeActionPatterns = [
+    /\b(?:run|execute|send|inject|paste|use)\b.{0,100}\b(?:exploit(?:ation)?|payload|reverse shell|sql injection|xss attack|credential stuffing)\b/i,
+    /\b(?:steal|exfiltrate|dump|extract)\b.{0,100}\b(?:credentials|passwords|tokens|database|private data)\b/i,
+    /\b(?:disable|bypass)\b.{0,80}\b(?:authentication|logging|security controls|access controls)\b/i
+  ];
 
   if (!title || !explanation || !whyItMatters || !defensiveAction || !verification ||
       steps.length < 1 || steps.length > 8 ||
-      !steps.every((step) => typeof step === "string" && step.trim().length > 0 && step.length <= 500)) {
+      !steps.every((step) => typeof step === "string" && step.trim().length > 0 && step.length <= 500) ||
+      unsafeActionPatterns.some(pattern => pattern.test(combinedText))) {
     return null;
   }
 
   return {
-    title,
+    // The model may explain a finding, but it cannot rename or reinterpret it.
+    title: input.finding || title,
     severity: input.severity,
     status: input.status,
     explanation,

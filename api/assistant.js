@@ -75,14 +75,6 @@ export default async function handler(req, res) {
     }
 
     const finding = mentorInput.finding;
-    const allowedSeverities = [
-      "Critical",
-      "High",
-      "Medium",
-      "Low",
-      "Info",
-      "Unknown"
-    ];
     const severity = mentorInput.severity;
     const website = mentorInput.website;
     const status = mentorInput.status;
@@ -510,7 +502,7 @@ Do not provide exploitation instructions or invent facts about the website.`
               success: true,
               aiPowered: true,
               fallback: false,
-              verificationStatus: "AI_VERIFIED",
+              verificationStatus: "AI_RESPONSE_VALIDATED",
               assistant: normalizedAssistant
             });
           }

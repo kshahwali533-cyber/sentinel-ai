@@ -2257,9 +2257,9 @@ trackSentinelEvent("ai_mentor_used");
       upstream_unverified: "AI response could not be verified"
     };
     const mentorVerificationText = data.aiPowered === true
-      ? "✓ SUCCESS — verified AI-generated response"
-      : "✕ FAILED — built-in fallback used: " +
-        (mentorFallbackReasons[data.fallbackReason] || "AI response not verified");
+      ? "✓ AI-GENERATED — response format and safety checks passed; factual claims are not independently verified."
+      : "BUILT-IN GUIDANCE — AI service unavailable: " +
+        (mentorFallbackReasons[data.fallbackReason] || "built-in guidance used");
 
 
     const steps =
