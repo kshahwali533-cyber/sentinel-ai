@@ -11,6 +11,7 @@ import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 import { getTrustedClientIp } from "./_lib/client-ip.js";
 import { createSafeFetch } from "./_lib/safe-fetch.js";
 import { createPinnedRequest } from "./_lib/pinned-request.js";
+import { isConfirmedSurfaceReference } from "./_lib/surface-confidence.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -1312,6 +1313,13 @@ const discoveredSurface =
     for (
       const resource of discoveredSurface
     ) {
+      // A successful response to a guessed common path is only a candidate:
+      // many sites return the same 200 page for unknown routes (soft-404).
+      // Only flag routes present in the scanned page or the exact scan target.
+      if (!isConfirmedSurfaceReference(resource)) {
+        continue;
+      }
+
       for (
         const entry of sensitivePathPatterns
       ) {
@@ -1321,7 +1329,7 @@ const discoveredSurface =
           addSurfaceFinding(
             "Sensitive Surface",
             resource.url,
-            entry.indicator,
+            entry.indicator + " This is a path indicator only; sensitivity and access controls are not verified.",
             "INFO"
           );
         }
