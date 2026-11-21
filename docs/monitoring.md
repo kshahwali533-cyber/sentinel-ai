@@ -8,7 +8,7 @@
 - The beta currently allows up to five monitored domains per account.
 - Verified domains are scheduled for a security scan every 15 minutes, aligned to UTC quarter-hour boundaries to avoid scheduler drift.
 - The repository includes a Supabase Cron migration that schedules the production monitoring worker every 15 minutes. The worker claims at most three due sites per run and invokes the existing SSRF-safe `/api/scan` endpoint.
-- **Activation is not proven by the migration file alone.** Before describing monitoring as live, verify that the migration was applied, the Cron job is active, the Vault secret exists, and recent Cron dispatches receive HTTP 200 responses in the target Supabase project.
+- **Production activation verified on 2026-11-21:** the scheduler migration is applied, the Cron job is active at `*/15 * * * *`, the Vault secret metadata exists, and recent Cron dispatches receive HTTP 200 responses. No monitored domains are currently verified, so customer-domain scan runs have not yet been recorded.
 - The worker targets `VERCEL_PROJECT_PRODUCTION_URL` so internal scan requests use the stable production domain, not a deployment-specific preview URL.
 - The first successful scan establishes a baseline. Later scans create an in-app alert when a new warning appears, the risk level worsens, or the score drops by at least ten points.
 - Users can pause, resume, remove monitored domains, and mark alerts as read.
@@ -27,9 +27,9 @@ The monitoring scheduler is managed by Supabase Cron using `pg_cron` and `pg_net
 
 ## Operational verification checklist
 
-1. Apply the reviewed monitoring foundation and scheduler migrations to the intended Supabase project only after owner approval.
-2. Confirm the Supabase Cron job `sentinel-monitoring-every-15-minutes` is active with schedule `*/15 * * * *`.
-3. Confirm cron history shows successful dispatches and `net._http_response` shows HTTP 200 responses.
+1. Confirm the monitoring foundation and scheduler migrations are applied to the intended Supabase project.
+2. Confirm the Supabase Cron job `sentinel-monitoring-every-15-minutes` is active with schedule `*/15 * * * *` (verified).
+3. Confirm cron history shows successful dispatches and `net._http_response` shows HTTP 200 responses (verified).
 4. Add a domain you control and confirm the pending state is shown.
 5. Publish the exact DNS TXT name and value shown by the dashboard.
 6. Verify the TXT record; confirm the site becomes active and shows a 15-minute interval.
