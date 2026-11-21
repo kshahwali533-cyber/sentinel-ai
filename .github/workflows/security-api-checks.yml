@@ -86,7 +86,7 @@ jobs:
           docker exec "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 -c "
             CREATE ROLE anon NOLOGIN;
             CREATE ROLE authenticated NOLOGIN;
-            CREATE ROLE service_role NOLOGIN;
+            CREATE ROLE service_role NOLOGIN BYPASSRLS;
             CREATE SCHEMA auth;
             CREATE SCHEMA private;
             CREATE TABLE auth.users (id uuid PRIMARY KEY);
@@ -158,6 +158,17 @@ jobs:
 
           echo "Concurrent final-slot test passed: one reservation granted, one rejected, cleanup complete."
           BASH
+      - name: Verify two-user Research Lab database isolation
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+
+          docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 < supabase/migrations/20261120115348_sentinel_research_authorization_foundation.sql
+          docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 < supabase/migrations/20261120115401_sentinel_research_case_deny_client_policies.sql
+          docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 < supabase/migrations/20261121002602_sentinel_research_fk_indexes.sql
+          docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 < tests/research-case-rls-two-user.sql
+
       - name: Verify scanner uses pinned DNS connections
         run: |
           node --input-type=module <<'NODE'
