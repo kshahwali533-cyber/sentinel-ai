@@ -6,7 +6,7 @@ const ALLOWED_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 // special-use destinations before any scope decision can be marked allowed.
 // DNS names still require resolution/pinning checks before any future network execution.
 function isNonPublicHost(hostname) {
-  const host = hostname.toLowerCase().replace(/^\\[|\\]$/g, "");
+  const host = hostname.toLowerCase().replace("[", "").replace("]", "");
   if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") ||
       host.endsWith(".internal") || host === "metadata") return true;
 
