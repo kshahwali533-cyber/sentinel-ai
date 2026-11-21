@@ -229,6 +229,10 @@ jobs:
             throw new Error("Remove the report-only header after the enforced policy is enabled.");
           }
 
+          if (headers.get("access-control-allow-origin") !== "https://project-3jyda.vercel.app") {
+            throw new Error("Cross-origin reads must be restricted to the production origin; wildcard CORS is not allowed.");
+          }
+
           console.log("Vercel security response header configuration passed.");
           NODE
 
