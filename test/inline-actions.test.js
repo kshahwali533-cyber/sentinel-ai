@@ -36,7 +36,7 @@ test("professional report includes safe CSV export and report data payload", () 
 });
 
 test("Supabase SDK is deferred so it does not block initial HTML parsing", () => {
-  assert.ok(html.includes(`<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@${supabaseVersion}"></script>`));
+  assert.match(html, new RegExp('<script defer src="https://cdn\\.jsdelivr\\.net/npm/@supabase/supabase-js@' + supabaseVersion + '" integrity="sha384-[A-Za-z0-9+/]{64}" crossorigin="anonymous"><\\/script>'));
 });
 
 test("delegated action script parses", () => {
