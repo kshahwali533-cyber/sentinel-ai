@@ -3227,6 +3227,34 @@ async function reviewResearchCase(caseId, decision) {
   }
 }
 
+async function revokeResearchCase(caseId) {
+  if (!confirm("Revoke this authorization case and all pending or approved plans?")) return;
+  const status = document.getElementById("researchStatus");
+  try {
+    await researchRequest({ action: "revoke_case_authorization", caseId });
+    await loadResearchWorkspace();
+    status.className = "success";
+    status.textContent = "Case authorization revoked. Its pending and approved plans were also revoked.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to revoke the case authorization.";
+  }
+}
+
+async function revokeResearchReviewer(caseId, reviewerUserId) {
+  if (!confirm("Revoke this reviewer assignment and their pending or approved plans?")) return;
+  const status = document.getElementById("researchStatus");
+  try {
+    await researchRequest({ action: "revoke_reviewer", caseId, reviewerUserId });
+    await loadResearchWorkspace();
+    status.className = "success";
+    status.textContent = "Reviewer assignment revoked. Their pending and approved plans were also revoked.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Unable to revoke the reviewer assignment.";
+  }
+}
+
 async function requestResearchPlanApproval() {
   const status = document.getElementById("researchStatus");
   try {
