@@ -319,7 +319,7 @@ export default async function handler(req, res) {
       if (!validId(body.approvalId)) {
         return send(res, 400, { error: "Choose a valid plan approval." });
       }
-      const notes = textField(body.notes, 3000) ?? "Approval revoked by the assigned reviewer.";
+      const notes = body.notes === undefined ? "Approval revoked by the assigned reviewer." : textField(body.notes, 3000);
       if (notes === null) return send(res, 400, { error: "Reviewer notes must be under 3,000 characters." });
 
       const { data: approval, error: approvalError } = await supabaseAdmin.from("research_case_approvals")
