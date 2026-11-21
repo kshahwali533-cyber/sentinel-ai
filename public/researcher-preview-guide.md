@@ -18,8 +18,7 @@ This preview lets an invited reviewer assess Sentinel AI's user-facing security 
 
 ## What is not yet available
 
-- A public bug-bounty program, reward terms, or public submission intake.
-- A public bug-bounty portal, automated triage intake, and a formal external disclosure workflow.
+- A public bug-bounty program, reward terms, public submission intake, automated triage, or formal external disclosure workflow.
 - An enabled active-testing engine. Scope checks are decision-only and do not authorize or send test traffic.
 - Verified-domain monitoring runs are not yet demonstrated for this account. The 15-minute scheduler is active, but no sites are DNS-verified, so no monitoring runs have occurred.
 - A formal security certification or independent audit attestation.
