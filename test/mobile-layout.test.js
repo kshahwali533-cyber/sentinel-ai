@@ -20,3 +20,24 @@ test("stylesheet does not impose large fixed minimum widths that force mobile ov
   assert.doesNotMatch(css, /min-width:\s*[3-9][0-9]{2,}px/i);
   assert.match(css, /min-width:\s*0/);
 });
+
+test("research selects have explicit labels and links meet dark-background contrast styling", () => {
+  for (const id of [
+    "researchReviewerCaseSelect",
+    "researchPlanCaseSelect",
+    "researchPlanMethod",
+    "researchProjectSelect",
+    "researchAssetSelect",
+    "researchFindingSeverity"
+  ]) {
+    assert.ok(html.includes('<label for="' + id + '">'), id);
+  }
+  assert.match(css, /a\s*\{[^}]*color:\s*#8ab4f8/s);
+  assert.match(css, /label\s*\{[^}]*color:\s*#dbeafe/s);
+});
+
+test("site provides an explicit SVG favicon to avoid browser 404 requests", () => {
+  assert.match(html, /rel="icon" type="image\/svg\+xml" href="\/favicon\.svg"/);
+  const favicon = readFileSync(new URL("../public/favicon.svg", import.meta.url), "utf8");
+  assert.match(favicon, /<svg[\s\S]*viewBox="0 0 64 64"/);
+});
