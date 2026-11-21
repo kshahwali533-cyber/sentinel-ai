@@ -5,6 +5,11 @@ import { readFileSync } from "node:fs";
 const api = readFileSync(new URL("../api/organizations.js", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../supabase/migrations/20261114121509_sentinel_organization_workspaces_20261114.sql", import.meta.url), "utf8");
 
+test("workspace owners cannot create redundant invitations to their own account", () => {
+  assert.match(api, /email === user\.email\.trim\(\)\.toLowerCase\(\)/);
+  assert.match(api, /You already belong to this workspace/);
+});
+
 test("invitation acceptance requires a verified account email and a 64-character token", () => {
   assert.match(api, /if \(!user\.email_confirmed_at && !user\.confirmed_at\)/);
   assert.match(api, /\^\[a-f0-9\]\{64\}\$/);
