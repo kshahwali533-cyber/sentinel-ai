@@ -3048,6 +3048,7 @@ function renderResearchWorkspace(data) {
 function renderResearchCaseWorkflow(data) {
   const cases = Array.isArray(data.research_cases) ? data.research_cases : [];
   const ownerCases = cases.filter(item => item.viewer_role === "owner");
+  const ownerReviewers = Array.isArray(data.owner_reviewers) ? data.owner_reviewers : [];
   const approvals = [
     ...(Array.isArray(data.case_approvals) ? data.case_approvals.map(item => ({ ...item, viewer_role: "owner" })) : []),
     ...(Array.isArray(data.reviewer_approvals) ? data.reviewer_approvals.map(item => ({ ...item, viewer_role: "reviewer" })) : [])
@@ -3058,13 +3059,24 @@ function renderResearchCaseWorkflow(data) {
       const assets = Array.isArray(item.authorized_assets) ? item.authorized_assets : [];
       const paths = assets.flatMap(asset => Array.isArray(asset.paths) ? asset.paths : []);
       const caseEvents = (data.case_events || []).filter(event => event.case_id === item.id);
-      const actions = item.viewer_role === "owner"
-        ? (["draft", "rejected"].includes(item.authorization_status)
-          ? '<button class="secondary-button" type="button" data-action="submit-research-case" data-case-id="' + escapeHTML(item.id) + '">Submit for Independent Review</button>'
-          : "")
-        : (item.authorization_status === "pending_review"
-          ? '<button class="secondary-button" type="button" data-action="review-research-case" data-case-id="' + escapeHTML(item.id) + '" data-decision="authorized">Approve Authorization</button><button class="secondary-button" type="button" data-action="review-research-case" data-case-id="' + escapeHTML(item.id) + '" data-decision="rejected">Reject</button>'
-          : "");
+      const assignedReviewers = ownerReviewers.filter(reviewer => reviewer.case_id === item.id);
+      const reviewerMarkup = assignedReviewers.map(reviewer =>
+        '<div class="research-meta">Reviewer: ' + escapeHTML(reviewer.reviewer_user_id) + ' · ' + escapeHTML(reviewer.status) +
+        (reviewer.status === "active"
+          ? ' <button class="secondary-button" type="button" data-action="revoke-research-reviewer" data-case-id="' + escapeHTML(item.id) + '" data-reviewer-id="' + escapeHTML(reviewer.reviewer_user_id) + '">Revoke Reviewer</button>'
+          : "") + '</div>'
+      ).join("");
+      let actions = "";
+      if (item.viewer_role === "owner") {
+        if (["draft", "rejected"].includes(item.authorization_status)) {
+          actions += '<button class="secondary-button" type="button" data-action="submit-research-case" data-case-id="' + escapeHTML(item.id) + '">Submit for Independent Review</button>';
+        }
+        if (["authorized", "pending_review"].includes(item.authorization_status)) {
+          actions += '<button class="secondary-button" type="button" data-action="revoke-research-case" data-case-id="' + escapeHTML(item.id) + '">Revoke Case Authorization</button>';
+        }
+      } else if (item.authorization_status === "pending_review") {
+        actions += '<button class="secondary-button" type="button" data-action="review-research-case" data-case-id="' + escapeHTML(item.id) + '" data-decision="authorized">Approve Authorization</button><button class="secondary-button" type="button" data-action="review-research-case" data-case-id="' + escapeHTML(item.id) + '" data-decision="rejected">Reject</button>';
+      }
       return '<div class="research-project">' +
         '<h4>' + escapeHTML(item.title) + '</h4>' +
         '<div class="research-meta">' + escapeHTML(item.authorization_status) + ' · ' + escapeHTML(item.viewer_role) + '</div>' +
@@ -3072,6 +3084,7 @@ function renderResearchCaseWorkflow(data) {
         '<div class="research-meta">Authorized assets: ' + escapeHTML(assets.map(asset => asset.origin).join(", ")) + '</div>' +
         '<div class="research-meta">Allowed paths: ' + escapeHTML(paths.join(", ")) + '</div>' +
         '<div class="research-meta">Scope expires: ' + escapeHTML(item.scope_expires_at || "Not set") + '</div>' +
+        reviewerMarkup +
         '<div class="research-meta">Audit events: ' + caseEvents.length + '</div>' +
         '<div class="research-actions">' + actions + '</div>' +
         '</div>';
