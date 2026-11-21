@@ -16,7 +16,7 @@ test("private authorization cases and independent review are wired into the UI",
   for (const id of ["researchCaseTitle", "researchAuthorizationReference", "researchAuthorizedOrigin", "researchReviewerUserId", "researchCases", "researchApprovals"]) {
     assert.match(page, new RegExp('id="' + id + '"'));
   }
-  for (const action of ["create-research-case", "assign-research-reviewer", "submit-research-case", "review-research-case", "request-research-plan-approval", "decide-research-plan-approval", "revoke-research-plan-approval", "check-research-scope"]) {
+  for (const action of ["create-research-case", "assign-research-reviewer", "submit-research-case", "review-research-case", "request-research-plan-approval", "decide-research-plan-approval", "revoke-research-plan-approval", "check-research-scope", "revoke-research-case", "revoke-research-reviewer"]) {
     assert.ok(page.includes('data-action="' + action + '"') || app.includes('"' + action + '"'), action);
   }
 });
