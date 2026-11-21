@@ -42,7 +42,12 @@ async function audit(orgId, userId, eventType, targetUserId = null, details = {}
     target_user_id: targetUserId,
     details
   });
-  if (error) throw error;
+  if (error) {
+    const failure = new Error("The workspace action may have succeeded, but its audit event could not be recorded.");
+    failure.code = "ORGANIZATION_AUDIT_WRITE_FAILED";
+    failure.cause = error;
+    throw failure;
+  }
 }
 
 export default async function handler(req, res) {
@@ -230,6 +235,11 @@ export default async function handler(req, res) {
     return send(res, 400, { error: "Unsupported workspace action." });
   } catch (error) {
     console.error("Sentinel organization API error:", error);
+    if (error?.code === "ORGANIZATION_AUDIT_WRITE_FAILED") {
+      return send(res, 503, {
+        error: "The workspace action may have succeeded, but its audit event could not be saved. Refresh before retrying."
+      });
+    }
     return send(res, 500, { error: "Unable to process the workspace request safely." });
   }
 }
