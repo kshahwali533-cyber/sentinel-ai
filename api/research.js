@@ -111,6 +111,26 @@ export default async function handler(req, res) {
         .maybeSingle();
       if (approvalError) return send(res, 503, { error: "Unable to verify the human approval record." });
 
+      // A plan approval is valid only while its assigned reviewer remains active.
+      // If the reviewer assignment is revoked, fail closed before returning a scope decision.
+      if (planApproval) {
+        const { data: activeReviewer, error: reviewerError } = await supabaseAdmin
+          .from("research_case_reviewers")
+          .select("case_id")
+          .eq("case_id", plan.case_id)
+          .eq("reviewer_user_id", planApproval.reviewer_user_id)
+          .eq("status", "active")
+          .maybeSingle();
+        if (reviewerError) return send(res, 503, { error: "Unable to verify the assigned reviewer." });
+        if (!activeReviewer) {
+          return send(res, 403, {
+            allowed: false,
+            reason: "reviewer_assignment_inactive",
+            decision_only: true
+          });
+        }
+      }
+
       const decision = evaluateResearchScope({
         authorizationRecord,
         planApproval,
