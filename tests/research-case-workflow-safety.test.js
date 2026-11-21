@@ -58,5 +58,5 @@ test("approved plans can be revoked only by their assigned active reviewer", () 
   assert.match(api, /\.eq\("status", "active"\)/);
   assert.match(api, /\.eq\("status", "approved"\)/);
   assert.match(api, /status: "revoked"/);
-  assert.match(api, /event_type: "plan\.revoked"/);
+  assert.match(api, /eventType: "plan\.revoked"/);
 });
