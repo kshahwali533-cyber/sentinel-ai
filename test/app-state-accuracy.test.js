@@ -19,15 +19,15 @@ test("saving a cloud scan refreshes analytics after cloud history", () => {
   assert.ok(analyticsRefresh > historyRefresh, "analytics must refresh after cloud history");
 });
 
-test("monitoring dashboard does not claim an unconfigured schedule is active", () => {
-  assert.ok(!app.includes("Monitoring is ready. Verified websites are checked every 15 minutes."));
-  assert.ok(app.includes("Automatic 15-minute checks are not active in this deployment."));
-  assert.ok(app.includes("Automatic 15-minute execution is pending scheduler activation"));
+test("monitoring dashboard accurately describes the active 15-minute scheduler", () => {
+  assert.ok(app.includes("scheduled security checks run every 15 minutes."));
+  assert.ok(app.includes("Scheduled security checks begin after verification."));
+  assert.ok(app.includes("scheduled for automatic checks every 15 minutes"));
 });
 
 test("monitoring page and verification API describe scheduler activation honestly", () => {
-  assert.ok(page.includes("Automated 15-minute scheduling is pending activation."));
+  assert.ok(page.includes("Automated 15-minute scheduling is active. Verified websites are checked on the next scheduled run."));
   assert.ok(!page.includes("with automated checks every 15 minutes."));
-  assert.ok(monitoringApi.includes("ready for scheduled monitoring once the scheduler is activated"));
+  assert.ok(monitoringApi.includes("Scheduled security checks will begin on the next 15-minute run."));
   assert.ok(!monitoringApi.includes("15-minute monitoring is enabled."));
 });
