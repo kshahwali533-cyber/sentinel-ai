@@ -1313,9 +1313,9 @@ const discoveredSurface =
     for (
       const resource of discoveredSurface
     ) {
-      // A successful response to a guessed common path is only a candidate:
-      // many sites return the same 200 page for unknown routes (soft-404).
-      // Only flag routes present in the scanned page or the exact scan target.
+      // A guessed path or a link in page markup does not prove that a route
+      // exists or is sensitive. Only the exact URL submitted for scanning may
+      // produce a path-based surface indicator; all other paths stay candidates.
       if (!isConfirmedSurfaceReference(resource)) {
         continue;
       }
