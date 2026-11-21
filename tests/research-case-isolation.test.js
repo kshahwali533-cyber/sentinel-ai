@@ -13,6 +13,7 @@ test("research workspace loader filters owned cases by authenticated owner ID", 
 test("reviewer assignments and approvals are filtered by authenticated reviewer ID", () => {
   assert.match(access, /from\("research_case_reviewers"\)[\s\S]{0,350}?eq\("reviewer_user_id", userId\)/);
   assert.match(access, /from\("research_case_approvals"\)[\s\S]{0,500}?eq\("reviewer_user_id", userId\)/);
+  assert.match(access, /from\("research_case_reviewers"\)[\s\S]{0,350}?in\("case_id", ownedCaseIds\)/);
 });
 
 test("audit events are only fetched for owned or actively assigned case IDs", () => {
