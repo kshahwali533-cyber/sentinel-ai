@@ -43,6 +43,25 @@ test("delegated action script parses", () => {
   assert.doesNotThrow(() => new vm.Script(actions));
 });
 
+test("main application script parses after Research Lab workflow integration", () => {
+  assert.doesNotThrow(() => new vm.Script(app));
+  for (const name of [
+    "renderResearchCaseWorkflow",
+    "createResearchCase",
+    "assignResearchReviewer",
+    "submitResearchCase",
+    "reviewResearchCase",
+    "revokeResearchCase",
+    "revokeResearchReviewer",
+    "requestResearchPlanApproval",
+    "decideResearchPlanApproval",
+    "revokeResearchPlanApproval",
+    "checkResearchScope"
+  ]) {
+    assert.match(app, new RegExp("function " + name + "\\("), name);
+  }
+});
+
 test("all application scripts and styles are external", () => {
   assert.equal([...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>/gi)].length, 0);
   assert.equal([...html.matchAll(/<style\b/gi)].length, 0);
