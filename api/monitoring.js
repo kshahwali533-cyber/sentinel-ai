@@ -6,6 +6,7 @@ import { createPinnedRequest } from "./_lib/pinned-request.js";
 import { readTextLimited } from "./_lib/read-limited.js";
 import { normalizeMonitoringTarget } from "./_lib/monitoring.js";
 import { randomBytes } from "node:crypto";
+import { extractVerificationMetaToken } from "./_lib/domain-verification.js";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin =
@@ -15,7 +16,7 @@ const supabaseAdmin =
       })
     : null;
 
-async function fetchOwnershipFile(hostname) {
+function createOwnershipSafeFetch(hostname) {
   const validateTargetURL = async (url) => {
     if (url.protocol !== "https:" || url.hostname.toLowerCase() !== hostname) {
       return { safe: false, reason: "Verification must remain on the submitted HTTPS hostname." };
@@ -37,7 +38,11 @@ async function fetchOwnershipFile(hostname) {
     }
     return { safe: true, addresses: resolved.map((entry) => ({ address: entry.address, family: entry.family || net.isIP(entry.address) })) };
   };
-  const safeFetch = createSafeFetch({ validateTargetURL, requestPinned: createPinnedRequest(), maxRedirects: 0 });
+  return createSafeFetch({ validateTargetURL, requestPinned: createPinnedRequest(), maxRedirects: 0 });
+}
+
+async function fetchOwnershipFile(hostname) {
+  const safeFetch = createOwnershipSafeFetch(hostname);
   const url = new URL("https://" + hostname + "/.well-known/sentinel-ai-verification.txt");
   const { response, finalURL } = await safeFetch(url, {
     method: "GET",
@@ -49,11 +54,32 @@ async function fetchOwnershipFile(hostname) {
     return null;
   }
   const contentType = response.headers.get("content-type") || "";
-  if (!/^text\/plain(?:\s*;|$)/i.test(contentType)) {
+  if (!/^text\\/plain(?:\\s*;|$)/i.test(contentType)) {
     await response.body?.cancel();
     return null;
   }
   return (await readTextLimited(response, 512, 5000)).trim();
+}
+
+async function fetchOwnershipMeta(hostname) {
+  const safeFetch = createOwnershipSafeFetch(hostname);
+  const url = new URL("https://" + hostname + "/");
+  const { response, finalURL } = await safeFetch(url, {
+    method: "GET",
+    timeout: 8000,
+    headers: { "User-Agent": "Sentinel-AI-Domain-Verification/1.0", "Accept": "text/html" }
+  });
+  if (finalURL.hostname.toLowerCase() !== hostname || response.status !== 200) {
+    await response.body?.cancel();
+    return null;
+  }
+  const contentType = response.headers.get("content-type") || "";
+  if (!/^text\\/html(?:\\s*;|$)/i.test(contentType)) {
+    await response.body?.cancel();
+    return null;
+  }
+  const html = await readTextLimited(response, 65536, 5000);
+  return extractVerificationMetaToken(html);
 }
 
 function send(res, status, body) {
@@ -171,6 +197,31 @@ export default async function handler(req, res) {
         .select("id,url,hostname,status,verified_at,next_scan_at").single();
       if (error) throw error;
       return send(res, 200, { site: data, message: "Website ownership verified using the HTTPS verification file." });
+    }
+
+    if (action === "verify_meta") {
+      if (!siteId) return send(res, 400, { error: "A monitoring site ID is required." });
+      const { data: site, error: lookupError } = await supabaseAdmin.from("monitoring_sites")
+        .select("id,hostname,verification_token,status")
+        .eq("id", siteId).eq("user_id", user.id).maybeSingle();
+      if (lookupError) throw lookupError;
+      if (!site) return send(res, 404, { error: "Monitoring site not found." });
+      let metaValue;
+      try { metaValue = await fetchOwnershipMeta(site.hostname); }
+      catch (error) {
+        console.error("HTML meta ownership verification failed:", error?.message || error);
+        return send(res, 409, { error: "The website HTML could not be safely retrieved over HTTPS. Check that its homepage is public and try again." });
+      }
+      if (metaValue !== site.verification_token) {
+        return send(res, 409, { error: "The exact Sentinel AI verification meta tag was not found in the homepage HTML. Add the tag inside the head section and try again." });
+      }
+      const now = new Date().toISOString();
+      const { data, error } = await supabaseAdmin.from("monitoring_sites")
+        .update({ verified_at: now, status: "active", next_scan_at: now, updated_at: now })
+        .eq("id", siteId).eq("user_id", user.id)
+        .select("id,url,hostname,status,verified_at,next_scan_at").single();
+      if (error) throw error;
+      return send(res, 200, { site: data, message: "Website ownership verified using the HTML meta tag." });
     }
 
     if (action === "verify") {
