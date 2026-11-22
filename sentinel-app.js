@@ -5,8 +5,12 @@
    SUPABASE CONFIGURATION
 ========================= */
 
-const SUPABASE_URL =
-  "https://vceqmqwszvisvxxbgbfs.supabase.co";
+const IS_PR83_PREVIEW_SAFE_MODE =
+  window.location.hostname.startsWith("project-3jyda-git-feat-http-file-domain-ve-");
+
+const SUPABASE_URL = IS_PR83_PREVIEW_SAFE_MODE
+  ? "https://preview-disabled.invalid"
+  : "https://vceqmqwszvisvxxbgbfs.supabase.co";
 
 
 const SUPABASE_PUBLISHABLE_KEY =
@@ -19,6 +23,18 @@ const supabaseClient =
     SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY
   );
+
+if (IS_PR83_PREVIEW_SAFE_MODE) {
+  const safetyNotice = document.createElement("div");
+  safetyNotice.setAttribute("role", "status");
+  safetyNotice.textContent =
+    "PR #83 PREVIEW SAFE MODE: live account data and database actions are disabled here. Production is unchanged.";
+  safetyNotice.style.cssText =
+    "position:sticky;top:0;z-index:99999;padding:12px 16px;background:#7f1d1d;color:#fff;text-align:center;font-weight:700;font-size:14px;";
+  document.addEventListener("DOMContentLoaded", () => {
+    document.body.prepend(safetyNotice);
+  }, { once: true });
+}
 
 
 let latestScan = null;
