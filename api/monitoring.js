@@ -20,7 +20,7 @@ async function fetchOwnershipFile(hostname) {
     if (url.protocol !== "https:" || url.hostname.toLowerCase() !== hostname) {
       return { safe: false, reason: "Verification must remain on the submitted HTTPS hostname." };
     }
-    const host = url.hostname.toLowerCase().replace(/^\\[|\\]$/g, "");
+    const host = url.hostname.toLowerCase();
     if (!host || host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) {
       return { safe: false, reason: "Private or local destinations are not allowed." };
     }
@@ -49,7 +49,7 @@ async function fetchOwnershipFile(hostname) {
     return null;
   }
   const contentType = response.headers.get("content-type") || "";
-  if (!/^text\\/plain(?:\\s*;|$)/i.test(contentType)) {
+  if (!/^text\/plain(?:\s*;|$)/i.test(contentType)) {
     await response.body?.cancel();
     return null;
   }
