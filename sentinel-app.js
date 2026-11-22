@@ -3632,6 +3632,9 @@ function renderMonitoringDashboard(data) {
       const verification = pending ? `
         <div class="notice">
           <strong>Verify domain ownership</strong>
+          <div class="monitoring-meta">Smart mode — automatically checks all three proof methods and accepts the first exact match:</div>
+          <button class="secondary-button" type="button" data-action="verify-monitoring-auto" data-site-id="${escapeHTML(site.id)}">Smart Auto Verify</button>
+          <div class="monitoring-meta">Or choose a method manually:</div>
           <div class="monitoring-meta">Option 1 — DNS TXT record</div>
           <div class="monitoring-meta">Record name</div>
           <code class="monitoring-code">${escapeHTML("_sentinel-ai-verification." + site.hostname)}</code>
@@ -3771,6 +3774,21 @@ async function verifyMonitoringFile(siteId) {
   } catch (error) {
     status.className = "error";
     status.textContent = error?.message || "HTTPS file verification failed.";
+  }
+}
+
+async function verifyMonitoringAuto(siteId) {
+  const status = document.getElementById("monitorStatus");
+  try {
+    status.className = "notice";
+    status.textContent = "Smart verification is checking DNS, HTTPS file, and homepage meta tag...";
+    const result = await monitoringRequest({ action: "verify_auto", siteId });
+    await loadMonitoringDashboard();
+    status.className = "success";
+    status.textContent = "Ownership verified automatically using " + (result.verification_method || "a valid proof") + ". Security monitoring will begin within 15 minutes.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Smart domain verification failed.";
   }
 }
 
