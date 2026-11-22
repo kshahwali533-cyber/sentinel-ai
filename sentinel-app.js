@@ -3644,6 +3644,10 @@ function renderMonitoringDashboard(data) {
           <div class="monitoring-meta">File contents (one line):</div>
           <code class="monitoring-code">${escapeHTML("sentinel-ai-verification=" + site.verification_token)}</code>
           <button class="secondary-button" type="button" data-action="verify-monitoring-file" data-site-id="${escapeHTML(site.id)}">Verify HTTPS File</button>
+          <div class="monitoring-meta">Option 3 — HTML meta tag (no DNS changes or file upload)</div>
+          <div class="monitoring-meta">Add this single line inside the homepage head section:</div>
+          <code class="monitoring-code">${escapeHTML('<meta name="sentinel-ai-verification" content="' + site.verification_token + '">')}</code>
+          <button class="secondary-button" type="button" data-action="verify-monitoring-meta" data-site-id="${escapeHTML(site.id)}">Verify HTML Meta Tag</button>
         </div>
       ` : "";
       return `
@@ -3737,7 +3741,7 @@ async function addMonitoringSite() {
     input.value = "";
     await loadMonitoringDashboard();
     status.className = "success";
-    status.textContent = "Website added. Complete either the DNS TXT or HTTPS file verification shown below.";
+    status.textContent = "Website added. Complete any one of the DNS TXT, HTTPS file, or HTML meta tag verification methods shown below.";
   } catch (error) {
     status.className = "error";
     status.textContent = error?.message || "Unable to add this website.";
@@ -3767,6 +3771,19 @@ async function verifyMonitoringFile(siteId) {
   } catch (error) {
     status.className = "error";
     status.textContent = error?.message || "HTTPS file verification failed.";
+  }
+}
+
+async function verifyMonitoringMeta(siteId) {
+  const status = document.getElementById("monitorStatus");
+  try {
+    await monitoringRequest({ action: "verify_meta", siteId });
+    await loadMonitoringDashboard();
+    status.className = "success";
+    status.textContent = "Website ownership verified by its HTML meta tag. The next scheduled security check will run within 15 minutes.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "HTML meta tag verification failed.";
   }
 }
 
