@@ -12,7 +12,7 @@ const supabaseVersion = JSON.parse(fs.readFileSync("package.json", "utf8")).depe
 
 test("all former inline click and change handlers are removed", () => {
   assert.equal((html.match(/\son(?:click|change)\s*=/gi) || []).length, 0);
-  assert.equal(((html + app).match(/data-action="/g) || []).length, 52);
+  assert.equal(((html + app).match(/data-action="/g) || []).length, 53);
   assert.match(html, /<script defer src="\/sentinel-actions\.js"><\/script>/);
   assert.match(actions, /document\.addEventListener\("click"/);
   assert.match(actions, /document\.addEventListener\("change"/);
@@ -25,8 +25,9 @@ test("all delegated UI actions are represented", () => {
     assert.ok(clickCases.has(action) || action === "update-research-finding-status",
       "Missing delegated handler: " + action);
   }
-  assert.equal(declared.size, 48);
+  assert.equal(declared.size, 49);
   assert.ok(declared.has("verify-monitoring-file"));
+  assert.ok(declared.has("verify-monitoring-meta"));
 });
 
 test("professional report includes safe CSV export and report data payload", () => {
