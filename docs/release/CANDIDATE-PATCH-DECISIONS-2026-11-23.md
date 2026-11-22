@@ -13,3 +13,13 @@ Current `main` confirms only the exact submitted scan target as a confirmed surf
 - No production deployment was changed.
 - No Supabase schema, data, or secrets were changed.
 - Next code integration candidate should be selected only after source and test review, with the exact patch rebuilt against the staging branch and preview-tested.
+
+
+### Mobile accessibility branch — do not port the favicon change
+The branch fix/mobile-accessibility-20261121 changes the favicon URL from /public/favicon.svg to /favicon.svg. Live HTTP checks show the current Vercel deployment returns 200 for /public/favicon.svg and 404 for /favicon.svg; adopting this change would break the favicon. Its accessibility label and link-contrast additions are already present in main. Decision: do not port this branch as-is.
+
+### HTTPS file verification — test repair passed; manual ownership proof pending
+PR #83 added one delegated UI action, but test/inline-actions.test.js still expected the old counts (51 total and 47 unique). Updated the test on the feature branch to expect 52 total and 48 unique and explicitly require verify-monitoring-file. The PR head now passes all 189 tests, Main Security Hardening, security API checks, Research Scope Gate Tests, and CodeQL. Preview is READY and key static assets return 200. Decision: keep PR #83 draft and unmerged until the HTTPS challenge is tested against a separately controlled domain.
+
+### Production CORS deployment gap — prepare, do not deploy
+Main commit df1764c5ac1ea95e5873e0c8900894c613ba476a adds an explicit same-origin Access-Control-Allow-Origin value and a CI assertion. The staging preview returns the expected origin, but the current production deployment is still at 0f9f61da9447c40320d91ef4a3f61ce53b84e744 and returns wildcard CORS on the homepage and static assets. Decision: retain the validated main change and prepare a production deployment only after explicit deployment approval; production remains unchanged during this audit.
