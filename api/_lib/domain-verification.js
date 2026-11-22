@@ -1,0 +1,26 @@
+export function extractVerificationMetaToken(html) {
+  if (typeof html !== "string" || html.length > 65536) return null;
+  const source = html.replace(/<!--[\\s\\S]*?-->/g, "");
+  const matches = [];
+
+  for (const tag of source.matchAll(/<meta\\b[^>]*>/gi)) {
+    const attributes = new Map();
+    const raw = tag[0].slice(5, -1);
+    const pattern = /([^\\s=/>]+)(?:\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+)))?/g;
+    for (const attribute of raw.matchAll(pattern)) {
+      const name = attribute[1].toLowerCase();
+      if (attributes.has(name)) {
+        attributes.set(name, null);
+        continue;
+      }
+      attributes.set(name, attribute[2] ?? attribute[3] ?? attribute[4] ?? "");
+    }
+    if ((attributes.get("name") || "").toLowerCase() === "sentinel-ai-verification") {
+      matches.push(attributes.get("content"));
+    }
+  }
+
+  return matches.length === 1 && typeof matches[0] === "string"
+    ? matches[0].trim()
+    : null;
+}
