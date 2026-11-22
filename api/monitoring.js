@@ -54,7 +54,7 @@ async function fetchOwnershipFile(hostname) {
     return null;
   }
   const contentType = response.headers.get("content-type") || "";
-  if (!/^text\\/plain(?:\\s*;|$)/i.test(contentType)) {
+  if (!/^text\/plain(?:\s*;|$)/i.test(contentType)) {
     await response.body?.cancel();
     return null;
   }
@@ -74,7 +74,7 @@ async function fetchOwnershipMeta(hostname) {
     return null;
   }
   const contentType = response.headers.get("content-type") || "";
-  if (!/^text\\/html(?:\\s*;|$)/i.test(contentType)) {
+  if (!/^text\/html(?:\s*;|$)/i.test(contentType)) {
     await response.body?.cancel();
     return null;
   }
