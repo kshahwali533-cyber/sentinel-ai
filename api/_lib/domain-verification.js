@@ -1,12 +1,32 @@
+function stripHtmlComments(source) {
+  let output = "";
+  let cursor = 0;
+
+  while (cursor < source.length) {
+    const commentStart = source.indexOf("<!--", cursor);
+    if (commentStart === -1) {
+      output += source.slice(cursor);
+      break;
+    }
+
+    output += source.slice(cursor, commentStart);
+    const commentEnd = source.indexOf("-->", commentStart + 4);
+    if (commentEnd === -1) break;
+    cursor = commentEnd + 3;
+  }
+
+  return output;
+}
+
 export function extractVerificationMetaToken(html) {
   if (typeof html !== "string" || html.length > 65536) return null;
-  const source = html.replace(/<!--[\s\S]*?-->/g, "");
+  const source = stripHtmlComments(html);
   const matches = [];
 
-  for (const tag of source.matchAll(/<meta\b[^>]*>/gi)) {
+  for (const tag of source.matchAll(/<meta\\b[^>]*>/gi)) {
     const attributes = new Map();
     const raw = tag[0].slice(5, -1);
-    const pattern = /([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
+    const pattern = /([^\\s=/>]+)(?:\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+)))?/g;
     for (const attribute of raw.matchAll(pattern)) {
       const name = attribute[1].toLowerCase();
       if (attributes.has(name)) {
