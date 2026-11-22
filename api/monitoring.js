@@ -199,6 +199,49 @@ export default async function handler(req, res) {
       return send(res, 200, { site: data, message: "Website ownership verified using the HTTPS verification file." });
     }
 
+    if (action === "verify_auto") {
+      if (!siteId) return send(res, 400, { error: "A monitoring site ID is required." });
+      const { data: site, error: lookupError } = await supabaseAdmin.from("monitoring_sites")
+        .select("id,hostname,verification_token,status")
+        .eq("id", siteId).eq("user_id", user.id).maybeSingle();
+      if (lookupError) throw lookupError;
+      if (!site) return send(res, 404, { error: "Monitoring site not found." });
+
+      const expected = "sentinel-ai-verification=" + site.verification_token;
+      let dnsVerified = false;
+      try {
+        const records = await dns.resolveTxt("_sentinel-ai-verification." + site.hostname);
+        dnsVerified = records.map((parts) => parts.join("")).includes(expected);
+      } catch {
+        dnsVerified = false;
+      }
+
+      const [fileResult, metaResult] = dnsVerified
+        ? [null, null]
+        : await Promise.allSettled([
+            fetchOwnershipFile(site.hostname).then((value) => value === expected),
+            fetchOwnershipMeta(site.hostname).then((value) => value === site.verification_token)
+          ]);
+      const fileVerified = dnsVerified ? false : fileResult?.status === "fulfilled" && fileResult.value === true;
+      const metaVerified = dnsVerified ? false : metaResult?.status === "fulfilled" && metaResult.value === true;
+      const method = dnsVerified ? "DNS TXT" : fileVerified ? "HTTPS file" : metaVerified ? "HTML meta tag" : null;
+
+      if (!method) {
+        return send(res, 409, {
+          error: "No matching ownership proof was found. Add the exact DNS TXT record, HTTPS verification file, or homepage meta tag shown below, then try Smart Auto Verify again.",
+          checks: { dns_txt: dnsVerified, https_file: fileVerified, html_meta: metaVerified }
+        });
+      }
+
+      const now = new Date().toISOString();
+      const { data, error } = await supabaseAdmin.from("monitoring_sites")
+        .update({ verified_at: now, status: "active", next_scan_at: now, updated_at: now })
+        .eq("id", siteId).eq("user_id", user.id)
+        .select("id,url,hostname,status,verified_at,next_scan_at").single();
+      if (error) throw error;
+      return send(res, 200, { site: data, verification_method: method, message: "Website ownership verified using " + method + "." });
+    }
+
     if (action === "verify_meta") {
       if (!siteId) return send(res, 400, { error: "A monitoring site ID is required." });
       const { data: site, error: lookupError } = await supabaseAdmin.from("monitoring_sites")
