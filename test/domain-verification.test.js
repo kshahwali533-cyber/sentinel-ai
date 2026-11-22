@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extractVerificationMetaToken } from "../api/_lib/domain-verification.js";
+import { extractVerificationMetaToken, chooseOwnershipVerificationMethod } from "../api/_lib/domain-verification.js";
 
 const token = "a".repeat(48);
 
@@ -40,4 +40,11 @@ test("rejects missing, malformed, and oversized HTML", () => {
   assert.equal(extractVerificationMetaToken("<html><head></head></html>"), null);
   assert.equal(extractVerificationMetaToken(null), null);
   assert.equal(extractVerificationMetaToken("x".repeat(65537)), null);
+});
+
+test("smart verification selects the strongest available proof deterministically", () => {
+  assert.equal(chooseOwnershipVerificationMethod({ dnsVerified: true, fileVerified: true, metaVerified: true }), "DNS TXT");
+  assert.equal(chooseOwnershipVerificationMethod({ fileVerified: true, metaVerified: true }), "HTTPS file");
+  assert.equal(chooseOwnershipVerificationMethod({ metaVerified: true }), "HTML meta tag");
+  assert.equal(chooseOwnershipVerificationMethod({}), null);
 });
