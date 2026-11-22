@@ -49,3 +49,6 @@ The monitoring scheduler is managed by Supabase Cron using `pg_cron` and `pg_net
 - Alerts are in-app only. Email and webhook delivery are not configured.
 - The worker processes at most three websites per invocation to stay within its function-duration budget; higher volume needs queueing or a dedicated worker.
 - Do not describe the full product as launch-ready until end-to-end tests, alert delivery decisions, recovery/backup strategy, domain/email configuration, and the remaining launch gates are complete.
+
+- A third ownership method is supported through an HTML meta tag in the homepage `<head>`: `<meta name="sentinel-ai-verification" content="<per-site-token>">`. The verifier fetches only the exact HTTPS hostname, pins public DNS results, refuses redirects and private destinations, requires `text/html`, caps the response at 64 KiB, and accepts exactly one non-duplicate Sentinel verification meta tag.
+- DNS TXT, HTTPS well-known file, and HTML meta tag are alternative proofs; only one matching proof is required. The meta tag is useful for static websites where editing the homepage template is easier than uploading a file or changing DNS.
