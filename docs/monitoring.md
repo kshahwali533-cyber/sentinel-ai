@@ -52,3 +52,5 @@ The monitoring scheduler is managed by Supabase Cron using `pg_cron` and `pg_net
 
 - A third ownership method is supported through an HTML meta tag in the homepage `<head>`: `<meta name="sentinel-ai-verification" content="<per-site-token>">`. The verifier fetches only the exact HTTPS hostname, pins public DNS results, refuses redirects and private destinations, requires `text/html`, caps the response at 64 KiB, and accepts exactly one non-duplicate Sentinel verification meta tag.
 - DNS TXT, HTTPS well-known file, and HTML meta tag are alternative proofs; only one matching proof is required. The meta tag is useful for static websites where editing the homepage template is easier than uploading a file or changing DNS.
+
+- **Smart Auto Verify:** the dashboard can automatically try DNS TXT first, then checks the HTTPS well-known file and homepage meta tag in parallel. It records success only when one exact per-site token matches. The manual method buttons remain available for troubleshooting.
