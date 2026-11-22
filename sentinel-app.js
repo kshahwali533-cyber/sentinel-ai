@@ -6,7 +6,7 @@
 ========================= */
 
 const IS_PR83_PREVIEW_SAFE_MODE =
-  window.location.hostname.startsWith("project-3jyda-git-feat-http-file-domain-ve-");
+  window.location.hostname !== "project-3jyda.vercel.app";
 
 const SUPABASE_URL = IS_PR83_PREVIEW_SAFE_MODE
   ? "https://preview-disabled.invalid"
