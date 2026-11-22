@@ -127,6 +127,7 @@
       case "delete-research-finding": window.deleteResearchFinding(data.findingId); break;
       case "verify-monitoring-site": window.verifyMonitoringSite(data.siteId); break;
       case "verify-monitoring-file": window.verifyMonitoringFile(data.siteId); break;
+      case "verify-monitoring-auto": window.verifyMonitoringAuto(data.siteId); break;
       case "verify-monitoring-meta": window.verifyMonitoringMeta(data.siteId); break;
       case "change-monitoring-site": window.changeMonitoringSite(data.siteId, data.siteAction); break;
       case "remove-monitoring-site": window.removeMonitoringSite(data.siteId); break;
