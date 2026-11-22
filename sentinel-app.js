@@ -3632,12 +3632,18 @@ function renderMonitoringDashboard(data) {
       const verification = pending ? `
         <div class="notice">
           <strong>Verify domain ownership</strong>
-          <div class="monitoring-meta">Create this DNS TXT record at your domain provider:</div>
+          <div class="monitoring-meta">Option 1 — DNS TXT record</div>
           <div class="monitoring-meta">Record name</div>
           <code class="monitoring-code">${escapeHTML("_sentinel-ai-verification." + site.hostname)}</code>
           <div class="monitoring-meta">Record value</div>
           <code class="monitoring-code">${escapeHTML("sentinel-ai-verification=" + site.verification_token)}</code>
           <button class="secondary-button" type="button" data-action="verify-monitoring-site" data-site-id="${escapeHTML(site.id)}">Verify DNS Record</button>
+          <div class="monitoring-meta">Option 2 — HTTPS file (no DNS changes)</div>
+          <div class="monitoring-meta">Upload a plain-text file to this exact path on your website:</div>
+          <code class="monitoring-code">/.well-known/sentinel-ai-verification.txt</code>
+          <div class="monitoring-meta">File contents (one line):</div>
+          <code class="monitoring-code">${escapeHTML("sentinel-ai-verification=" + site.verification_token)}</code>
+          <button class="secondary-button" type="button" data-action="verify-monitoring-file" data-site-id="${escapeHTML(site.id)}">Verify HTTPS File</button>
         </div>
       ` : "";
       return `
@@ -3731,7 +3737,7 @@ async function addMonitoringSite() {
     input.value = "";
     await loadMonitoringDashboard();
     status.className = "success";
-    status.textContent = "Website added. Add the DNS TXT record shown below, then verify it.";
+    status.textContent = "Website added. Complete either the DNS TXT or HTTPS file verification shown below.";
   } catch (error) {
     status.className = "error";
     status.textContent = error?.message || "Unable to add this website.";
@@ -3748,6 +3754,19 @@ async function verifyMonitoringSite(siteId) {
   } catch (error) {
     status.className = "error";
     status.textContent = error?.message || "DNS verification failed.";
+  }
+}
+
+async function verifyMonitoringFile(siteId) {
+  const status = document.getElementById("monitorStatus");
+  try {
+    await monitoringRequest({ action: "verify_file", siteId });
+    await loadMonitoringDashboard();
+    status.className = "success";
+    status.textContent = "Website ownership verified by HTTPS file. The next scheduled security check will run within 15 minutes.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "HTTPS file verification failed.";
   }
 }
 
