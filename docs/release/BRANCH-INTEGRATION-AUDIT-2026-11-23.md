@@ -37,3 +37,11 @@
 - Mentor branches should be reconciled together to avoid conflicting implementations.
 - Large research/integration/release branches remain quarantined until decomposed.
 - Draft PR #83 remains open and unmerged pending end-to-end verification.
+
+
+## Follow-up validation (2026-11-23)
+- Draft PR #83 (feat/http-file-domain-verification-20261122) was rechecked after updating stale delegated-action test counts from 51 to 52 and unique actions from 47 to 48.
+- On PR head c031f85703059efabb2f6bcceb103a8845782554, the 189-test suite passed; Main Security Hardening, Sentinel AI security API checks, Research Scope Gate Tests, and CodeQL all passed.
+- Its Vercel preview is READY. The homepage and sentinel-app.js / sentinel-actions.js returned HTTP 200. Authenticated ownership verification against a separately controlled domain remains untested, so PR #83 stays draft and unmerged.
+- The mobile-accessibility candidate is not safe to port as-is: its favicon change points to /favicon.svg, but the live deployment returns 404 for that path and 200 for /public/favicon.svg. The label and link-contrast changes are already present in main.
+- Production deployment is one commit behind main: production is on 0f9f61da9447c40320d91ef4a3f61ce53b84e744, while main is df1764c5ac1ea95e5873e0c8900894c613ba476a. The newer main commit adds a restrictive CORS response header. Preview confirms Access-Control-Allow-Origin: https://project-3jyda.vercel.app; production currently returns Access-Control-Allow-Origin: * on the homepage and static assets. No production deployment was made.
