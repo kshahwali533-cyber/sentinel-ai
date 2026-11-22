@@ -1,12 +1,12 @@
 export function extractVerificationMetaToken(html) {
   if (typeof html !== "string" || html.length > 65536) return null;
-  const source = html.replace(/<!--[\\s\\S]*?-->/g, "");
+  const source = html.replace(/<!--[\s\S]*?-->/g, "");
   const matches = [];
 
-  for (const tag of source.matchAll(/<meta\\b[^>]*>/gi)) {
+  for (const tag of source.matchAll(/<meta\b[^>]*>/gi)) {
     const attributes = new Map();
     const raw = tag[0].slice(5, -1);
-    const pattern = /([^\\s=/>]+)(?:\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+)))?/g;
+    const pattern = /([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
     for (const attribute of raw.matchAll(pattern)) {
       const name = attribute[1].toLowerCase();
       if (attributes.has(name)) {
