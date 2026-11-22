@@ -60,3 +60,14 @@ Warnings observed:
 - The CORS restriction in main is validated in preview but remains pending production deployment.
 - Do not add COEP or disable Vercel Insights solely to silence scanner warnings without compatibility and business-impact review.
 - This report is a baseline, not proof that the entire product is vulnerability-free.
+
+
+## Supabase database and monitoring verification (2026-11-23)
+- Supabase project status: ACTIVE_HEALTHY; PostgreSQL 17.11.0.003.
+- Cron job sentinel-monitoring-every-15-minutes is active with schedule */15 * * * *.
+- Latest eight cron runs succeeded; matching pg_net responses were HTTP 200 with no timeout or error.
+- There is one pending, unverified monitoring entry: badssl.com. It has no verified_at or last_scan_at value. monitoring_runs currently has no rows. No scan has run against that unverified domain.
+- No public-schema table was found with RLS disabled.
+- claim_due_monitoring_sites and check_scan_rate_limit are SECURITY DEFINER functions executable only by service_role; anon and authenticated cannot execute them.
+- Supabase health advisors returned no findings. Security advisor returned one warning: leaked-password protection is disabled. Supabase documentation says this feature is Pro plan and above; the project organization is on the Free plan, so this is a plan limitation, not a code defect. No upgrade or paid change was made.
+- Performance advisor reported 16 unused-index notices. These are informational on a young product with several not-yet-used modules; no indexes were removed.
