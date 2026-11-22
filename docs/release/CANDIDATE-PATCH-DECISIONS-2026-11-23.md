@@ -23,3 +23,7 @@ PR #83 added one delegated UI action, but test/inline-actions.test.js still expe
 
 ### Production CORS deployment gap — prepare, do not deploy
 Main commit df1764c5ac1ea95e5873e0c8900894c613ba476a adds an explicit same-origin Access-Control-Allow-Origin value and a CI assertion. The staging preview returns the expected origin, but the current production deployment is still at 0f9f61da9447c40320d91ef4a3f61ce53b84e744 and returns wildcard CORS on the homepage and static assets. Decision: retain the validated main change and prepare a production deployment only after explicit deployment approval; production remains unchanged during this audit.
+
+
+### Multi-method domain ownership verification — validated in feature preview
+PR #83 now supports DNS TXT, HTTPS well-known file, and HTML homepage meta-tag proofs, plus a Smart Auto Verify action that checks DNS first and then checks the two HTTPS proofs. HTTP proof requests remain HTTPS-only, exact-host, public-DNS-validated, IP-pinned, redirect-disabled, content-type constrained, and size bounded. The HTML parser rejects duplicate proof tags and duplicate attributes. Latest PR head passed 195/195 unit tests, Main Security Hardening, Sentinel AI security API checks, Research Scope Gate Tests, and CodeQL. Preview is READY. Decision: retain as a draft PR until a real end-to-end ownership test is performed against a separately controlled domain; do not merge or deploy to production yet.
