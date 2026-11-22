@@ -126,6 +126,7 @@
       case "add-research-note": window.addResearchNote(data.findingId); break;
       case "delete-research-finding": window.deleteResearchFinding(data.findingId); break;
       case "verify-monitoring-site": window.verifyMonitoringSite(data.siteId); break;
+      case "verify-monitoring-file": window.verifyMonitoringFile(data.siteId); break;
       case "change-monitoring-site": window.changeMonitoringSite(data.siteId, data.siteAction); break;
       case "remove-monitoring-site": window.removeMonitoringSite(data.siteId); break;
       case "mark-monitoring-alert-read": window.markMonitoringAlertRead(data.alertId); break;
