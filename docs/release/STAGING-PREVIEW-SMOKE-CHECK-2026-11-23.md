@@ -37,3 +37,10 @@
 - Preview deployment and core static asset delivery: PASS.
 - Full application behavior, authenticated flows, scanner POST, monitoring, and database integration: NOT YET VERIFIED.
 - Do not merge to `main` based on this smoke check alone.
+
+
+## Follow-up CORS validation (2026-11-23)
+- The staging preview built from main's CORS change returns Access-Control-Allow-Origin: https://project-3jyda.vercel.app on /, /sentinel-app.js, and /sentinel.css.
+- Current production https://project-3jyda.vercel.app returns Access-Control-Allow-Origin: * on those same resources.
+- Production deployment is on commit 0f9f61da9447c40320d91ef4a3f61ce53b84e744; main is one commit ahead at df1764c5ac1ea95e5873e0c8900894c613ba476a. The main commit's CI passed.
+- This is a deployment gap, not a failed preview test. Production was not changed.
