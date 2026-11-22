@@ -6,7 +6,7 @@ import { createPinnedRequest } from "./_lib/pinned-request.js";
 import { readTextLimited } from "./_lib/read-limited.js";
 import { normalizeMonitoringTarget } from "./_lib/monitoring.js";
 import { randomBytes } from "node:crypto";
-import { extractVerificationMetaToken } from "./_lib/domain-verification.js";
+import { extractVerificationMetaToken, chooseOwnershipVerificationMethod } from "./_lib/domain-verification.js";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin =
@@ -224,7 +224,7 @@ export default async function handler(req, res) {
           ]);
       const fileVerified = dnsVerified ? false : fileResult?.status === "fulfilled" && fileResult.value === true;
       const metaVerified = dnsVerified ? false : metaResult?.status === "fulfilled" && metaResult.value === true;
-      const method = dnsVerified ? "DNS TXT" : fileVerified ? "HTTPS file" : metaVerified ? "HTML meta tag" : null;
+      const method = chooseOwnershipVerificationMethod({ dnsVerified, fileVerified, metaVerified });
 
       if (!method) {
         return send(res, 409, {
