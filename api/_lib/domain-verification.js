@@ -24,3 +24,10 @@ export function extractVerificationMetaToken(html) {
     ? matches[0].trim()
     : null;
 }
+
+export function chooseOwnershipVerificationMethod({ dnsVerified = false, fileVerified = false, metaVerified = false } = {}) {
+  if (dnsVerified) return "DNS TXT";
+  if (fileVerified) return "HTTPS file";
+  if (metaVerified) return "HTML meta tag";
+  return null;
+}
