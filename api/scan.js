@@ -1162,7 +1162,7 @@ if (html) {
     const rawHref =
       typeof match === "string" ? match.trim() : "";
 
-    if (!rawHref) {
+    if (!rawHref || rawHref.startsWith("#")) {
       continue;
     }
 
