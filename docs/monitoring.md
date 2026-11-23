@@ -4,7 +4,9 @@
 
 - Only authenticated users can manage monitoring.
 - Add only a public HTTPS domain that you own or are authorized to manage.
-- Ownership is verified with a DNS TXT record at `_sentinel-ai-verification.<domain>`.
+- Ownership can be verified with either a DNS TXT record at `_sentinel-ai-verification.<domain>` or a plain-text HTTPS file at `/.well-known/sentinel-ai-verification.txt`.
+- HTTPS file verification uses the existing DNS-resolution checks, pinned public-IP requests, HTTPS-only transport, no redirects, a strict text/plain response, and a 512-byte response limit to prevent SSRF and redirect-based verification bypasses.
+- The file must contain exactly `sentinel-ai-verification=<per-site-token>`; it must be uploaded to the website being verified. A Vercel-provided hostname does not automatically grant control over other websites.
 - The beta currently allows up to five monitored domains per account.
 - Verified domains are scheduled for a security scan every 15 minutes, aligned to UTC quarter-hour boundaries to avoid scheduler drift.
 - The repository includes a Supabase Cron migration that schedules the production monitoring worker every 15 minutes. The worker claims at most three due sites per run and invokes the existing SSRF-safe `/api/scan` endpoint.
@@ -31,8 +33,8 @@ The monitoring scheduler is managed by Supabase Cron using `pg_cron` and `pg_net
 2. Confirm the Supabase Cron job `sentinel-monitoring-every-15-minutes` is active with schedule `*/15 * * * *` (verified).
 3. Confirm cron history shows successful dispatches and `net._http_response` shows HTTP 200 responses (verified).
 4. Add a domain you control and confirm the pending state is shown.
-5. Publish the exact DNS TXT name and value shown by the dashboard.
-6. Verify the TXT record; confirm the site becomes active and shows a 15-minute interval.
+5. Publish either the exact DNS TXT record or the exact HTTPS verification file shown by the dashboard.
+6. Verify the chosen proof; confirm the site becomes active and shows a 15-minute interval.
 7. Pause and resume the site; confirm status and next scan time update.
 8. Remove a test site; confirm its runs and alerts cascade-delete.
 9. Call the worker without the bearer secret and confirm it returns 401.
@@ -47,3 +49,8 @@ The monitoring scheduler is managed by Supabase Cron using `pg_cron` and `pg_net
 - Alerts are in-app only. Email and webhook delivery are not configured.
 - The worker processes at most three websites per invocation to stay within its function-duration budget; higher volume needs queueing or a dedicated worker.
 - Do not describe the full product as launch-ready until end-to-end tests, alert delivery decisions, recovery/backup strategy, domain/email configuration, and the remaining launch gates are complete.
+
+- A third ownership method is supported through an HTML meta tag in the homepage `<head>`: `<meta name="sentinel-ai-verification" content="<per-site-token>">`. The verifier fetches only the exact HTTPS hostname, pins public DNS results, refuses redirects and private destinations, requires `text/html`, caps the response at 64 KiB, and accepts exactly one non-duplicate Sentinel verification meta tag.
+- DNS TXT, HTTPS well-known file, and HTML meta tag are alternative proofs; only one matching proof is required. The meta tag is useful for static websites where editing the homepage template is easier than uploading a file or changing DNS.
+
+- **Smart Auto Verify:** the dashboard can automatically try DNS TXT first, then checks the HTTPS well-known file and homepage meta tag in parallel. It records success only when one exact per-site token matches. The manual method buttons remain available for troubleshooting.
