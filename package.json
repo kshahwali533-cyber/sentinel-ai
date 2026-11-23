@@ -5,6 +5,7 @@
     "node": "24.x"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.119.0"
+    "@supabase/supabase-js": "2.119.0",
+    "parse5": "8.1.1"
   }
 }
