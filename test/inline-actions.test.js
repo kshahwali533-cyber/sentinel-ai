@@ -15,6 +15,7 @@ test("preview safe mode explains disabled account actions without starting an au
   const authRequest = app.indexOf("supabaseClient.auth.getSession()", guard);
   assert.ok(guard >= 0, "Preview Safe Mode guard is present in auth UI");
   assert.match(app.slice(guard, authRequest), /account sign-in, account creation, password reset, and cloud history are disabled/);
+  assert.match(app.slice(guard, authRequest), /database-backed scanning, AI Mentor, and monitoring are also disabled/);
   assert.match(app.slice(guard, authRequest), /authForm\.classList\.add\("is-hidden"\)/);
   assert.match(app.slice(guard, authRequest), /return;/);
   assert.ok(authRequest > guard, "Safe Mode returns before contacting Supabase auth");
