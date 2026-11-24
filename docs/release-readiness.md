@@ -4,7 +4,7 @@ Status: **Prepared release candidate; NOT ready for production merge/deployment.
 
 Candidate PR: #90 (draft, base `main`)
 Candidate branch: `fix/api-request-size-limits-2026-11-24`
-Current candidate code commit: `4ae7e7cadda8463e6845c156935d8bbdce30027f` (latest follow-up documentation commit: `b8aa25f4efd3a75d49631b03bdff3c4b4521a523`).
+Current candidate code commit: `4ae7e7cadda8463e6845c156935d8bbdce30027f` (latest follow-up documentation commit: `f97db20f13a6b3402a873c2c85cc4c0594530974`).
 Current production deployment to preserve for rollback: `dpl_EMgCFrnCnwDuk9NPdzQWTJj2rjW8` (main deployment, commit `0f9f61da9447c40320d91ef4a3f61ce53b84e744`).
 
 ## Included development work
@@ -27,11 +27,11 @@ All four PR-triggered workflows below completed successfully on the latest candi
 - [x] Production dependency audit: **0 vulnerabilities** reported by npm audit at the configured production dependency threshold.
 - [x] Security API checks: concurrent monthly scan quota, two-user Research Lab isolation, pinned DNS transport, Vercel security response headers including HSTS, redirect safety, and the private scan-usage reservation RLS migration test all passed.
 - [x] CodeQL Security Analysis workflow completed successfully.
-- [x] Vercel Preview deployment for the latest candidate commit: **READY**, URL: https://project-3jyda-g01rjghj2-sentinel-ai14.vercel.app
+- [x] Vercel Preview deployment for the latest candidate commit `f97db20f13a6b3402a873c2c85cc4c0594530974`: **READY**, URL: https://project-3jyda-6pqvribhh-sentinel-ai14.vercel.app
 - [x] Preview database isolation tests cover all 12 database-backed API routes.
 - [x] The private-table RLS migration is tested in local CI only; it has **not** been applied to live Supabase.
 
-The latest workflow runs also confirm 275/275 Main Security Hardening tests, 57/57 Research Scope Gate tests, successful production dependency audit (0 vulnerabilities), and successful Security API + CodeQL jobs. The Security API job applied the candidate private-table RLS migration to its disposable PostgreSQL CI service and passed the quota-concurrency check. These CI results validate automated checks, not the complete real-user product experience.
+The Security API job applied the candidate private-table RLS migration to its disposable PostgreSQL CI service and passed the quota-concurrency check. These CI results validate automated checks, not the complete real-user product experience.
 
 ## Remaining release blockers
 
