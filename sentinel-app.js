@@ -105,15 +105,62 @@ async function updateAuthUI() {
   }
 
   if (IS_PREVIEW_SAFE_MODE) {
+    const previewMessage =
+      "Preview Safe Mode is active. Account data and database-backed features are disabled in this protected Preview. Production is unchanged.";
     authStatus.className = "notice";
-    authStatus.textContent =
-      "Preview Safe Mode: account sign-in, account creation, password reset, and cloud history are disabled; database-backed scanning, AI Mentor, and monitoring are also disabled in this preview. Production is unchanged.";
+    authStatus.textContent = previewMessage;
+    const authIntro = document.getElementById("authIntro");
+    if (authIntro) {
+      authIntro.textContent =
+        "Account creation and cloud scan history are unavailable in this protected Preview.";
+    }
     if (authForm) authForm.classList.add("is-hidden");
     if (passwordResetArea) passwordResetArea.classList.add("is-hidden");
     if (loggedInArea) loggedInArea.classList.add("is-hidden");
     if (loggedInEmail) loggedInEmail.textContent = "";
-    if (historyStatus) {
-      historyStatus.textContent = "📱 Preview Safe Mode: cloud scan history is disabled here.";
+
+    const previewStatuses = {
+      historyStatus: "Preview Safe Mode: cloud scan history is disabled here.",
+      analyticsStatus: "Preview Safe Mode: private account analytics are unavailable here.",
+      analyticsRisk: "Unavailable in protected Preview.",
+      analyticsTrend: "Unavailable in protected Preview.",
+      analyticsWarnings: "Unavailable in protected Preview.",
+      monitorStatus: "Preview Safe Mode: domain verification and scheduled monitoring are disabled here.",
+      monitorAlerts: "Security alerts are unavailable in protected Preview.",
+      monitorRuns: "Monitoring run history is unavailable in protected Preview.",
+      intelStatus: "Preview Safe Mode: account-linked vulnerability intelligence is disabled here.",
+      researchStatus: "Preview Safe Mode: private research actions are disabled here.",
+      organizationStatus: "Preview Safe Mode: team workspace actions are disabled here.",
+      usageStatus: "Preview Safe Mode: account usage data is unavailable here."
+    };
+    for (const [id, message] of Object.entries(previewStatuses)) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = message;
+        element.classList.add("notice");
+      }
+    }
+
+    for (const id of ["usageSummary", "monitorSites", "intelResults"]) {
+      const element = document.getElementById(id);
+      if (element) element.textContent = "";
+    }
+
+    document.querySelectorAll(
+      'button[data-action]:not([data-action="run-security-scan"]):not([data-action="toggle-password"])'
+    ).forEach((button) => {
+      button.disabled = true;
+      button.title = "Unavailable in protected Preview Safe Mode.";
+      button.setAttribute("aria-disabled", "true");
+    });
+    for (const sectionId of ["monitoring", "intelligence", "research", "teams"]) {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.querySelectorAll("input, textarea, select").forEach((control) => {
+          control.disabled = true;
+          control.setAttribute("aria-disabled", "true");
+        });
+      }
     }
     return;
   }
