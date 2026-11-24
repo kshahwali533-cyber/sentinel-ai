@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { isPreviewDatabaseBlocked } from "../api/_lib/supabase-admin.js";
+import { createSupabaseAdmin, isPreviewDatabaseBlocked } from "../api/_lib/supabase-admin.js";
 
 const routes = [
   "analytics.js",
@@ -23,6 +23,11 @@ test("Preview deployments are blocked from using the service-role database clien
   assert.equal(isPreviewDatabaseBlocked({ VERCEL_ENV: "production" }), false);
   assert.equal(isPreviewDatabaseBlocked({ VERCEL_ENV: "development" }), false);
   assert.equal(isPreviewDatabaseBlocked({}), false);
+  assert.equal(createSupabaseAdmin({
+    VERCEL_ENV: "preview",
+    SUPABASE_URL: "https://production-project.supabase.co",
+    SUPABASE_SERVICE_ROLE_KEY: "must-not-be-used"
+  }), null);
 });
 
 test("every database-backed API route uses the shared preview-safe client", () => {
