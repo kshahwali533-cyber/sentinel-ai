@@ -108,7 +108,7 @@ jobs:
 
           docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 < supabase/migrations/20261114143419_sentinel_atomic_scan_allowance_20261114.sql
           docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 < supabase/migrations/20261124120500_sentinel_scan_usage_reservations_rls.sql
-          rls_enabled="$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -X -qAt -v ON_ERROR_STOP=1 -c 'SELECT relrowsecurity FROM pg_class WHERE relname = $scan_usage_reservations$;')"
+          rls_enabled="$(docker exec "$POSTGRES_CONTAINER" psql -U postgres -X -qAt -v ON_ERROR_STOP=1 -c "SELECT relrowsecurity FROM pg_class WHERE oid = 'private.scan_usage_reservations'::regclass;")"
           test "$rls_enabled" = "t"
 
           docker exec "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 -c "
