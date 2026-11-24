@@ -2,7 +2,7 @@
 
 Status: **CORE HOST-DETECTION AND CORS BLOCKERS IMPLEMENTED ON PREVIEW; DOMAIN CUTOVER NOT YET READY.**
 Candidate PR: #90 (draft; open; unmerged).
-Latest audited implementation: `67a6b72180b98843a5242eba7ad30a6e2947a64c`.
+Latest implementation and integration tests: `893531c1d28f79ad46da1f6791ec2f759276d6ea`.
 
 ## Safety boundary
 
@@ -28,14 +28,11 @@ All work so far is limited to the PR #90 candidate branch and protected Preview 
 
 ## Verification snapshot
 
-At commit `0c2e6c3a3715c91c4a174408720b686e74607de6`, Vercel Preview was READY, Main Security Hardening passed, Research Scope Gate passed, and Sentinel AI security API checks passed. CodeQL was still running at the time of that snapshot.
-
-The follow-up no-extra-function regression test was added in commit `67a6b72180b98843a5242eba7ad30a6e2947a64c`; its Preview deployment reached READY. Its CI checks were still running at the time this document was updated. Do not treat pending checks as passed.
+At commit `893531c1d28f79ad46da1f6791ec2f759276d6ea`, Vercel Preview reached READY and all four CI workflows passed: Main Security Hardening, Research Scope Gate Tests, Sentinel AI security API checks, and CodeQL Security Analysis. The API security workflow also confirmed JavaScript syntax and unit tests, concurrent scan allowance, two-user Research Lab isolation, pinned DNS connections, Vercel security headers, and redirect safety.
 
 ## Remaining work before calling custom-domain support ready
 
 - Complete the latest CI run, including CodeQL, and inspect any failures.
-- Add a focused integration test for the runtime-config GET response through the existing scan API handler, including a Preview request and a Production allowlisted-host request.
 - Make the canonical public origin configurable for `robots.txt`, `sitemap.xml`, `.well-known/security.txt`, generated absolute links, and email links; verify the result without changing Production now.
 - Review the complete signup, login, password recovery, sign-out, scanner, reports, monitoring, and browser security-header flows on protected Preview. Preview must remain isolated from Production Supabase.
 - Confirm the exact Vercel system environment variables available to this project and ensure the future custom-host allowlist is set only in the Production environment.
