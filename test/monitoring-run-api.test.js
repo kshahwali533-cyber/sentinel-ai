@@ -376,3 +376,73 @@ test("monitoring worker continues processing later sites when one site fails", a
   assert.equal(succeededRun.value, "run-batch-2");
   assert.equal(succeededRun.record.score, 88);
 });
+
+
+test("monitoring worker reports failure-record persistence errors instead of hiding them", async () => {
+  const updateAttempts = [];
+  const admin = {
+    async rpc() {
+      return {
+        data: [{
+          site_id: "site-persistence-fail",
+          owner_id: "user-persistence-fail",
+          target_url: "https://owned.example",
+          prior_result: null
+        }],
+        error: null
+      };
+    },
+    from(table) {
+      return {
+        insert() {
+          return {
+            select() {
+              return { async single() {
+                return { data: { id: "run-persistence-fail" }, error: null };
+              } };
+            },
+            then(resolve, reject) {
+              return Promise.resolve({ error: null }).then(resolve, reject);
+            }
+          };
+        },
+        update(record) {
+          return {
+            async eq(column, value) {
+              updateAttempts.push({ table, record, column, value });
+              return { error: new Error("simulated database write failure") };
+            }
+          };
+        }
+      };
+    }
+  };
+  const worker = createMonitoringWorkerHandler({
+    supabaseAdmin: admin,
+    fetchImpl: async () => ({
+      ok: false,
+      status: 503,
+      async json() { return {}; }
+    }),
+    waitImpl: async () => {},
+    env: { CRON_SECRET: "persistence-test-secret", VERCEL_ENV: "preview" }
+  });
+
+  const result = await invoke(worker, "GET", "Bearer persistence-test-secret");
+
+  assert.equal(result.statusCode, 200);
+  assert.deepEqual(result.payload, {
+    ok: false,
+    claimed: 1,
+    succeeded: 0,
+    failed: 1,
+    alerts: 0,
+    retries: 0,
+    persistenceFailures: 2
+  });
+  assert.equal(updateAttempts.length, 2);
+  assert.equal(updateAttempts[0].table, "monitoring_runs");
+  assert.equal(updateAttempts[0].record.status, "failed");
+  assert.equal(updateAttempts[1].table, "monitoring_sites");
+  assert.ok(updateAttempts[1].record.next_scan_at);
+});
