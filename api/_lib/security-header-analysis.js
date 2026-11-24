@@ -1,8 +1,24 @@
 /**
  * Conservative validation for anti-framing response headers.
- * Presence alone is not enough: invalid X-Frame-Options values and empty
- * CSP frame-ancestors directives must not be reported as protection.
+ * Presence alone is not enough: invalid X-Frame-Options values and malformed
+ * or empty CSP frame-ancestors directives must not be reported as protection.
  */
+
+function isValidFrameAncestorSource(source) {
+  if (/^(?:\*|'self'|'none')$/i.test(source)) return true;
+  if (/^[a-z][a-z0-9+.-]*:$/i.test(source)) return true;
+
+  // CSP host-source: optional scheme, optional wildcard subdomain, host,
+  // optional port, and optional path. Deliberately reject unknown keywords.
+  const hostPattern = /^(?:[a-z][a-z0-9+.-]*:\/\/)?(?:\*|\*\.)?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*\.?(?::(?:\*|[0-9]{1,5}))?(?:\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*)?$/i;
+  const ipv6Pattern = /^(?:[a-z][a-z0-9+.-]*:\/\/)?\[[0-9a-f:.]+\](?::(?:\*|[0-9]{1,5}))?(?:\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*)?$/i;
+
+  if (!hostPattern.test(source) && !ipv6Pattern.test(source)) return false;
+
+  const portMatch = source.match(/:(\d{1,5})(?:\/|$)/);
+  return !portMatch || Number(portMatch[1]) <= 65535;
+}
+
 export function hasValidFrameProtection({
   xFrameOptions = "",
   contentSecurityPolicy = ""
@@ -24,20 +40,20 @@ export function hasValidFrameProtection({
     .map((directive) => directive.trim())
     .filter(Boolean);
 
-  for (const directive of directives) {
-    const match = directive.match(/^frame-ancestors(?:\s+(.+))?$/i);
-    if (!match || !match[1]) continue;
+  // CSP duplicate directives are ignored after the first occurrence.
+  const directive = directives.find(item => /^frame-ancestors(?:\s|$)/i.test(item));
+  if (!directive) return false;
 
-    const sources = match[1].trim().split(/\s+/).filter(Boolean);
-    if (!sources.length) continue;
+  const match = directive.match(/^frame-ancestors(?:\s+(.+))?$/i);
+  if (!match?.[1]) return false;
 
-    // 'none' is only meaningful as the sole source expression.
-    if (sources.some(source => /^'none'$/i.test(source)) && sources.length !== 1) {
-      continue;
-    }
+  const sources = match[1].trim().split(/\s+/).filter(Boolean);
+  if (!sources.length) return false;
 
-    return true;
+  // 'none' is only meaningful as the sole source expression.
+  if (sources.some(source => /^'none'$/i.test(source)) && sources.length !== 1) {
+    return false;
   }
 
-  return false;
+  return sources.every(isValidFrameAncestorSource);
 }
