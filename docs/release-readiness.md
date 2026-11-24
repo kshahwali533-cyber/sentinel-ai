@@ -4,29 +4,30 @@ Status: **Prepared release candidate; NOT ready for production merge/deployment.
 
 Candidate PR: #90 (draft, base `main`)
 Candidate branch: `fix/api-request-size-limits-2026-11-24`
-Code validation commit: `cdac8d26c97c8772210e5f69515ea7ebad95f5f7`
+Code validation commit: `a2340070c699de9dd2a8cedb30edfac24babef66`
 Current production deployment to preserve for rollback: `dpl_EMgCFrnCnwDuk9NPdzQWTJj2rjW8` (main deployment, commit `0f9f61da9447c40320d91ef4a3f61ce53b84e744`).
 
 ## Included development work
 
-- Consolidated the PR #83/#84/#85 workstream and the PR #90 additions into one release candidate based on current `main`.
+- Consolidated the PR #83/#84/#85 workstream and PR #90 additions into one release candidate based on current `main`.
 - Website ownership verification: DNS TXT, HTTPS verification file, homepage meta tag, and Smart Auto Verify.
 - HTML5-based link discovery and HTTP/HTTPS-only scanner URL parsing.
 - Request payload size checks for Scan, AI Mentor, and Reports.
-- More conservative security-header analysis and scoring.
+- More conservative security-header analysis and scoring; explicit HSTS response header added.
 - Existing account, monitoring, research, team, report, and usage capabilities from the current main baseline and integrated history.
 - Historical drafts #40, #39, and #12 were checked: their work is marked superseded by the PR #41 reconciliation and is present in the current main/candidate line.
 
 ## Verified candidate checks
 
-- [x] Security regression suite: 217 passed, 0 failed, 0 skipped.
-- [x] Main security hardening suite: 274 passed, 0 failed, 0 skipped.
+- [x] Security regression suite: 218 passed, 0 failed, 0 skipped.
+- [x] Main security hardening suite: 275 passed, 0 failed, 0 skipped.
 - [x] Research scope gate suite: 57 passed, 0 failed, 0 skipped.
 - [x] Production dependency audit: 0 vulnerabilities reported at the configured high-severity threshold.
-- [x] Security API checks: concurrent scan allowance, two-user Research Lab isolation, pinned DNS transport, response headers, and redirect safety passed.
+- [x] Security API checks: concurrent scan allowance, two-user Research Lab isolation, pinned DNS transport, response headers including HSTS, and redirect safety passed.
 - [x] CodeQL: successful; no new alerts in code changed by this pull request.
 - [x] Vercel Preview build: READY on the candidate branch.
 - [x] Preview database isolation: all 12 database-backed API routes use the shared client guard; Vercel Preview returns no service-role Supabase client. Browser Preview Safe Mode points the client at a non-routable placeholder and clearly explains disabled preview features.
+- [x] Production host allowlist: all three current Vercel Production aliases are recognized; other deployment hostnames remain in Preview Safe Mode.
 - [x] Supabase migration parity: 20 repository migrations and 20 applied migrations; no mismatch found.
 - [x] Public-schema RLS review: no public tables found with RLS disabled; owner/member policies are present. Public SECURITY DEFINER functions are restricted to postgres/service_role execution.
 
@@ -39,6 +40,7 @@ Current production deployment to preserve for rollback: `dpl_EMgCFrnCnwDuk9NPdzQ
 - [ ] **Supabase Auth hardening:** the security advisor reports leaked-password protection is disabled. Enable and verify it before public release.
 - [ ] **RLS defense-in-depth review:** the advisor flags `private.scan_usage_reservations` because RLS is disabled. Read-only SQL showed no direct table privileges for anon/authenticated and the table ACL is restricted to postgres, but the RLS warning remains open. Do not auto-apply a database change; review the migration and approve it explicitly.
 - [ ] **Backup readiness:** the Supabase organization is on the Free plan, which does not provide scheduled database backups. Arrange an approved backup/restore method before production release.
+- [ ] **Request ingress limit:** the current JSON size checks run after Vercel has decoded `req.body`; they cap downstream processing but are not a pre-parser streaming/memory limit. Decide whether a raw-body streaming limit is required before launch.
 - [ ] **Mobile/browser verification:** complete real mobile accessibility, layout, and cross-browser checks against the candidate.
 
 ## Rollout and rollback plan
@@ -55,4 +57,4 @@ Current production deployment to preserve for rollback: `dpl_EMgCFrnCnwDuk9NPdzQ
 - Production deployment and live Supabase schema/data/settings have not been changed.
 - Do not merge, deploy to Production, change Supabase, or delete branches/files/deployments without explicit approval.
 
-Passing CI and a successful Preview build do not by themselves satisfy the remaining end-to-end release gates.
+Passing CI and a successful Preview build do not by themselves satisfy the remaining end-to-end release gates above.
