@@ -22,7 +22,7 @@ test("preview safe mode explains disabled account actions without starting an au
 });
 
 test("production mode requires server-issued runtime config loaded before the app", () => {
-  const runtimeConfigScript = html.indexOf('<script defer src="/api/runtime-config"></script>');
+  const runtimeConfigScript = html.indexOf('<script defer src="/api/scan?runtime_config=1"></script>');
   const appScript = html.indexOf('<script defer src="/sentinel-app.js"></script>');
   assert.ok(runtimeConfigScript >= 0, "Server runtime config script is loaded");
   assert.ok(appScript > runtimeConfigScript, "Runtime config loads before the app");
