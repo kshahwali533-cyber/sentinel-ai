@@ -21,16 +21,13 @@ test("preview safe mode explains disabled account actions without starting an au
   assert.ok(authRequest > guard, "Safe Mode returns before contacting Supabase auth");
 });
 
-test("only the known Production aliases bypass Preview Safe Mode", () => {
-  assert.match(app, /const PRODUCTION_HOSTNAMES = new Set\(\[/);
-  for (const host of [
-    "project-3jyda.vercel.app",
-    "project-3jyda-sentinel-ai14.vercel.app",
-    "project-3jyda-git-main-sentinel-ai14.vercel.app"
-  ]) {
-    assert.ok(app.includes('"' + host + '"'), "Missing Production alias: " + host);
-  }
-  assert.match(app, /!PRODUCTION_HOSTNAMES\.has\(window\.location\.hostname\.toLowerCase\(\)\)/);
+test("production mode requires server-issued runtime config loaded before the app", () => {
+  const runtimeConfigScript = html.indexOf('<script defer src="/api/runtime-config"></script>');
+  const appScript = html.indexOf('<script defer src="/sentinel-app.js"></script>');
+  assert.ok(runtimeConfigScript >= 0, "Server runtime config script is loaded");
+  assert.ok(appScript > runtimeConfigScript, "Runtime config loads before the app");
+  assert.match(app, /window\\.SENTINEL_RUNTIME_CONFIG\\?\\.isProduction !== true/);
+  assert.doesNotMatch(app, /PRODUCTION_HOSTNAMES/);
 });
 
 test("all former inline click and change handlers are removed", () => {
