@@ -4,7 +4,7 @@ import { isWithinJsonBodyLimit } from "../api/_lib/request-size.js";
 
 test("accepts JSON bodies at or below the byte limit", () => {
   assert.equal(isWithinJsonBodyLimit({ message: "hello" }, 32), true);
-  assert.equal(isWithinJsonBodyLimit({ message: "hello" }, 16), true);
+  assert.equal(isWithinJsonBodyLimit({ message: "hello" }, 19), true);
 });
 
 test("rejects oversized UTF-8 payloads using byte length rather than character count", () => {
