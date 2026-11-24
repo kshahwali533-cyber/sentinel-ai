@@ -213,6 +213,7 @@ jobs:
 
           for (const [name, expected] of [
             ["x-content-type-options", "nosniff"],
+            ["strict-transport-security", "max-age=31536000; includeSubDomains"],
             ["x-frame-options", "DENY"],
             ["referrer-policy", "strict-origin-when-cross-origin"]
           ]) {
