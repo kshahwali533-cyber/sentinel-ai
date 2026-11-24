@@ -1,12 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseAdmin } from "./_lib/supabase-admin.js";
 import { buildMonitoringAlert, fetchMonitoringScan, getMonitoringAppOrigin, getNextMonitoringScanAt, isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 
-const supabaseAdmin =
-  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false }
-      })
-    : null;
+const supabaseAdmin = createSupabaseAdmin();
 
 function appOrigin(req) {
   return getMonitoringAppOrigin({
