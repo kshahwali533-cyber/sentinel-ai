@@ -14,8 +14,8 @@ test("preview safe mode explains disabled account actions without starting an au
   const guard = app.indexOf("if (IS_PREVIEW_SAFE_MODE)", app.indexOf("async function updateAuthUI"));
   const authRequest = app.indexOf("supabaseClient.auth.getSession()", guard);
   assert.ok(guard >= 0, "Preview Safe Mode guard is present in auth UI");
-  assert.match(app.slice(guard, authRequest), /account sign-in, account creation, password reset, and cloud history are disabled/);
-  assert.match(app.slice(guard, authRequest), /database-backed scanning, AI Mentor, and monitoring are also disabled/);
+  assert.match(app.slice(guard, authRequest), /Account data and database-backed features are disabled in this protected Preview/);
+  assert.match(app.slice(guard, authRequest), /Account creation and cloud scan history are unavailable in this protected Preview/);
   assert.match(app.slice(guard, authRequest), /authForm\.classList\.add\("is-hidden"\)/);
   assert.match(app.slice(guard, authRequest), /return;/);
   assert.ok(authRequest > guard, "Safe Mode returns before contacting Supabase auth");
@@ -35,7 +35,7 @@ test("only the known Production aliases bypass Preview Safe Mode", () => {
 
 test("all former inline click and change handlers are removed", () => {
   assert.equal((html.match(/\son(?:click|change)\s*=/gi) || []).length, 0);
-  assert.equal(((html + app).match(/data-action="/g) || []).length, 54);
+  assert.equal(((html + app).match(/data-action="/g) || []).length, 56);
   assert.match(html, /<script defer src="\/sentinel-actions\.js"><\/script>/);
   assert.match(actions, /document\.addEventListener\("click"/);
   assert.match(actions, /document\.addEventListener\("change"/);
