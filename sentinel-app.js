@@ -38,7 +38,7 @@ if (IS_PR83_PREVIEW_SAFE_MODE) {
 
 
 let latestScan = null;
-let isPasswordRecovery = false;
+let authUiRefreshTimer = null;
   function trackEvent(eventName) {
   try {
     if (typeof window.va === "function") {
@@ -73,6 +73,17 @@ function escapeHTML(value) {
    AUTH UI
 ========================= */
 
+function scheduleAuthUIRefresh() {
+  if (authUiRefreshTimer !== null) {
+    window.clearTimeout(authUiRefreshTimer);
+  }
+
+  authUiRefreshTimer = window.setTimeout(() => {
+    authUiRefreshTimer = null;
+    void updateAuthUI();
+  }, 0);
+}
+
 async function updateAuthUI() {
   const authStatus = document.getElementById("authStatus");
   const authForm = document.getElementById("authForm");
@@ -102,22 +113,29 @@ async function updateAuthUI() {
   }
 
   try {
-    console.log("AUTH DEBUG: before getSession");
+let sessionResult;
+  let sessionTimeoutId;
 
-const {
-  data: { session },
-  error
-} = await Promise.race([
-  supabaseClient.auth.getSession(),
-  new Promise((_, reject) =>
-    setTimeout(
-      () => reject(new Error("getSession timeout after 8 seconds")),
-      8000
-    )
-  )
-]);
+  try {
+    sessionResult = await Promise.race([
+      supabaseClient.auth.getSession(),
+      new Promise((_, reject) => {
+        sessionTimeoutId = window.setTimeout(
+          () => reject(new Error("getSession timeout after 8 seconds")),
+          8000
+        );
+      })
+    ]);
+  } finally {
+    if (sessionTimeoutId !== undefined) {
+      window.clearTimeout(sessionTimeoutId);
+    }
+  }
 
-console.log("AUTH DEBUG: after getSession");
+  const {
+    data: { session },
+    error
+  } = sessionResult;
 
 if (error) {
   throw error;
@@ -294,12 +312,6 @@ async function resetPassword() {
     authStatus.className = "success";
     authStatus.textContent =
       "✅ Password reset link sent. Please check your email.";
-const otpResetArea =
-  document.getElementById("otpResetArea");
-
-if (otpResetArea) {
-  otpResetArea.classList.remove("is-hidden");
-}
   } catch (error) {
     console.error("Password Reset Error:", error);
 
@@ -310,69 +322,6 @@ if (otpResetArea) {
   }
   }
   /* =========================
-   VERIFY PASSWORD RESET OTP
-========================= */
-
-async function verifyPasswordResetOtp() {
-  const emailInput = document.getElementById("authEmail");
-  const otpInput = document.getElementById("resetOtp");
-  const authStatus = document.getElementById("authStatus");
-
-  if (!emailInput || !otpInput || !authStatus) {
-    console.error("OTP Verification: Required elements not found.");
-    return;
-  }
-
-  const email = emailInput.value.trim();
-  const token = otpInput.value.trim();
-
-  if (!email || !token) {
-    authStatus.className = "error";
-    authStatus.textContent =
-      "⚠️ Please enter your email and OTP.";
-    return;
-  }
-
-  authStatus.className = "notice";
-  authStatus.textContent =
-    "🔐 Verifying OTP...";
-
-  try {
-    const { error } =
-      await supabaseClient.auth.verifyOtp({
-        email: email,
-        token: token,
-        type: "recovery"
-      });
-
-    if (error) {
-      throw error;
-    }
-
-    isPasswordRecovery = true;
-
-    authStatus.className = "success";
-    authStatus.textContent =
-      "✅ OTP verified. You can now create a new password.";
-
-    const passwordResetArea =
-      document.getElementById("passwordResetArea");
-
-    if (passwordResetArea) {
-      passwordResetArea.classList.remove("is-hidden");
-    }
-
-  } catch (error) {
-    console.error("OTP Verification Error:", error);
-
-    authStatus.className = "error";
-    authStatus.textContent =
-      "❌ " +
-      (error?.message || "Invalid or expired OTP.");
-  }
-}
-
-/* =========================
    UPDATE PASSWORD
 ========================= */
 
@@ -431,8 +380,6 @@ async function updatePassword() {
     newPasswordInput.value = "";
     confirmPasswordInput.value = "";
 
-    isPasswordRecovery = false;
-
     const passwordResetArea =
       document.getElementById("passwordResetArea");
 
@@ -440,7 +387,7 @@ async function updatePassword() {
       passwordResetArea.classList.add("is-hidden");
     }
 
-    await updateAuthUI();
+    scheduleAuthUIRefresh();
 
   } catch (error) {
     console.error("Update Password Error:", error);
@@ -510,7 +457,7 @@ if (data?.user) {
     }
 
     passwordInput.value = "";
-    await updateAuthUI();
+    if (data?.session) scheduleAuthUIRefresh();
 
   } catch (error) {
     console.error("Signup Error:", error);
@@ -568,7 +515,7 @@ async function signInUser() {
       "✅ Login successful. Welcome to Sentinel AI.";
 
     passwordInput.value = "";
-    await updateAuthUI();
+    scheduleAuthUIRefresh();
 
   } catch (error) {
     console.error("Login Error:", error);
@@ -606,27 +553,7 @@ async function signOutUser() {
     }
     trackSentinelEvent("logout_success");
     
-    const authForm = document.getElementById("authForm");
-    const loggedInArea = document.getElementById("loggedInArea");
-    const loggedInEmail = document.getElementById("loggedInEmail");
-    const historyStatus = document.getElementById("historyStatus");
-
-    if (authForm) {
-      authForm.classList.remove("is-hidden");
-    }
-
-    if (loggedInArea) {
-      loggedInArea.classList.add("is-hidden");
-    }
-
-    if (loggedInEmail) {
-      loggedInEmail.textContent = "";
-    }
-
-    if (historyStatus) {
-      historyStatus.textContent =
-        "📱 Local history is active. Log in to enable cloud history.";
-    }
+    scheduleAuthUIRefresh();
 
     authStatus.className = "success";
     authStatus.textContent =
@@ -4325,39 +4252,37 @@ async function revokeOrganizationInvitation(organizationId, invitationId) {
 
 document.addEventListener(
   "DOMContentLoaded",
-  async function() {
-
+  function() {
     renderScanHistory();
 
-    await updateAuthUI();
+    // Subscribe before the initial refresh so no auth change can be missed.
+    // Supabase auth callbacks must stay synchronous: calling Supabase methods
+    // from inside this callback can deadlock its internal auth lock.
+    supabaseClient.auth.onAuthStateChange(function(event) {
+      if (event === "INITIAL_SESSION") {
+        return;
+      }
 
-    supabaseClient.auth.onAuthStateChange(
-      async function(event) {
+      if (event === "PASSWORD_RECOVERY") {
+        const passwordResetArea =
+          document.getElementById("passwordResetArea");
 
-        if (event === "PASSWORD_RECOVERY") {
-
-          isPasswordRecovery = true;
-
-          const passwordResetArea =
-            document.getElementById("passwordResetArea");
-
-          if (passwordResetArea) {
-            passwordResetArea.classList.remove("is-hidden");
-          }
-
-          const authStatus =
-            document.getElementById("authStatus");
-
-          if (authStatus) {
-            authStatus.className = "success";
-            authStatus.textContent =
-              "🔑 Password recovery verified. Please create a new password.";
-          }
+        if (passwordResetArea) {
+          passwordResetArea.classList.remove("is-hidden");
         }
 
-        await updateAuthUI();
+        const authStatus = document.getElementById("authStatus");
+        if (authStatus) {
+          authStatus.className = "success";
+          authStatus.textContent =
+            "🔑 Password recovery verified. Please create a new password.";
+        }
       }
-    );
 
+      // Run after the Supabase callback has returned and released its lock.
+      scheduleAuthUIRefresh();
+    });
+
+    void updateAuthUI();
   }
 );
