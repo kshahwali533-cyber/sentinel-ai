@@ -21,6 +21,18 @@ test("preview safe mode explains disabled account actions without starting an au
   assert.ok(authRequest > guard, "Safe Mode returns before contacting Supabase auth");
 });
 
+test("only the known Production aliases bypass Preview Safe Mode", () => {
+  assert.match(app, /const PRODUCTION_HOSTNAMES = new Set\(\[/);
+  for (const host of [
+    "project-3jyda.vercel.app",
+    "project-3jyda-sentinel-ai14.vercel.app",
+    "project-3jyda-git-main-sentinel-ai14.vercel.app"
+  ]) {
+    assert.ok(app.includes('"' + host + '"'), "Missing Production alias: " + host);
+  }
+  assert.match(app, /!PRODUCTION_HOSTNAMES\.has\(window\.location\.hostname\.toLowerCase\(\)\)/);
+});
+
 test("all former inline click and change handlers are removed", () => {
   assert.equal((html.match(/\son(?:click|change)\s*=/gi) || []).length, 0);
   assert.equal(((html + app).match(/data-action="/g) || []).length, 54);
