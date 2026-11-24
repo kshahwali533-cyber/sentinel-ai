@@ -2,6 +2,7 @@ import { buildMentorFallback, normalizeMentorInput, normalizeMentorResponse } fr
 import { readOpenAIResponse } from "./_lib/mentor-openai-response.js";
 import { createClient } from "@supabase/supabase-js";
 import { getTrustedClientIp } from "./_lib/client-ip.js";
+import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -28,6 +29,10 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body || {};
+
+    if (!isWithinJsonBodyLimit(body, 32 * 1024)) {
+      return res.status(413).json({ error: "AI Mentor request is too large. Reduce the supplied finding or evidence and try again." });
+    }
 
     let authenticatedUser = null;
     const authorization = req.headers.authorization || "";
