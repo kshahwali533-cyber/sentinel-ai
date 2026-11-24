@@ -11,10 +11,10 @@ const PRODUCTION_HOSTNAMES = new Set([
   "project-3jyda-git-main-sentinel-ai14.vercel.app"
 ]);
 
-const IS_PR83_PREVIEW_SAFE_MODE =
+const IS_PREVIEW_SAFE_MODE =
   !PRODUCTION_HOSTNAMES.has(window.location.hostname.toLowerCase());
 
-const SUPABASE_URL = IS_PR83_PREVIEW_SAFE_MODE
+const SUPABASE_URL = IS_PREVIEW_SAFE_MODE
   ? "https://preview-disabled.invalid"
   : "https://vceqmqwszvisvxxbgbfs.supabase.co";
 
@@ -30,11 +30,11 @@ const supabaseClient =
     SUPABASE_PUBLISHABLE_KEY
   );
 
-if (IS_PR83_PREVIEW_SAFE_MODE) {
+if (IS_PREVIEW_SAFE_MODE) {
   const safetyNotice = document.createElement("div");
   safetyNotice.setAttribute("role", "status");
   safetyNotice.textContent =
-    "PR #83 PREVIEW SAFE MODE: account data, database-backed scans, AI Mentor, monitoring, and database actions are disabled here. Production is unchanged.";
+    "SENTINEL AI PREVIEW SAFE MODE: account data, database-backed scans, AI Mentor, monitoring, and database actions are disabled here. Production is unchanged.";
   safetyNotice.style.cssText =
     "position:sticky;top:0;z-index:99999;padding:12px 16px;background:#7f1d1d;color:#fff;text-align:center;font-weight:700;font-size:14px;";
   document.addEventListener("DOMContentLoaded", () => {
@@ -104,7 +104,7 @@ async function updateAuthUI() {
     return;
   }
 
-  if (IS_PR83_PREVIEW_SAFE_MODE) {
+  if (IS_PREVIEW_SAFE_MODE) {
     authStatus.className = "notice";
     authStatus.textContent =
       "Preview Safe Mode: account sign-in, account creation, password reset, and cloud history are disabled; database-backed scanning, AI Mentor, and monitoring are also disabled in this preview. Production is unchanged.";
@@ -972,6 +972,21 @@ async function clearSupabaseHistory() {
 ========================= */
 
 async function runSecurityScan(isRescan = false) {
+
+  if (IS_PREVIEW_SAFE_MODE) {
+    const previewResult = document.getElementById("result");
+    if (previewResult) {
+      previewResult.classList.remove("is-hidden");
+      previewResult.innerHTML = `
+        <div class="notice" role="status" aria-live="polite">
+          <strong>Preview Safe Mode is active.</strong>
+          <br><br>
+          Live website scanning is disabled in this protected Preview. No scan request was sent and no account or database data was accessed. Production is unchanged.
+        </div>
+      `;
+    }
+    return;
+  }
 
   const websiteInput =
     document.getElementById("website");
