@@ -28,7 +28,7 @@ The following PR-triggered checks completed successfully on code/test commit `32
 - [x] Research Scope Gate: **57 passed, 0 failed**.
 - [x] Security regression suite: **220 passed, 0 failed**. This includes simulated monitoring success and failure/retry/rescheduling tests.
 - [x] Security API checks: **220 passed, 0 failed**, including syntax/SSRF guard, quota concurrency, two-user Research Lab isolation, pinned DNS, response headers, redirect safety, and private-table RLS migration checks.
-- [ ] CodeQL Security Analysis: still running at the time of this update; do not treat it as passed until GitHub reports success.
+- [ ] CodeQL Security Analysis: **completed successfully** on code/test commit `32a47bf8f16c3274c3926e903c300f6e95dd748d`. A docs-only follow-up commit is now triggering its own CI rerun.
 - [x] Vercel Preview deployment for latest candidate code/test commit `32a47bf8f16c3274c3926e903c300f6e95dd748d`: **READY**, URL: https://project-3jyda-bspy7y0e6-sentinel-ai14.vercel.app. Preview deployments only; no Production deployment was changed.
 
 The monitoring test uses a fake Supabase query client and fake scanner response. It proves the worker's successful control flow and persistence calls, but it is **not** proof of a real scan against a live customer domain or a real Supabase database.
