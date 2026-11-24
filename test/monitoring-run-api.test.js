@@ -286,3 +286,93 @@ test("monitoring worker marks a run failed and reschedules after repeated scan f
   assert.equal(rescheduledSite.value, "site-failure-1");
   assert.ok(Date.parse(rescheduledSite.record.next_scan_at) > Date.now());
 });
+
+
+test("monitoring worker continues processing later sites when one site fails", async () => {
+  const writes = [];
+  const sites = [
+    { site_id: "site-batch-fail", owner_id: "user-a", target_url: "https://first.example", prior_result: null },
+    { site_id: "site-batch-pass", owner_id: "user-b", target_url: "https://second.example", prior_result: null }
+  ];
+  let runNumber = 0;
+  const admin = {
+    async rpc(name) {
+      assert.equal(name, "claim_due_monitoring_sites");
+      return { data: sites, error: null };
+    },
+    from(table) {
+      return {
+        insert(record) {
+          writes.push({ operation: "insert", table, record });
+          return {
+            select() {
+              return { async single() {
+                runNumber += 1;
+                return { data: { id: "run-batch-" + runNumber }, error: null };
+              } };
+            },
+            then(resolve, reject) {
+              return Promise.resolve({ error: null }).then(resolve, reject);
+            }
+          };
+        },
+        update(record) {
+          return {
+            async eq(column, value) {
+              writes.push({ operation: "update", table, column, value, record });
+              return { error: null };
+            }
+          };
+        }
+      };
+    }
+  };
+  const scanTargets = [];
+  const worker = createMonitoringWorkerHandler({
+    supabaseAdmin: admin,
+    fetchImpl: async (_url, options) => {
+      const target = JSON.parse(options.body).url;
+      scanTargets.push(target);
+      if (target === "https://first.example") {
+        return { ok: false, status: 503, async json() { return {}; } };
+      }
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { score: 88, riskLevel: "Low", website: target, checks: [] };
+        }
+      };
+    },
+    waitImpl: async () => {},
+    env: { CRON_SECRET: "batch-test-secret", VERCEL_ENV: "preview" }
+  });
+
+  const result = await invoke(worker, "GET", "Bearer batch-test-secret");
+
+  assert.equal(result.statusCode, 200);
+  assert.deepEqual(result.payload, {
+    ok: true,
+    claimed: 2,
+    succeeded: 1,
+    failed: 1,
+    alerts: 0,
+    retries: 0
+  });
+  assert.deepEqual(scanTargets, [
+    "https://first.example",
+    "https://first.example",
+    "https://second.example"
+  ]);
+  const failedRun = writes.find((entry) =>
+    entry.operation === "update" && entry.table === "monitoring_runs" &&
+    entry.record.status === "failed"
+  );
+  assert.equal(failedRun.value, "run-batch-1");
+  const succeededRun = writes.find((entry) =>
+    entry.operation === "update" && entry.table === "monitoring_runs" &&
+    entry.record.status === "succeeded"
+  );
+  assert.equal(succeededRun.value, "run-batch-2");
+  assert.equal(succeededRun.record.score, 88);
+});
