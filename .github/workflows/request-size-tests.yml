@@ -24,6 +24,8 @@ jobs:
           package-manager-cache: false
       - name: Install project dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
       - name: Check security-critical module syntax
         run: |
           node --check api/scan.js
