@@ -87,6 +87,20 @@ async function updateAuthUI() {
     return;
   }
 
+  if (IS_PR83_PREVIEW_SAFE_MODE) {
+    authStatus.className = "notice";
+    authStatus.textContent =
+      "Preview Safe Mode: account sign-in, account creation, password reset, and cloud history are disabled in this preview. Production is unchanged.";
+    if (authForm) authForm.classList.add("is-hidden");
+    if (passwordResetArea) passwordResetArea.classList.add("is-hidden");
+    if (loggedInArea) loggedInArea.classList.add("is-hidden");
+    if (loggedInEmail) loggedInEmail.textContent = "";
+    if (historyStatus) {
+      historyStatus.textContent = "📱 Preview Safe Mode: cloud scan history is disabled here.";
+    }
+    return;
+  }
+
   try {
     console.log("AUTH DEBUG: before getSession");
 
