@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseAdmin } from "./_lib/supabase-admin.js";
 import { readTextLimited } from "./_lib/read-limited.js";
 import {
   normalizeCveId,
@@ -12,12 +12,7 @@ const CISA_KEV_FEED = "https://www.cisa.gov/sites/default/files/feeds/known_expl
 const CVE_CACHE_MS = 6 * 60 * 60 * 1000;
 const KEV_CACHE_MS = 6 * 60 * 60 * 1000;
 
-const supabaseAdmin =
-  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false }
-      })
-    : null;
+const supabaseAdmin = createSupabaseAdmin();
 
 function send(res, status, body) {
   return res.status(status).json(body);
