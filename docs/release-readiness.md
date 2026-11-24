@@ -4,7 +4,7 @@ Status: Draft release candidate — not approved for production.
 
 Candidate branch: `fix/api-request-size-limits-2026-11-24`
 Candidate base: `main`
-Candidate head before this checklist: `7a4a6ce2741ee191537e856e6c66a26ae0619bdb`
+Candidate head: `8df2f25ece3108588ac93247a74de5a23a54902e`
 
 ## Included development work
 
@@ -17,9 +17,11 @@ Candidate head before this checklist: `7a4a6ce2741ee191537e856e6c66a26ae0619bdb`
 
 ## Required release gates
 
-- [ ] Run the complete security/API test workflows on this exact consolidated candidate.
-- [ ] Confirm CodeQL and dependency audit results on this exact candidate.
-- [ ] Complete a safe preview smoke test for the public scanner and core UI.
+- [x] Complete security regression suite on this exact candidate: 272 passed, 0 failed, 0 skipped.
+- [x] Security hardening, research scope gate, and security API checks passed on this exact candidate. API checks included concurrent quota behavior, two-user research DB isolation, pinned DNS, Vercel response headers, and redirect safety.
+- [x] CodeQL completed successfully on this exact candidate: no new alerts in code changed by this pull request.
+- [ ] Run and review a dependency vulnerability audit on this exact candidate.
+- [ ] Complete a safe preview smoke test for the public scanner and core UI. Preview build is READY; browser-level functional smoke test is not yet verified.
 - [ ] Test domain ownership proof against a separately controlled custom domain.
 - [ ] Test authenticated account, scan-history, report, and AI Mentor flows in a dedicated safe test environment.
 - [ ] Verify scheduled monitoring end-to-end using an authorized test website and confirm alert delivery.
@@ -35,4 +37,4 @@ Candidate head before this checklist: `7a4a6ce2741ee191537e856e6c66a26ae0619bdb`
 - Do not change Supabase schema, live data, or environment settings during preparation.
 - Do not delete existing branches, files, or deployments.
 
-A passing CI suite alone does not satisfy the end-to-end release gates above.
+Passing CI and a successful preview build alone do not satisfy the end-to-end release gates above.
