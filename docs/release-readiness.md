@@ -4,7 +4,7 @@ Status: **Prepared release candidate; NOT ready for production merge/deployment.
 
 Candidate PR: #90 (draft, base `main`)
 Candidate branch: `fix/api-request-size-limits-2026-11-24`
-Latest candidate code/test commit: `32a47bf8f16c3274c3926e903c300f6e95dd748d`.
+Latest candidate code/test commit verified in this readiness update: `ea6afb047b2fc9a37fd92270f85c07f27eaf20a3`.
 Previous known-good production deployment to preserve for rollback: `dpl_EMgCFrnCnwDuk9NPdzQWTJj2rjW8` (main deployment, commit `0f9f61da9447c40320d91ef4a3f61ce53b84e744`).
 
 ## Included development work
@@ -22,16 +22,16 @@ Previous known-good production deployment to preserve for rollback: `dpl_EMgCFrn
 
 ## Latest verified CI evidence for candidate code commit
 
-The following PR-triggered checks completed successfully on code/test commit `32a47bf8f16c3274c3926e903c300f6e95dd748d`:
+The following PR-triggered checks completed successfully on commit `ea6afb047b2fc9a37fd92270f85c07f27eaf20a3`:
 
-- [x] Main Security Hardening: **277 passed, 0 failed**; production dependency audit reported **0 vulnerabilities**.
+- [x] Security regression suite: **223 passed, 0 failed**.
+- [x] Main Security Hardening: **280 passed, 0 failed**; dependency audit: **0 vulnerabilities**.
 - [x] Research Scope Gate: **57 passed, 0 failed**.
-- [x] Security regression suite: **220 passed, 0 failed**. This includes simulated monitoring success and failure/retry/rescheduling tests.
-- [x] Security API checks: **220 passed, 0 failed**, including syntax/SSRF guard, quota concurrency, two-user Research Lab isolation, pinned DNS, response headers, redirect safety, and private-table RLS migration checks.
-- [ ] CodeQL Security Analysis: **completed successfully** on code/test commit `32a47bf8f16c3274c3926e903c300f6e95dd748d`. A docs-only follow-up commit is now triggering its own CI rerun.
-- [x] Vercel Preview deployment for latest candidate code/test commit `32a47bf8f16c3274c3926e903c300f6e95dd748d`: **READY**, URL: https://project-3jyda-bspy7y0e6-sentinel-ai14.vercel.app. Preview deployments only; no Production deployment was changed.
+- [x] Security API checks: workflow completed successfully.
+- [x] CodeQL Security Analysis: **completed successfully**; JavaScript analysis job completed with success.
+- [x] Vercel Preview status for this commit: **success/READY**, Preview deployment only. No Production deployment was changed.
 
-The monitoring test uses a fake Supabase query client and fake scanner response. It proves the worker's successful control flow and persistence calls, but it is **not** proof of a real scan against a live customer domain or a real Supabase database.
+The monitoring tests use fake database and scan clients. They prove simulated worker control flow and failure isolation, not a live Supabase/customer-domain scan or real alert delivery.
 
 The Security API job applies the candidate private-table RLS migration to its disposable CI PostgreSQL service. It has **not** been applied to live Supabase.
 
