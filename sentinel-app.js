@@ -5,8 +5,14 @@
    SUPABASE CONFIGURATION
 ========================= */
 
+const PRODUCTION_HOSTNAMES = new Set([
+  "project-3jyda.vercel.app",
+  "project-3jyda-sentinel-ai14.vercel.app",
+  "project-3jyda-git-main-sentinel-ai14.vercel.app"
+]);
+
 const IS_PR83_PREVIEW_SAFE_MODE =
-  window.location.hostname !== "project-3jyda.vercel.app";
+  !PRODUCTION_HOSTNAMES.has(window.location.hostname.toLowerCase());
 
 const SUPABASE_URL = IS_PR83_PREVIEW_SAFE_MODE
   ? "https://preview-disabled.invalid"
