@@ -33,7 +33,7 @@ export function createMonitoringWorkerHandler({
     if (!supabaseAdmin) return res.status(503).json({ error: "Monitoring worker is not configured." });
 
     let claimed = [];
-    const summary = { claimed: 0, succeeded: 0, failed: 0, alerts: 0, retries: 0 };
+    const summary = { claimed: 0, succeeded: 0, failed: 0, alerts: 0, retries: 0, persistenceFailures: 0 };
     try {
       const { data, error } = await supabaseAdmin.rpc("claim_due_monitoring_sites", { p_limit: 3 });
       if (error) throw error;
@@ -108,21 +108,44 @@ export function createMonitoringWorkerHandler({
           console.error("Monitoring site run failed:", site.site_id, error);
           const now = new Date().toISOString();
           if (runId) {
-            await supabaseAdmin.from("monitoring_runs").update({
-              status: "failed",
-              error_code: "MONITORING_SCAN_FAILED",
-              finished_at: now
-            }).eq("id", runId);
+            try {
+              const { error: failedRunError } = await supabaseAdmin.from("monitoring_runs").update({
+                status: "failed",
+                error_code: "MONITORING_SCAN_FAILED",
+                finished_at: now
+              }).eq("id", runId);
+              if (failedRunError) {
+                summary.persistenceFailures += 1;
+                console.error("Monitoring run failure status could not be persisted:", runId, failedRunError);
+              }
+            } catch (persistenceError) {
+              summary.persistenceFailures += 1;
+              console.error("Monitoring run failure status could not be persisted:", runId, persistenceError);
+            }
           }
-          await supabaseAdmin.from("monitoring_sites").update({
-            next_scan_at: getNextMonitoringScanAt(),
-            updated_at: now
-          }).eq("id", site.site_id);
+          try {
+            const { error: rescheduleError } = await supabaseAdmin.from("monitoring_sites").update({
+              next_scan_at: getNextMonitoringScanAt(),
+              updated_at: now
+            }).eq("id", site.site_id);
+            if (rescheduleError) {
+              summary.persistenceFailures += 1;
+              console.error("Monitoring site could not be rescheduled after failure:", site.site_id, rescheduleError);
+            }
+          } catch (persistenceError) {
+            summary.persistenceFailures += 1;
+            console.error("Monitoring site could not be rescheduled after failure:", site.site_id, persistenceError);
+          }
           summary.failed += 1;
         }
       }
 
-      return res.status(200).json({ ok: true, ...summary });
+      const { persistenceFailures, ...publicSummary } = summary;
+      return res.status(200).json({
+        ok: persistenceFailures === 0,
+        ...publicSummary,
+        ...(persistenceFailures > 0 ? { persistenceFailures } : {})
+      });
     } catch (error) {
       console.error("Sentinel monitoring worker error:", error);
       return res.status(500).json({ error: "Monitoring worker failed safely.", ...summary });
