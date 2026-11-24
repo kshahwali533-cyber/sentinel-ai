@@ -4,6 +4,7 @@ import { buildMonitoringAlert, fetchMonitoringScan, getMonitoringAppOrigin, getN
 export function createMonitoringWorkerHandler({
   supabaseAdmin = createSupabaseAdmin(),
   fetchImpl = fetch,
+  waitImpl,
   env = process.env
 } = {}) {
   function appOrigin(req) {
@@ -53,7 +54,8 @@ export function createMonitoringWorkerHandler({
             fetchImpl,
             origin + "/api/scan",
             site.target_url,
-            secret
+            secret,
+            waitImpl ? { wait: waitImpl } : undefined
           );
           const scan = scanResult.scan;
           summary.retries += Math.max(0, scanResult.attempts - 1);
