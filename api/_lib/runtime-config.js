@@ -7,7 +7,7 @@ const LEGACY_PRODUCTION_HOSTNAMES = [
 export function normalizeRequestHostname(value) {
   if (typeof value !== "string") return null;
   const candidate = value.trim().toLowerCase();
-  if (!candidate || candidate.length > 300 || /[\\s,/?#@]/.test(candidate)) {
+  if (!candidate || candidate.length > 300 || /[\s,/?#@]/.test(candidate)) {
     return null;
   }
 
@@ -17,7 +17,7 @@ export function normalizeRequestHostname(value) {
         parsed.search || parsed.hash || (parsed.port && parsed.port !== "443")) {
       return null;
     }
-    return parsed.hostname.toLowerCase().replace(/\\.$/, "") || null;
+    return parsed.hostname.toLowerCase().replace(/\.$/, "") || null;
   } catch {
     return null;
   }
