@@ -26,7 +26,7 @@ test("production mode requires server-issued runtime config loaded before the ap
   const appScript = html.indexOf('<script defer src="/sentinel-app.js"></script>');
   assert.ok(runtimeConfigScript >= 0, "Server runtime config script is loaded");
   assert.ok(appScript > runtimeConfigScript, "Runtime config loads before the app");
-  assert.match(app, /window\\.SENTINEL_RUNTIME_CONFIG\\?\\.isProduction !== true/);
+  assert.match(app, /window\.SENTINEL_RUNTIME_CONFIG\?\.isProduction !== true/);
   assert.doesNotMatch(app, /PRODUCTION_HOSTNAMES/);
 });
 
