@@ -57,3 +57,29 @@ export function hasValidFrameProtection({
 
   return sources.every(isValidFrameAncestorSource);
 }
+
+const REFERRER_POLICIES = new Set([
+  "no-referrer",
+  "no-referrer-when-downgrade",
+  "origin",
+  "origin-when-cross-origin",
+  "same-origin",
+  "strict-origin",
+  "strict-origin-when-cross-origin",
+  "unsafe-url"
+]);
+
+export function hasRecognizedReferrerPolicy(value) {
+  return typeof value === "string" &&
+    value.split(",").some(item => REFERRER_POLICIES.has(item.trim().toLowerCase()));
+}
+
+export function hasRecognizedCrossOriginPolicy(value, kind) {
+  if (typeof value !== "string") return false;
+  const allowed = {
+    coop: ["unsafe-none", "same-origin-allow-popups", "same-origin", "noopener-allow-popups"],
+    corp: ["same-site", "same-origin", "cross-origin"],
+    coep: ["unsafe-none", "require-corp", "credentialless"]
+  };
+  return (allowed[kind] || []).includes(value.trim().toLowerCase());
+}
