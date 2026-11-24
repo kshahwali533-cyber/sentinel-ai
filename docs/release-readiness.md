@@ -1,40 +1,58 @@
 # Sentinel AI Release Readiness
 
-Status: Draft release candidate — not approved for production.
+Status: **Prepared release candidate; NOT ready for production merge/deployment.**
 
+Candidate PR: #90 (draft, base `main`)
 Candidate branch: `fix/api-request-size-limits-2026-11-24`
-Candidate base: `main`
-Candidate head: `8df2f25ece3108588ac93247a74de5a23a54902e`
+Code validation commit: `cdac8d26c97c8772210e5f69515ea7ebad95f5f7`
+Current production deployment to preserve for rollback: `dpl_EMgCFrnCnwDuk9NPdzQWTJj2rjW8` (main deployment, commit `0f9f61da9447c40320d91ef4a3f61ce53b84e744`).
 
 ## Included development work
 
-- Integrated domain verification and scanner discovery hardening from the PR #83/#84/#85 workstream.
-- HTML5-based link discovery and HTTP(S)-only scanner URL parsing.
-- DNS TXT, HTTPS verification-file, homepage meta-tag, and Smart Auto Verify paths.
-- Request payload size limits for scan, AI Mentor, and report APIs.
+- Consolidated the PR #83/#84/#85 workstream and the PR #90 additions into one release candidate based on current `main`.
+- Website ownership verification: DNS TXT, HTTPS verification file, homepage meta tag, and Smart Auto Verify.
+- HTML5-based link discovery and HTTP/HTTPS-only scanner URL parsing.
+- Request payload size checks for Scan, AI Mentor, and Reports.
 - More conservative security-header analysis and scoring.
-- Existing monitoring, researcher, team, report, and account capabilities inherited from the current main baseline and integration history.
+- Existing account, monitoring, research, team, report, and usage capabilities from the current main baseline and integrated history.
+- Historical drafts #40, #39, and #12 were checked: their work is marked superseded by the PR #41 reconciliation and is present in the current main/candidate line.
 
-## Required release gates
+## Verified candidate checks
 
-- [x] Complete security regression suite on this exact candidate: 272 passed, 0 failed, 0 skipped.
-- [x] Security hardening, research scope gate, and security API checks passed on this exact candidate. API checks included concurrent quota behavior, two-user research DB isolation, pinned DNS, Vercel response headers, and redirect safety.
-- [x] CodeQL completed successfully on this exact candidate: no new alerts in code changed by this pull request.
-- [ ] Run and review a dependency vulnerability audit on this exact candidate.
-- [ ] Complete a safe preview smoke test for the public scanner and core UI. Preview build is READY; browser-level functional smoke test is not yet verified.
-- [ ] Test domain ownership proof against a separately controlled custom domain.
-- [ ] Test authenticated account, scan-history, report, and AI Mentor flows in a dedicated safe test environment.
-- [ ] Verify scheduled monitoring end-to-end using an authorized test website and confirm alert delivery.
-- [ ] Review Supabase RLS, grants, migrations, and required environment variables read-only; obtain explicit approval before any live changes.
-- [ ] Review mobile accessibility/performance and cross-browser behavior.
-- [ ] Prepare a production rollout and rollback plan.
+- [x] Security regression suite: 217 passed, 0 failed, 0 skipped.
+- [x] Main security hardening suite: 274 passed, 0 failed, 0 skipped.
+- [x] Research scope gate suite: 57 passed, 0 failed, 0 skipped.
+- [x] Production dependency audit: 0 vulnerabilities reported at the configured high-severity threshold.
+- [x] Security API checks: concurrent scan allowance, two-user Research Lab isolation, pinned DNS transport, response headers, and redirect safety passed.
+- [x] CodeQL: successful; no new alerts in code changed by this pull request.
+- [x] Vercel Preview build: READY on the candidate branch.
+- [x] Preview database isolation: all 12 database-backed API routes use the shared client guard; Vercel Preview returns no service-role Supabase client. Browser Preview Safe Mode points the client at a non-routable placeholder and clearly explains disabled preview features.
+- [x] Supabase migration parity: 20 repository migrations and 20 applied migrations; no mismatch found.
+- [x] Public-schema RLS review: no public tables found with RLS disabled; owner/member policies are present. Public SECURITY DEFINER functions are restricted to postgres/service_role execution.
+
+## Remaining release blockers
+
+- [ ] **Browser-level Preview test:** Vercel SSO protection is enabled for Preview deployments. The build is READY, but a full browser interaction test could not be completed through the available protected-preview access.
+- [ ] **Domain ownership test:** prove DNS/file/meta verification end-to-end on a separate domain controlled by the user.
+- [ ] **Authentication test:** verify sign-up, sign-in, recovery, session, scan history, and report/AI flows against a dedicated isolated Supabase test project. Preview database access is intentionally blocked because the generic Preview environment currently carries the production Supabase URL.
+- [ ] **Monitoring end-to-end:** scheduler is active every 15 minutes; 96 scheduler runs succeeded in the last 24 hours and 24 HTTP responses were 200. However, there are 0 verified active monitoring sites, 1 pending site, and 0 monitoring run records. Real scan-and-alert delivery is therefore not proven.
+- [ ] **Supabase Auth hardening:** the security advisor reports leaked-password protection is disabled. Enable and verify it before public release.
+- [ ] **RLS defense-in-depth review:** the advisor flags `private.scan_usage_reservations` because RLS is disabled. Read-only SQL showed no direct table privileges for anon/authenticated and the table ACL is restricted to postgres, but the RLS warning remains open. Do not auto-apply a database change; review the migration and approve it explicitly.
+- [ ] **Backup readiness:** the Supabase organization is on the Free plan, which does not provide scheduled database backups. Arrange an approved backup/restore method before production release.
+- [ ] **Mobile/browser verification:** complete real mobile accessibility, layout, and cross-browser checks against the candidate.
+
+## Rollout and rollback plan
+
+1. Keep PR #90 as a draft until every release blocker above is resolved.
+2. Do not merge to `main` or deploy to Production without explicit user approval.
+3. Before an approved rollout, capture a verified database backup/export and confirm the production environment variables.
+4. Deploy only after approval, then verify homepage, scanner, auth, reports, monitoring, and alert delivery.
+5. If release verification fails, restore the previous known-good Vercel Production deployment `dpl_EMgCFrnCnwDuk9NPdzQWTJj2rjW8` and investigate before retrying.
 
 ## Safety boundaries
 
-- This branch and its previews are preparation only.
-- Do not merge this pull request without explicit user approval.
-- Do not deploy this candidate to Production during preparation.
-- Do not change Supabase schema, live data, or environment settings during preparation.
-- Do not delete existing branches, files, or deployments.
+- Preparation changes are confined to this candidate branch.
+- Production deployment and live Supabase schema/data/settings have not been changed.
+- Do not merge, deploy to Production, change Supabase, or delete branches/files/deployments without explicit approval.
 
-Passing CI and a successful preview build alone do not satisfy the end-to-end release gates above.
+Passing CI and a successful Preview build do not by themselves satisfy the remaining end-to-end release gates.
