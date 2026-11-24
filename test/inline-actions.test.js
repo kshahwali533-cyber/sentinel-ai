@@ -11,7 +11,7 @@ const reportStyles = fs.readFileSync("sentinel-report.css", "utf8");
 const supabaseVersion = JSON.parse(fs.readFileSync("package.json", "utf8")).dependencies["@supabase/supabase-js"];
 
 test("preview safe mode explains disabled account actions without starting an auth request", () => {
-  const guard = app.indexOf("if (IS_PR83_PREVIEW_SAFE_MODE)", app.indexOf("async function updateAuthUI"));
+  const guard = app.indexOf("if (IS_PREVIEW_SAFE_MODE)", app.indexOf("async function updateAuthUI"));
   const authRequest = app.indexOf("supabaseClient.auth.getSession()", guard);
   assert.ok(guard >= 0, "Preview Safe Mode guard is present in auth UI");
   assert.match(app.slice(guard, authRequest), /account sign-in, account creation, password reset, and cloud history are disabled/);
