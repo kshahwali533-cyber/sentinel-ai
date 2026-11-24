@@ -13,6 +13,7 @@ import { getTrustedClientIp } from "./_lib/client-ip.js";
 import { createSafeFetch } from "./_lib/safe-fetch.js";
 import { createPinnedRequest } from "./_lib/pinned-request.js";
 import { isConfirmedSurfaceReference } from "./_lib/surface-confidence.js";
+import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -39,6 +40,12 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body || {};
+
+    // Bound decoded scan input before rate-limit, DNS, or network work.
+    // The platform has already parsed req.body; this limits downstream processing.
+    if (!isWithinJsonBodyLimit(body, 16 * 1024)) {
+      return res.status(413).json({ error: "Scan request is too large. Submit only the target website URL and try again." });
+    }
 
 if (
   typeof body !== "object" ||
