@@ -10,6 +10,16 @@ const styles = fs.readFileSync("sentinel.css", "utf8");
 const reportStyles = fs.readFileSync("sentinel-report.css", "utf8");
 const supabaseVersion = JSON.parse(fs.readFileSync("package.json", "utf8")).dependencies["@supabase/supabase-js"];
 
+test("preview safe mode explains disabled account actions without starting an auth request", () => {
+  const guard = app.indexOf("if (IS_PR83_PREVIEW_SAFE_MODE)", app.indexOf("async function updateAuthUI"));
+  const authRequest = app.indexOf("supabaseClient.auth.getSession()", guard);
+  assert.ok(guard >= 0, "Preview Safe Mode guard is present in auth UI");
+  assert.match(app.slice(guard, authRequest), /account sign-in, account creation, password reset, and cloud history are disabled/);
+  assert.match(app.slice(guard, authRequest), /authForm\.classList\.add\("is-hidden"\)/);
+  assert.match(app.slice(guard, authRequest), /return;/);
+  assert.ok(authRequest > guard, "Safe Mode returns before contacting Supabase auth");
+});
+
 test("all former inline click and change handlers are removed", () => {
   assert.equal((html.match(/\son(?:click|change)\s*=/gi) || []).length, 0);
   assert.equal(((html + app).match(/data-action="/g) || []).length, 54);
