@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseAdmin } from "./_lib/supabase-admin.js";
 import { createResearchPlanFingerprint } from "./_lib/research-plan-hash.js";
 import { evaluateResearchScope } from "./_lib/research-scope-gate.js";
 import { recordResearchCaseEvent } from "./_lib/research-case-events.js";
@@ -11,12 +11,7 @@ import {
   normalizeResearchEvidence as normalizeEvidence
 } from "./_lib/research-validation.js";
 
-const supabaseAdmin =
-  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false }
-      })
-    : null;
+const supabaseAdmin = createSupabaseAdmin();
 
 const FINDING_SELECT =
   "id,project_id,site_id,asset_hostname,asset_url,title,severity,status,endpoint_path,description,impact,remediation,evidence,discovered_at,created_at,updated_at";
