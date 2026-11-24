@@ -1,4 +1,4 @@
-name: Sentinel AI focused API payload tests
+name: Sentinel AI security regression tests
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  request-size-tests:
+  security-regression-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -21,10 +21,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Check changed API module syntax
+      - name: Install locked project dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Check security-critical module syntax
         run: |
-          node --check api/_lib/request-size.js
-          node --check api/assistant.js
-          node --check api/report.js
-      - name: Run request-size unit tests
-        run: node --test test/request-size.test.js
+          node --check api/scan.js
+          node --check api/monitoring.js
+          node --check api/monitoring-run.js
+          node --check api/_lib/public-ip.js
+          node --check api/_lib/pinned-request.js
+          node --check api/_lib/pinned-lookup.js
+          node --check api/_lib/safe-fetch.js
+      - name: Run complete automated test suite
+        run: node --test test/*.test.js
