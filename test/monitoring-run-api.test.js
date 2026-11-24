@@ -206,3 +206,83 @@ test("monitoring worker completes a claimed scan, records a change alert, and up
   assert.equal(runUpdate.record.result.score, 64);
   assert.ok(runUpdate.record.finished_at);
 });
+
+
+test("monitoring worker marks a run failed and reschedules after repeated scan failure", async () => {
+  const writes = [];
+  const admin = {
+    async rpc(name) {
+      assert.equal(name, "claim_due_monitoring_sites");
+      return {
+        data: [{
+          site_id: "site-failure-1",
+          owner_id: "user-failure-1",
+          target_url: "https://owned.example",
+          prior_result: { score: 90, riskLevel: "Low", checks: [] }
+        }],
+        error: null
+      };
+    },
+    from(table) {
+      return {
+        insert(record) {
+          writes.push({ operation: "insert", table, record });
+          return {
+            select() {
+              return {
+                async single() {
+                  return { data: { id: "run-failure-1" }, error: null };
+                }
+              };
+            },
+            then(resolve, reject) {
+              return Promise.resolve({ error: null }).then(resolve, reject);
+            }
+          };
+        },
+        update(record) {
+          return {
+            async eq(column, value) {
+              writes.push({ operation: "update", table, column, value, record });
+              return { error: null };
+            }
+          };
+        }
+      };
+    }
+  };
+  let scanCalls = 0;
+  const worker = createMonitoringWorkerHandler({
+    supabaseAdmin: admin,
+    fetchImpl: async () => {
+      scanCalls += 1;
+      return { ok: false, status: 503, async json() { return {}; } };
+    },
+    waitImpl: async () => {},
+    env: { CRON_SECRET: "failure-test-secret", VERCEL_ENV: "preview" }
+  });
+
+  const result = await invoke(worker, "GET", "Bearer failure-test-secret");
+
+  assert.equal(result.statusCode, 200);
+  assert.deepEqual(result.payload, {
+    ok: true,
+    claimed: 1,
+    succeeded: 0,
+    failed: 1,
+    alerts: 0,
+    retries: 0
+  });
+  assert.equal(scanCalls, 2);
+  assert.equal(writes.filter((entry) => entry.operation === "insert" && entry.table === "monitoring_alerts").length, 0);
+
+  const failedRun = writes.find((entry) => entry.operation === "update" &&
+    entry.table === "monitoring_runs" && entry.record.status === "failed");
+  assert.equal(failedRun.value, "run-failure-1");
+  assert.equal(failedRun.record.error_code, "MONITORING_SCAN_FAILED");
+  assert.ok(failedRun.record.finished_at);
+
+  const rescheduledSite = writes.find((entry) => entry.operation === "update" && entry.table === "monitoring_sites");
+  assert.equal(rescheduledSite.value, "site-failure-1");
+  assert.ok(Date.parse(rescheduledSite.record.next_scan_at) > Date.now());
+});
