@@ -18,6 +18,7 @@ test("cross-origin policies are explicit without requiring cross-origin isolatio
   assert.equal(get("Cross-Origin-Opener-Policy"), "same-origin-allow-popups");
   assert.equal(get("Cross-Origin-Resource-Policy"), "same-origin");
   assert.equal(get("X-Content-Type-Options"), "nosniff");
+  assert.equal(get("Strict-Transport-Security"), "max-age=31536000; includeSubDomains");
   assert.equal(get("Permissions-Policy"), "camera=(), microphone=(), geolocation=()");
   assert.equal(get("Cross-Origin-Embedder-Policy"), "");
 });
