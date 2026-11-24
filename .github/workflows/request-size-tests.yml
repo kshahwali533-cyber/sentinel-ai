@@ -1,0 +1,30 @@
+name: Sentinel AI focused API payload tests
+
+on:
+  push:
+    branches:
+      - fix/api-request-size-limits-2026-11-24
+  pull_request:
+    branches:
+      - preview/integration-83-84-85-20261124
+
+permissions:
+  contents: read
+
+jobs:
+  request-size-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check changed API module syntax
+        run: |
+          node --check api/_lib/request-size.js
+          node --check api/assistant.js
+          node --check api/report.js
+      - name: Run request-size unit tests
+        run: node --test test/request-size.test.js
