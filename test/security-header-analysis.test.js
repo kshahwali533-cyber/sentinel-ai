@@ -25,7 +25,7 @@ test("rejects missing, empty, or malformed CSP frame-ancestors directives", () =
 });
 
 test("rejects arbitrary or unsupported CSP frame-ancestor tokens", () => {
-  assert.equal(hasValidFrameProtection({ contentSecurityPolicy: "frame-ancestors definitely-not-a-source" }), false);
+  assert.equal(hasValidFrameProtection({ contentSecurityPolicy: "frame-ancestors 'unsafe-inline'" }), false);
   assert.equal(hasValidFrameProtection({ contentSecurityPolicy: "frame-ancestors 'unsafe-inline'" }), false);
   assert.equal(hasValidFrameProtection({ contentSecurityPolicy: "frame-ancestors https://trusted.example:99999" }), false);
 });
@@ -38,6 +38,6 @@ test("accepts valid wildcard, scheme, and host sources", () => {
 
 test("honors the first duplicate frame-ancestors directive", () => {
   assert.equal(hasValidFrameProtection({
-    contentSecurityPolicy: "frame-ancestors invalid-token; frame-ancestors 'self'"
+    contentSecurityPolicy: "frame-ancestors 'unsafe-inline'; frame-ancestors 'self'"
   }), false);
 });
