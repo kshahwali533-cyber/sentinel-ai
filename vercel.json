@@ -8,10 +8,6 @@
           "value": "nosniff"
         },
         {
-          "key": "Access-Control-Allow-Origin",
-          "value": "https://project-3jyda.vercel.app"
-        },
-        {
           "key": "X-Frame-Options",
           "value": "DENY"
         },
