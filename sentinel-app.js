@@ -28,7 +28,7 @@ if (IS_PR83_PREVIEW_SAFE_MODE) {
   const safetyNotice = document.createElement("div");
   safetyNotice.setAttribute("role", "status");
   safetyNotice.textContent =
-    "PR #83 PREVIEW SAFE MODE: live account data and database actions are disabled here. Production is unchanged.";
+    "PR #83 PREVIEW SAFE MODE: account data, database-backed scans, AI Mentor, monitoring, and database actions are disabled here. Production is unchanged.";
   safetyNotice.style.cssText =
     "position:sticky;top:0;z-index:99999;padding:12px 16px;background:#7f1d1d;color:#fff;text-align:center;font-weight:700;font-size:14px;";
   document.addEventListener("DOMContentLoaded", () => {
@@ -101,7 +101,7 @@ async function updateAuthUI() {
   if (IS_PR83_PREVIEW_SAFE_MODE) {
     authStatus.className = "notice";
     authStatus.textContent =
-      "Preview Safe Mode: account sign-in, account creation, password reset, and cloud history are disabled in this preview. Production is unchanged.";
+      "Preview Safe Mode: account sign-in, account creation, password reset, and cloud history are disabled; database-backed scanning, AI Mentor, and monitoring are also disabled in this preview. Production is unchanged.";
     if (authForm) authForm.classList.add("is-hidden");
     if (passwordResetArea) passwordResetArea.classList.add("is-hidden");
     if (loggedInArea) loggedInArea.classList.add("is-hidden");
