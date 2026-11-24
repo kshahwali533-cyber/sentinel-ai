@@ -21,7 +21,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Install locked project dependencies
+      - name: Install project dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Check security-critical module syntax
         run: |
