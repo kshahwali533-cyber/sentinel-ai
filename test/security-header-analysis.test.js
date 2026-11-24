@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { hasValidFrameProtection } from "../api/_lib/security-header-analysis.js";
+import { hasValidFrameProtection, hasRecognizedReferrerPolicy, hasRecognizedCrossOriginPolicy } from "../api/_lib/security-header-analysis.js";
 
 test("accepts supported X-Frame-Options values", () => {
   assert.equal(hasValidFrameProtection({ xFrameOptions: "DENY" }), true);
@@ -40,4 +40,20 @@ test("honors the first duplicate frame-ancestors directive", () => {
   assert.equal(hasValidFrameProtection({
     contentSecurityPolicy: "frame-ancestors 'unsafe-inline'; frame-ancestors 'self'"
   }), false);
+});
+
+test("recognizes valid Referrer-Policy values and rejects arbitrary text", () => {
+  assert.equal(hasRecognizedReferrerPolicy("strict-origin-when-cross-origin"), true);
+  assert.equal(hasRecognizedReferrerPolicy("invalid-policy"), false);
+  assert.equal(hasRecognizedReferrerPolicy("invalid-policy, origin"), true);
+  assert.equal(hasRecognizedReferrerPolicy(""), false);
+});
+
+test("recognizes only supported COOP, CORP, and COEP values", () => {
+  assert.equal(hasRecognizedCrossOriginPolicy("same-origin", "coop"), true);
+  assert.equal(hasRecognizedCrossOriginPolicy("unknown", "coop"), false);
+  assert.equal(hasRecognizedCrossOriginPolicy("same-site", "corp"), true);
+  assert.equal(hasRecognizedCrossOriginPolicy("public", "corp"), false);
+  assert.equal(hasRecognizedCrossOriginPolicy("credentialless", "coep"), true);
+  assert.equal(hasRecognizedCrossOriginPolicy("invalid", "coep"), false);
 });
