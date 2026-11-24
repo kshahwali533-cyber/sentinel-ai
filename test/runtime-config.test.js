@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import {
   isApprovedProductionRequest,
   normalizeRequestHostname
@@ -53,4 +54,11 @@ test("fails closed for unknown hosts and missing deployment environment", () => 
     env: { VERCEL_ENV: "production" },
     host: "attacker.example.net"
   }), false);
+});
+
+test("runtime config reuses the existing scan function without adding a Vercel function", () => {
+  const scanSource = fs.readFileSync(new URL("../api/scan.js", import.meta.url), "utf8");
+  assert.match(scanSource, /req\.method === "GET" && req\.query\?\.runtime_config === "1"/);
+  assert.match(scanSource, /isApprovedProductionRequest\(/);
+  assert.equal(fs.existsSync(new URL("../api/runtime-config.js", import.meta.url)), false);
 });
