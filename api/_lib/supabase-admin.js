@@ -8,18 +8,22 @@ import { createClient } from "@supabase/supabase-js";
  * A dedicated isolated preview database can be enabled later by changing this
  * policy after its URL and credentials have been explicitly configured.
  */
-export function createSupabaseAdmin() {
-  if (process.env.VERCEL_ENV === "preview") {
+export function isPreviewDatabaseBlocked(env = process.env) {
+  return env.VERCEL_ENV === "preview";
+}
+
+export function createSupabaseAdmin(env = process.env) {
+  if (isPreviewDatabaseBlocked(env)) {
     return null;
   }
 
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
     return null;
   }
 
   return createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    env.SUPABASE_URL,
+    env.SUPABASE_SERVICE_ROLE_KEY,
     { auth: { persistSession: false, autoRefreshToken: false } }
   );
 }
