@@ -5,14 +5,10 @@
    SUPABASE CONFIGURATION
 ========================= */
 
-const PRODUCTION_HOSTNAMES = new Set([
-  "project-3jyda.vercel.app",
-  "project-3jyda-sentinel-ai14.vercel.app",
-  "project-3jyda-git-main-sentinel-ai14.vercel.app"
-]);
-
+// Production features are enabled only by the server-issued runtime
+// configuration. Missing or invalid configuration always fails closed.
 const IS_PREVIEW_SAFE_MODE =
-  !PRODUCTION_HOSTNAMES.has(window.location.hostname.toLowerCase());
+  window.SENTINEL_RUNTIME_CONFIG?.isProduction !== true;
 
 const SUPABASE_URL = IS_PREVIEW_SAFE_MODE
   ? "https://preview-disabled.invalid"
