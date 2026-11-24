@@ -22,14 +22,14 @@ Previous known-good production deployment to preserve for rollback: `dpl_EMgCFrn
 
 ## Latest verified CI evidence for candidate code commit
 
-The following PR-triggered checks completed successfully on commit `2e0e537b6952c0406385832407d8650c012b0827`:
+The following PR-triggered checks completed successfully on code/test commit `2e0e537b6952c0406385832407d8650c012b0827`. A documentation-only follow-up commit `3cd1ef6d5b446d810ae4c6e789218700cc401953` also has a READY Preview; its CI rerun is still finishing:
 
 - [x] Main Security Hardening: **275 passed, 0 failed**.
 - [x] Research Scope Gate: **57 passed, 0 failed**.
 - [x] Security regression suite: **219 passed, 0 failed**. This includes the new monitoring worker successful-path test.
 - [x] Security API checks: passed, including syntax/SSRF guard, quota concurrency, two-user Research Lab isolation, pinned DNS, response headers, redirect safety, and private-table RLS migration checks.
 - [ ] CodeQL Security Analysis: still running at the time of this update; do not treat it as passed until GitHub reports success.
-- [ ] Latest code commit Preview deployment: not yet independently verified. The last previously verified Preview was READY at https://project-3jyda-9iw5h2ikk-sentinel-ai14.vercel.app on the earlier candidate commit `d16b8db867a2622dc5023e6779493e2510bcf543`.
+- [x] Vercel Preview deployment for the latest candidate documentation commit `3cd1ef6d5b446d810ae4c6e789218700cc401953`: **READY**, URL: https://project-3jyda-ppwdo1d0b-sentinel-ai14.vercel.app. The underlying monitoring worker code/test commit `2e0e537b6952c0406385832407d8650c012b0827` also has a READY Preview: https://project-3jyda-ke80jp5al-sentinel-ai14.vercel.app. These are Preview deployments only; no Production deployment was changed.
 
 The monitoring test uses a fake Supabase query client and fake scanner response. It proves the worker's successful control flow and persistence calls, but it is **not** proof of a real scan against a live customer domain or a real Supabase database.
 
