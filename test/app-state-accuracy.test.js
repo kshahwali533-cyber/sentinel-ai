@@ -48,3 +48,18 @@ test("protected Preview safe mode uses a release-neutral notice and never starts
   assert.ok(request > guard, "Preview guard must run before any scanner request");
   assert.ok(scanFunction.includes("No scan request was sent"));
 });
+
+
+test("protected Preview clearly disables account-backed controls and labels unavailable features", () => {
+  assert.ok(page.includes('id="authIntro"'));
+  assert.ok(app.includes("Account creation and cloud scan history are unavailable in this protected Preview."));
+  for (const id of [
+    "analyticsStatus", "monitorStatus", "monitorAlerts", "monitorRuns",
+    "intelStatus", "researchStatus", "organizationStatus", "usageStatus"
+  ]) {
+    assert.ok(app.includes(id + ":"), `Preview safe mode must label ${id}`);
+  }
+  assert.ok(app.includes('button[data-action]:not([data-action="run-security-scan"])'));
+  assert.ok(app.includes('button.disabled = true;'));
+  assert.ok(app.includes('section.querySelectorAll("input, textarea, select")'));
+});
