@@ -1,4 +1,5 @@
 import { extractHTMLLinks } from "./_lib/html-link-discovery.js";
+import { parseHttpUrl } from "./_lib/http-url.js";
 import dns from "node:dns/promises";
 import net from "node:net";
 import { isPublicIP } from "./_lib/public-ip.js";
@@ -1161,29 +1162,16 @@ if (html) {
     const rawHref =
       typeof match === "string" ? match.trim() : "";
 
-    if (!rawHref) {
-      continue;
-    }
-
-    if (
-      rawHref.startsWith("#") ||
-      rawHref.startsWith("mailto:") ||
-      rawHref.startsWith("tel:") ||
-      rawHref.startsWith("javascript:")
-    ) {
+    if (!rawHref || rawHref.startsWith("#")) {
       continue;
     }
 
     try {
-      const discoveredURL =
-        new URL(
-          rawHref,
-          finalTarget.href
-        );
+      const discoveredURL = parseHttpUrl(rawHref, finalTarget.href);
 
       if (
-        discoveredURL.origin !==
-        finalTarget.origin
+        !discoveredURL ||
+        discoveredURL.origin !== finalTarget.origin
       ) {
         continue;
       }
@@ -1929,31 +1917,12 @@ if (html) {
         continue;
       }
 
-      if (
-        rawSrc.startsWith("javascript:") ||
-        rawSrc.startsWith("data:") ||
-        rawSrc.startsWith("blob:")
-      ) {
-        continue;
-      }
-
       try {
-        const scriptURL =
-          new URL(
-            rawSrc,
-            finalTarget.href
-          );
+        const scriptURL = parseHttpUrl(rawSrc, finalTarget.href);
 
         if (
-          scriptURL.protocol !== "http:" &&
-          scriptURL.protocol !== "https:"
-        ) {
-          continue;
-        }
-
-        if (
-          scriptURL.origin !==
-          originalTargetOrigin
+          !scriptURL ||
+          scriptURL.origin !== originalTargetOrigin
         ) {
           continue;
         }
