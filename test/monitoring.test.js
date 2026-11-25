@@ -67,6 +67,25 @@ test("new warnings and material score deterioration create an alert", () => {
   assert.equal(alert.details.current_score, 65);
 });
 
+test("risk-level worsening alone creates a medium alert", () => {
+  const baseline = { score: 80, riskLevel: "Low", checks: [] };
+  const current = { score: 80, riskLevel: "Medium", checks: [] };
+  const alert = buildMonitoringAlert(baseline, current);
+  assert.equal(alert.alert_type, "security_posture_changed");
+  assert.equal(alert.severity, "medium");
+  assert.match(alert.message, /risk level worsened from Low to Medium/);
+  assert.equal(alert.details.previous_risk, "Low");
+  assert.equal(alert.details.current_risk, "Medium");
+});
+
+test("critical risk-level worsening alone creates a high alert", () => {
+  const baseline = { score: 80, riskLevel: "Medium", checks: [] };
+  const current = { score: 80, riskLevel: "Critical", checks: [] };
+  const alert = buildMonitoringAlert(baseline, current);
+  assert.equal(alert.severity, "high");
+  assert.match(alert.message, /risk level worsened from Medium to Critical/);
+});
+
 test("minor score changes below ten points do not alert by themselves", () => {
   const baseline = { score: 80, riskLevel: "Low", checks: [] };
   const current = { score: 75, riskLevel: "Low", checks: [] };
