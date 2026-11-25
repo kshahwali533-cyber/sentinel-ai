@@ -91,3 +91,48 @@ test("trend stays unavailable until two complete five-scan windows exist", () =>
   }));
   assert.equal(aggregateScanAnalytics(rows, now).trend.direction, "insufficient_data");
 });
+
+test("trend never compares scores from different domains", () => {
+  const rows = [];
+  for (let i = 0; i < 5; i++) rows.push({
+    website: "https://badssl.com/",
+    security_score: 64,
+    risk_level: "Medium",
+    created_at: new Date(now - i * 60_000).toISOString(),
+    checks: []
+  });
+  for (let i = 5; i < 10; i++) rows.push({
+    website: "https://sentinel.example/",
+    security_score: 100,
+    risk_level: "Low",
+    created_at: new Date(now - i * 60_000).toISOString(),
+    checks: []
+  });
+  const result = aggregateScanAnalytics(rows, now);
+  assert.equal(result.trend.direction, "insufficient_data");
+  assert.equal(result.trend.hostname, "badssl.com");
+  assert.equal(result.trend.latest_scan_count, 5);
+  assert.equal(result.trend.previous_scan_count, 0);
+});
+
+test("trend compares the latest and previous five scans for the same domain", () => {
+  const rows = [];
+  for (let i = 0; i < 5; i++) rows.push({
+    website: "https://badssl.com/",
+    security_score: 90,
+    risk_level: "Low",
+    created_at: new Date(now - i * 60_000).toISOString(),
+    checks: []
+  });
+  for (let i = 5; i < 10; i++) rows.push({
+    website: "https://badssl.com/path",
+    security_score: 70,
+    risk_level: "Medium",
+    created_at: new Date(now - i * 60_000).toISOString(),
+    checks: []
+  });
+  const result = aggregateScanAnalytics(rows, now);
+  assert.equal(result.trend.hostname, "badssl.com");
+  assert.equal(result.trend.direction, "improving");
+  assert.equal(result.trend.change, 20);
+});
