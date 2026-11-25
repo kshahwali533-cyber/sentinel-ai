@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isVerifiedMemberAsset } from "../api/_lib/team-assets.js";
+import { getAvailableTeamAssets, isVerifiedMemberAsset } from "../api/_lib/team-assets.js";
 
 test("only verified assets owned by current workspace members can be shared", () => {
   const site = { id: "site-1", user_id: "member-1", verified_at: "2026-11-14T00:00:00Z" };
