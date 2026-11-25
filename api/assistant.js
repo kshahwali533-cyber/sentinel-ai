@@ -4,6 +4,9 @@ import { createSupabaseAdmin } from "./_lib/supabase-admin.js";
 import { getTrustedClientIp } from "./_lib/client-ip.js";
 import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
 
+// Reject oversized request bodies in Vercel's parser before req.body is allocated.
+export const config = { api: { bodyParser: { sizeLimit: "64kb" } } };
+
 const supabaseAdmin = createSupabaseAdmin();
 
 export default async function handler(req, res) {
