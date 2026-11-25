@@ -5,6 +5,7 @@ import { createSafeFetch } from "./_lib/safe-fetch.js";
 import { createPinnedRequest } from "./_lib/pinned-request.js";
 import { readTextLimited } from "./_lib/read-limited.js";
 import { normalizeMonitoringTarget } from "./_lib/monitoring.js";
+import { getMonitoringDashboardData } from "./_lib/monitoring-dashboard.js";
 import { randomBytes } from "node:crypto";
 import { extractVerificationMetaToken, chooseOwnershipVerificationMethod } from "./_lib/domain-verification.js";
 import { createClient } from "@supabase/supabase-js";
@@ -107,29 +108,8 @@ export default async function handler(req, res) {
     if (!user) return send(res, 401, { error: "Please sign in to manage monitoring." });
 
     if (req.method === "GET") {
-      const [sites, alerts, runs] = await Promise.all([
-        supabaseAdmin.from("monitoring_sites")
-          .select("id,url,hostname,status,verification_token,verified_at,scan_interval_minutes,next_scan_at,last_scan_at,last_score,last_risk_level,created_at")
-          .eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
-        supabaseAdmin.from("monitoring_alerts")
-          .select("id,site_id,alert_type,severity,title,message,details,is_read,created_at")
-          .eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
-        supabaseAdmin.from("monitoring_runs")
-          .select("id,site_id,status,score,risk_level,error_code,started_at,finished_at")
-          .eq("user_id", user.id).order("created_at", { ascending: false }).limit(30)
-      ]);
-      const failed = [sites.error, alerts.error, runs.error].find(Boolean);
-      if (failed) throw failed;
-      const safeSites = (sites.data || []).map((site) => {
-        if (site.status === "pending") return site;
-        const { verification_token, ...safeSite } = site;
-        return safeSite;
-      });
-      return send(res, 200, {
-        sites: safeSites,
-        alerts: alerts.data || [],
-        runs: runs.data || []
-      });
+      const dashboard = await getMonitoringDashboardData(supabaseAdmin, user.id);
+      return send(res, 200, dashboard);
     }
 
     const body = req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
