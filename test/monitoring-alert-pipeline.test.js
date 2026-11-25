@@ -223,5 +223,5 @@ test("the real dashboard renderer displays saved alerts and safely escapes untru
   assert.match(nodes.monitorAlerts.innerHTML, /medium/);
   assert.match(nodes.monitorAlerts.innerHTML, /data-action="mark-monitoring-alert-read"/);
   assert.match(nodes.monitorAlerts.innerHTML, /&lt;script&gt;/);
-  assert.doesNotMatch(nodes.monitorAlerts.innerHTML, /<script>/);
+  assert.doesNotMatch(nodes.monitorAlerts.innerHTML, /<script>/i);
 });
