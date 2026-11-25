@@ -42,3 +42,42 @@ Verified candidate commit before this audit note: `ea74b36d8453dacc0da4d0b21238c
 ## Decision
 
 Automated code-level security checks and Preview build verification are green. Sentinel AI is **not yet end-to-end release-ready**. The remaining items above are external integration and operational gates, not failures that can honestly be marked complete from CI alone.
+
+
+## Follow-up verification of the five practical release checks (2026-11-25)
+
+### 1. CVE intelligence
+- A live NIST NVD API 2.0 record was retrieved for `CVE-2021-44228`.
+- NVD reports Apache Log4j2 remote-code-execution exposure, CVSS 3.1 **10.0 / CRITICAL**, and affected Log4j2 version ranges.
+- NVD's response identifies CISA KEV membership, date added `2021-12-10`, and due date `2021-12-24`. The NVD detail page independently displays the CISA KEV notice.
+- Sentinel's CVE normalization, KEV exact-match, missing-record, and unavailable-feed behavior have automated test coverage. The authenticated Sentinel API route itself was not called against Production; Preview Safe Mode intentionally has no database client.
+
+### 2. Professional security report
+- Report API validation, score recalculation, evidence normalization, executive summary, prioritization, and print/UI regression tests are included in the passing CI suite.
+- No live customer report was created or stored. Preview report actions remain disabled in Safe Mode, and Production was not used for a test.
+
+### 3. AI Security Mentor
+- Automated tests cover input validation, evidence limits, safe fallback guidance, response schema validation, preservation of scanner severity/status, and rejection of unsafe instructions.
+- The OpenAI API key exists only in Vercel Production metadata; no Preview AI key is configured. Secret values were not read.
+- No real paid OpenAI call was made. A real AI-powered session remains unverified; the passing tests prove the fallback and validation logic, not provider availability or live billing.
+
+### 4. Domain ownership and 15-minute monitoring
+- Live Supabase read-only checks confirm the cron job `sentinel-monitoring-every-15-minutes` is active with schedule `*/15 * * * *`.
+- The last 12 cron dispatches each completed successfully; the corresponding last 12 `net._http_response` records were HTTP **200**, with no timeout or error.
+- The database currently has one monitoring site in `pending` status, zero verified sites, zero monitoring runs in the last 24 hours, and zero alerts in the last 24 hours.
+- Therefore the scheduler/dispatch path is verified, but a real owned-domain DNS TXT verification and customer-site scan/alert are not. No user-controlled test domain was supplied and no DNS was changed.
+
+### 5. Research Workspace and Team Workspaces
+- CI confirms Research Scope Gate tests and two-user Research Lab database isolation pass. Team/organization invitation-safety, policy, and workspace API tests are part of the passing automated suite.
+- Read-only production aggregates show zero research projects and zero research findings; one organization and one member exist, with two invitation records. No production records were created or modified for testing.
+- A real end-to-end project/finding workflow and a real team invitation acceptance workflow remain unverified because Preview has no isolated Supabase project and all database-backed Preview routes are intentionally blocked.
+
+### Follow-up hardening completed after the initial audit
+- Added Vercel pre-handler body-parser limits: Scan 32 KiB, AI Mentor 64 KiB, Reports 1 MiB. The stricter in-handler limits remain 16 KiB, 32 KiB, and 512 KiB respectively.
+- Added a regression test that checks both parser and application-level limits.
+- Exact candidate commit `3ae3ab18acee322edf378b24a030031e324793b1` passed Main Security Hardening, Security API checks, Research Scope Gate Tests, CodeQL, and Vercel Preview READY.
+- PR #90 remains Draft/unmerged. No Production deployment, `main`, live Supabase setting/schema/data, DNS, or resource deletion was performed.
+
+## Final result of this audit
+
+The automated security/build checks, NVD data retrieval, and real 15-minute scheduler dispatch are verified. The five practical release checks are **not all complete**: live report creation, live AI Mentor, DNS proof plus monitored-site execution, and Research/Team end-to-end workflows still require isolated test resources or an authorized user-controlled domain. It would be misleading to mark Sentinel AI fully end-to-end release-ready.
