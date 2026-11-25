@@ -3699,13 +3699,13 @@ async function loadMonitoringDashboard() {
 
     if (!sites.length) {
       status.className = "notice";
-      status.textContent = "No monitored websites yet. Add and verify a domain; scheduled security checks run every 15 minutes.";
+      status.textContent = "No monitored websites yet. Add and verify a domain. Automated scans are not active on this deployment yet.";
     } else if (!verifiedSites.length) {
       status.className = "notice";
       status.textContent = "Complete DNS ownership verification. Scheduled security checks begin after verification.";
     } else {
       status.className = "notice";
-      status.textContent = verifiedSites.length + " verified website(s) are scheduled for automatic checks every 15 minutes; completed runs will appear below.";
+      status.textContent = verifiedSites.length + " verified website(s) saved. Automated scans are not active on this deployment yet; completed runs will appear here after the monitoring worker is configured.";
     }
   } catch (error) {
     status.className = "notice";
@@ -3745,7 +3745,7 @@ async function verifyMonitoringSite(siteId) {
     await monitoringRequest({ action: "verify", siteId });
     await loadMonitoringDashboard();
     status.className = "success";
-    status.textContent = "Domain ownership verified. The website will be checked on the next scheduled 15-minute run.";
+    status.textContent = "Domain ownership verified. Automated scans are not active on this deployment yet; scheduled checks will begin after the monitoring worker is configured.";
   } catch (error) {
     status.className = "error";
     status.textContent = error?.message || "DNS verification failed.";
