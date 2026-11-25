@@ -28,6 +28,7 @@ test("monitoring dashboard accurately describes the active scheduler and pending
 test("monitoring page and verification API accurately describe scheduler activation", () => {
   assert.ok(page.includes("The 15-minute scheduler is active; scheduled scans begin after a domain is verified."));
   assert.ok(page.includes("Monitoring runs and in-app alerts will appear after the first successful scan."));
+  assert.equal((page.match(/name="sentinel-ai-verification"/g) || []).length, 1);
   assert.ok(monitoringApi.includes("Scheduled security checks will begin on the next 15-minute run."));
   assert.ok(!page.includes("worker is configured."));
   assert.ok(!monitoringApi.includes("worker is configured."));
