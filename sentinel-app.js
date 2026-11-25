@@ -5,8 +5,12 @@
    SUPABASE CONFIGURATION
 ========================= */
 
-const SUPABASE_URL =
-  "https://vceqmqwszvisvxxbgbfs.supabase.co";
+const IS_PR83_PREVIEW_SAFE_MODE =
+  window.location.hostname !== "project-3jyda.vercel.app";
+
+const SUPABASE_URL = IS_PR83_PREVIEW_SAFE_MODE
+  ? "https://preview-disabled.invalid"
+  : "https://vceqmqwszvisvxxbgbfs.supabase.co";
 
 
 const SUPABASE_PUBLISHABLE_KEY =
@@ -20,6 +24,17 @@ const supabaseClient =
     SUPABASE_PUBLISHABLE_KEY
   );
 
+if (IS_PR83_PREVIEW_SAFE_MODE) {
+  const safetyNotice = document.createElement("div");
+  safetyNotice.setAttribute("role", "status");
+  safetyNotice.textContent =
+    "Preview Safe Mode: live account data and database actions are disabled here. Production is unchanged.";
+  safetyNotice.style.cssText =
+    "position:sticky;top:0;z-index:99999;padding:12px 16px;background:#7f1d1d;color:#fff;text-align:center;font-weight:700;font-size:14px;";
+  document.addEventListener("DOMContentLoaded", () => {
+    document.body.prepend(safetyNotice);
+  }, { once: true });
+}
 
 let latestScan = null;
 let isPasswordRecovery = false;
@@ -68,6 +83,26 @@ async function updateAuthUI() {
   const historyStatus = document.getElementById("historyStatus");
 
   if (!authStatus) {
+    return;
+  }
+
+  if (IS_PR83_PREVIEW_SAFE_MODE) {
+    authStatus.className = "notice";
+    authStatus.textContent =
+      "Preview Safe Mode: sign-in, account creation, password reset, and cloud history are disabled in this preview. Production is unchanged.";
+    for (const areaId of ["authForm", "passwordResetArea", "loggedInArea"]) {
+      const area = document.getElementById(areaId);
+      if (!area) continue;
+      area.querySelectorAll("input, button, select, textarea").forEach((control) => {
+        control.disabled = true;
+        control.setAttribute("aria-disabled", "true");
+      });
+    }
+    if (historyStatus) {
+      historyStatus.textContent =
+        "Preview Safe Mode: cloud scan history is disabled here. Production is unchanged.";
+    }
+    if (loggedInArea) loggedInArea.classList.add("is-hidden");
     return;
   }
 
@@ -3633,12 +3668,25 @@ function renderMonitoringDashboard(data) {
       const verification = pending ? `
         <div class="notice">
           <strong>Verify domain ownership</strong>
-          <div class="monitoring-meta">Create this DNS TXT record at your domain provider:</div>
+          <div class="monitoring-meta">Smart mode — automatically checks all three proof methods and accepts the first exact match:</div>
+          <button class="secondary-button" type="button" data-action="verify-monitoring-auto" data-site-id="${escapeHTML(site.id)}">Smart Auto Verify</button>
+          <div class="monitoring-meta">Or choose a method manually:</div>
+          <div class="monitoring-meta">Option 1 — DNS TXT record</div>
           <div class="monitoring-meta">Record name</div>
           <code class="monitoring-code">${escapeHTML("_sentinel-ai-verification." + site.hostname)}</code>
           <div class="monitoring-meta">Record value</div>
           <code class="monitoring-code">${escapeHTML("sentinel-ai-verification=" + site.verification_token)}</code>
           <button class="secondary-button" type="button" data-action="verify-monitoring-site" data-site-id="${escapeHTML(site.id)}">Verify DNS Record</button>
+          <div class="monitoring-meta">Option 2 — HTTPS file (no DNS changes)</div>
+          <div class="monitoring-meta">Upload a plain-text file to this exact path on your website:</div>
+          <code class="monitoring-code">/.well-known/sentinel-ai-verification.txt</code>
+          <div class="monitoring-meta">File contents (one line):</div>
+          <code class="monitoring-code">${escapeHTML("sentinel-ai-verification=" + site.verification_token)}</code>
+          <button class="secondary-button" type="button" data-action="verify-monitoring-file" data-site-id="${escapeHTML(site.id)}">Verify HTTPS File</button>
+          <div class="monitoring-meta">Option 3 — HTML meta tag (no DNS changes or file upload)</div>
+          <div class="monitoring-meta">Add this single line inside the homepage head section:</div>
+          <code class="monitoring-code">${escapeHTML('<meta name="sentinel-ai-verification" content="' + site.verification_token + '">')}</code>
+          <button class="secondary-button" type="button" data-action="verify-monitoring-meta" data-site-id="${escapeHTML(site.id)}">Verify HTML Meta Tag</button>
         </div>
       ` : "";
       return `
@@ -3699,13 +3747,13 @@ async function loadMonitoringDashboard() {
 
     if (!sites.length) {
       status.className = "notice";
-      status.textContent = "No monitored websites yet. Add and verify a domain. Automated scans are not active on this deployment yet.";
+      status.textContent = "No monitored websites yet. Add and verify a domain; scheduled security checks run every 15 minutes.";
     } else if (!verifiedSites.length) {
       status.className = "notice";
       status.textContent = "Complete DNS ownership verification. Scheduled security checks begin after verification.";
     } else {
       status.className = "notice";
-      status.textContent = verifiedSites.length + " verified website(s) saved. Automated scans are not active on this deployment yet; completed runs will appear here after the monitoring worker is configured.";
+      status.textContent = verifiedSites.length + " verified website(s) are scheduled for automatic checks every 15 minutes; completed runs will appear below.";
     }
   } catch (error) {
     status.className = "notice";
@@ -3732,7 +3780,7 @@ async function addMonitoringSite() {
     input.value = "";
     await loadMonitoringDashboard();
     status.className = "success";
-    status.textContent = "Website added. Add the DNS TXT record shown below, then verify it.";
+    status.textContent = "Website added. Complete any one of the DNS TXT, HTTPS file, or HTML meta tag verification methods shown below.";
   } catch (error) {
     status.className = "error";
     status.textContent = error?.message || "Unable to add this website.";
@@ -3745,10 +3793,51 @@ async function verifyMonitoringSite(siteId) {
     await monitoringRequest({ action: "verify", siteId });
     await loadMonitoringDashboard();
     status.className = "success";
-    status.textContent = "Domain ownership verified. Automated scans are not active on this deployment yet; scheduled checks will begin after the monitoring worker is configured.";
+    status.textContent = "Domain ownership verified. The website will be checked on the next scheduled 15-minute run.";
   } catch (error) {
     status.className = "error";
     status.textContent = error?.message || "DNS verification failed.";
+  }
+}
+
+async function verifyMonitoringFile(siteId) {
+  const status = document.getElementById("monitorStatus");
+  try {
+    await monitoringRequest({ action: "verify_file", siteId });
+    await loadMonitoringDashboard();
+    status.className = "success";
+    status.textContent = "Website ownership verified by HTTPS file. Ownership is verified. Confirm the first successful monitoring run in Monitoring Activity.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "HTTPS file verification failed.";
+  }
+}
+
+async function verifyMonitoringAuto(siteId) {
+  const status = document.getElementById("monitorStatus");
+  try {
+    status.className = "notice";
+    status.textContent = "Smart verification is checking DNS, HTTPS file, and homepage meta tag...";
+    const result = await monitoringRequest({ action: "verify_auto", siteId });
+    await loadMonitoringDashboard();
+    status.className = "success";
+    status.textContent = "Ownership verified automatically using " + (result.verification_method || "a valid proof") + ". Ownership is verified. Confirm the first successful monitoring run in Monitoring Activity.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Smart domain verification failed.";
+  }
+}
+
+async function verifyMonitoringMeta(siteId) {
+  const status = document.getElementById("monitorStatus");
+  try {
+    await monitoringRequest({ action: "verify_meta", siteId });
+    await loadMonitoringDashboard();
+    status.className = "success";
+    status.textContent = "Website ownership verified by its HTML meta tag. Ownership is verified. Confirm the first successful monitoring run in Monitoring Activity.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "HTML meta tag verification failed.";
   }
 }
 
