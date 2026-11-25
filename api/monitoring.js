@@ -128,7 +128,7 @@ export default async function handler(req, res) {
         .select("id,url,hostname,status,verified_at,next_scan_at")
         .single();
       if (error) throw error;
-      return send(res, 200, { site: data, message: "Domain ownership verified. Scheduled security checks will begin on the next 15-minute run." });
+      return send(res, 200, { site: data, message: "Domain ownership verified. Automated scans are not active on this deployment yet; scheduled checks will begin after the monitoring worker is configured." });
     }
 
     if (action === "pause" || action === "resume") {
