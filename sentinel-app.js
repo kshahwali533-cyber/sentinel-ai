@@ -3560,7 +3560,8 @@ async function loadAnalyticsDashboard() {
         ? "Improving"
         : trend.direction === "declining" ? "Declining" : "Stable";
       trendText = direction + " · " + sign + change +
-        " points comparing the latest five scans with the previous five.";
+        " points for " + (trend.hostname || "the latest website") +
+        ", comparing its latest five scans with its previous five.";
     }
     setText("analyticsTrend", trendText);
 

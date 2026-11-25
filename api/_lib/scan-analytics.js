@@ -71,18 +71,38 @@ export function aggregateScanAnalytics(rows, now = Date.now()) {
     }
   }
 
-  const latestFive = sorted.slice(0, 5).map((row) => safeScore(row?.security_score)).filter((value) => value !== null);
-  const previousFive = sorted.slice(5, 10).map((row) => safeScore(row?.security_score)).filter((value) => value !== null);
-  let trend = { direction: "insufficient_data", change: null, latest_average: null, previous_average: null };
+  // Compare like with like: a trend is calculated only for the hostname
+  // of the most recent scan, never across unrelated websites.
+  const trendHostname = sorted.map((row) => hostnameOf(row?.website)).find(Boolean) || null;
+  const domainRows = trendHostname
+    ? sorted.filter((row) => hostnameOf(row?.website) === trendHostname)
+    : [];
+  const domainScores = domainRows
+    .map((row) => safeScore(row?.security_score))
+    .filter((value) => value !== null);
+  const latestFive = domainScores.slice(0, 5);
+  const previousFive = domainScores.slice(5, 10);
+  let trend = {
+    direction: "insufficient_data",
+    hostname: trendHostname,
+    change: null,
+    latest_average: null,
+    previous_average: null,
+    latest_scan_count: latestFive.length,
+    previous_scan_count: previousFive.length
+  };
   if (latestFive.length === 5 && previousFive.length === 5) {
     const latestAverage = average(latestFive);
     const previousAverage = average(previousFive);
     const change = Math.round((latestAverage - previousAverage) * 10) / 10;
     trend = {
       direction: change >= 3 ? "improving" : change <= -3 ? "declining" : "stable",
+      hostname: trendHostname,
       change,
       latest_average: Math.round(latestAverage * 10) / 10,
-      previous_average: Math.round(previousAverage * 10) / 10
+      previous_average: Math.round(previousAverage * 10) / 10,
+      latest_scan_count: latestFive.length,
+      previous_scan_count: previousFive.length
     };
   }
 
