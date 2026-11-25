@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 import { processMonitoringQueue } from "../api/_lib/monitoring-worker.js";
+import { getMonitoringDashboardData } from "../api/_lib/monitoring-dashboard.js";
 
 function createMemorySupabase(site) {
   const tables = {
@@ -29,6 +30,22 @@ function createMemorySupabase(site) {
     },
     from(table) {
       return {
+        select() {
+          let rows = tables[table];
+          const query = {
+            eq(column, value) {
+              rows = rows.filter((row) => row[column] === value);
+              return query;
+            },
+            order() {
+              return query;
+            },
+            async limit(count) {
+              return { data: rows.slice(0, count), error: null };
+            }
+          };
+          return query;
+        },
         insert(payload) {
           const row = structuredClone(payload);
           if (table === "monitoring_runs") {
@@ -114,6 +131,21 @@ test("monitoring worker persists a risk-only alert and updates the dashboard sou
   assert.equal(db.tables.monitoring_runs[0].status, "succeeded");
   assert.equal(db.tables.monitoring_sites[0].last_risk_level, "Medium");
   assert.equal(db.tables.monitoring_sites[0].last_result.riskLevel, "Medium");
+
+  db.tables.monitoring_alerts.push({
+    id: "other-user-alert",
+    user_id: "user-2",
+    title: "Private alert",
+    severity: "high",
+    message: "Must not leak",
+    is_read: false
+  });
+  const dashboardData = await getMonitoringDashboardData(db, "user-1");
+  assert.equal(dashboardData.alerts.length, 1);
+  assert.equal(dashboardData.alerts[0].title, "Website security posture changed");
+  assert.equal(dashboardData.runs[0].status, "succeeded");
+  assert.equal(dashboardData.sites[0].last_risk_level, "Medium");
+  assert.equal("verification_token" in dashboardData.sites[0], false);
 });
 
 test("unchanged follow-up scan does not create a duplicate alert", async () => {
