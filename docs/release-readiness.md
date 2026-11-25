@@ -64,6 +64,14 @@ The Security API job applies the candidate private-table RLS migration to its di
 Passing CI and a successful Preview build do not by themselves satisfy the remaining end-to-end release gates above.
 
 
+## Request parser ingress limits (2026-11-25)
+
+- Added Vercel API body-parser limits before the handler receives `req.body`: Scan 32 KiB, AI Mentor 64 KiB, Reports 1 MiB.
+- Retained tighter application-level JSON byte limits: Scan 16 KiB, AI Mentor 32 KiB, Reports 512 KiB.
+- Added `test/request-parser-limits.test.js` to prevent accidental removal or widening of these parser/application limits.
+- This closes the previously documented gap where the handler's own byte check ran only after request parsing. The candidate CI run must pass, and a real oversized-request HTTP test against Preview remains desirable to confirm platform behavior.
+- No Production deployment, `main`, or live Supabase changes were made.
+
 ## Monitoring failure persistence visibility (2026-11-25)
 
 - Monitoring worker now checks the database result when recording a failed run and when rescheduling the monitored site after a failure.
