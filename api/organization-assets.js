@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { isVerifiedMemberAsset } from "./_lib/team-assets.js";
+import { getAvailableTeamAssets, isVerifiedMemberAsset } from "./_lib/team-assets.js";
 
 const admin = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
   ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
       const sharedIds = new Set((shared.data || []).map((item) => item.monitoring_site?.id));
       return reply(res, 200, {
         assets: shared.data || [],
-        available_assets: (available.data || []).filter((item) => !sharedIds.has(item.id)),
+        available_assets: getAvailableTeamAssets(available.data || [], sharedIds, assetSharingEnabled),
         can_manage: ["owner", "admin"].includes(membership.role),
         sharing_enabled: assetSharingEnabled
       });
