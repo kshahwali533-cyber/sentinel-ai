@@ -16,6 +16,9 @@ import { isConfirmedSurfaceReference } from "./_lib/surface-confidence.js";
 import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
 import { isApprovedProductionRequest } from "./_lib/runtime-config.js";
 
+// Reject oversized request bodies in Vercel's parser before req.body is allocated.
+export const config = { api: { bodyParser: { sizeLimit: "32kb" } } };
+
 const supabaseAdmin = createSupabaseAdmin();
 
 export default async function handler(req, res) {
