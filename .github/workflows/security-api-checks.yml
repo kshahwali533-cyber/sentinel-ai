@@ -20,6 +20,7 @@ on:
       - feature/team-asset-sharing-20261114
       - feature/enterprise-policy-controls-20261114
       - feature/usage-metering-20261114
+      - test/monitoring-alert-pipeline-e2e
   push:
     branches:
       - main
@@ -41,6 +42,7 @@ on:
       - feature/team-asset-sharing-20261114
       - feature/enterprise-policy-controls-20261114
       - feature/usage-metering-20261114
+      - test/monitoring-alert-pipeline-e2e
 
 jobs:
   syntax-and-ssrf-guard:
