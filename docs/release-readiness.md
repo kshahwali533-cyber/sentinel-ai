@@ -5,6 +5,7 @@ Status: **Prepared release candidate; NOT ready for production merge/deployment.
 Candidate PR: #90 (draft, base `main`)
 Candidate branch: `fix/api-request-size-limits-2026-11-24`
 Latest candidate code/test commit verified in this readiness update: `7bbc37e3154f676b4fb5990a7a653da56b570e80`.
+Latest documentation-only candidate head: `f04ad93f0d11d4d85f70b522db8e8c95da8a27b6`.
 Previous known-good production deployment to preserve for rollback: `dpl_EMgCFrnCnwDuk9NPdzQWTJj2rjW8` (main deployment, commit `0f9f61da9447c40320d91ef4a3f61ce53b84e744`).
 
 ## Included development work
@@ -22,13 +23,16 @@ Previous known-good production deployment to preserve for rollback: `dpl_EMgCFrn
 
 ## Latest verified CI evidence for candidate code commit
 
-The following PR-triggered checks completed successfully on candidate commit `7bbc37e3154f676b4fb5990a7a653da56b570e80`:
+The following PR-triggered checks completed successfully on candidate code commit `7bbc37e3154f676b4fb5990a7a653da56b570e80`:
 
 - [x] Main Security Hardening: **283 passed, 0 failed**; dependency audit and API syntax steps completed successfully.
 - [x] Research Scope Gate: **57 passed, 0 failed**.
 - [x] Security API checks: **226 passed, 0 failed**; database isolation, pinned-DNS, response-header, and redirect-safety checks also passed.
-- [ ] CodeQL Security Analysis: still running at the time of this update; do not treat it as passed yet.
-- [x] Vercel Preview status for this commit: **success/READY**, Preview deployment only. No Production deployment was changed.
+- [x] CodeQL Security Analysis: **success**.
+- [x] Vercel Preview: **success/READY**, Preview deployment only. No Production deployment was changed.
+- [x] All seven check runs for this exact candidate code commit completed successfully.
+
+The latest documentation-only head `f04ad93f0d11d4d85f70b522db8e8c95da8a27b6` also has successful CodeQL, security, scope-gate, syntax/SSRF, and Vercel Preview checks. Its exact Preview deployment is READY. This is not a Production deployment.
 
 The monitoring tests use fake database and scan clients. They prove simulated worker control flow and failure isolation, not a live Supabase/customer-domain scan or real alert delivery.
 
@@ -43,8 +47,15 @@ The Security API job applies the candidate private-table RLS migration to its di
 - [ ] **Supabase Auth hardening:** leaked-password protection is reported disabled by the security advisor. Enable and verify it before public release; this requires explicit approval for a live setting change.
 - [ ] **Private-table RLS defense-in-depth:** CI tests the candidate migration enabling RLS on `private.scan_usage_reservations`. It is not applied to live Supabase and must be reviewed/approved before rollout.
 - [ ] **Backup readiness:** Supabase Free does not provide scheduled database backups. A verified export and restore procedure is needed before production release.
-- [ ] **Request ingress limit:** current JSON size checks run after Vercel has decoded `req.body`; they cap downstream processing but are not a pre-parser streaming/memory limit. Decide whether a raw-body streaming limit is required before launch.
 - [ ] **Mobile/browser verification:** complete real mobile accessibility, layout, and cross-browser checks against the candidate.
+
+## Verified environment configuration (2026-11-26)
+
+- Vercel environment-variable names and targets were inspected with decryption disabled; no secret values were read or exposed.
+- `CRON_SECRET` is present for the **Production** target and also has Preview-target entries.
+- This supersedes the older note in GitHub issue #22 that Production did not have `CRON_SECRET`.
+- Presence of the variable does **not** prove that the production scheduler successfully invokes the worker or that a live monitoring run and alert complete. Those end-to-end checks remain open.
+- Do not copy, reveal, rotate, or change secret values as part of this documentation update.
 
 ## Rollout and rollback plan
 
@@ -57,19 +68,18 @@ The Security API job applies the candidate private-table RLS migration to its di
 ## Safety boundaries
 
 - Preparation changes are confined to this candidate branch.
-- Production deployment and live Supabase schema/data/settings have not been changed.
+- Production deployment and live Supabase schema/data/settings have not been changed by this readiness update.
 - No branches, files, or deployments have been deleted.
 - Do not merge, deploy to Production, change Supabase, or delete branches/files/deployments without explicit approval.
 
 Passing CI and a successful Preview build do not by themselves satisfy the remaining end-to-end release gates above.
-
 
 ## Request parser ingress limits (2026-11-25)
 
 - Added Vercel API body-parser limits before the handler receives `req.body`: Scan 32 KiB, AI Mentor 64 KiB, Reports 1 MiB.
 - Retained tighter application-level JSON byte limits: Scan 16 KiB, AI Mentor 32 KiB, Reports 512 KiB.
 - Added `test/request-parser-limits.test.js` to prevent accidental removal or widening of these parser/application limits.
-- This closes the previously documented gap where the handler's own byte check ran only after request parsing. The candidate CI run must pass, and a real oversized-request HTTP test against Preview remains desirable to confirm platform behavior.
+- A real oversized-request HTTP test against Preview remains desirable to confirm platform behavior.
 - No Production deployment, `main`, or live Supabase changes were made.
 
 ## Monitoring failure persistence visibility (2026-11-25)
@@ -77,7 +87,7 @@ Passing CI and a successful Preview build do not by themselves satisfy the remai
 - Monitoring worker now checks the database result when recording a failed run and when rescheduling the monitored site after a failure.
 - If either persistence write fails or throws, the worker logs the secondary failure, returns `ok: false`, and reports a `persistenceFailures` count instead of silently presenting the failure path as fully handled.
 - Added a regression test simulating both failure-record writes failing; the test verifies both attempts and the explicit degraded response.
-- Candidate head: `7bbc37e3154f676b4fb5990a7a653da56b570e80`.
-- Main Security Hardening, Research Scope Gate, Security API checks, and Vercel Preview have passed for this exact commit. CodeQL remains in progress.
+- Candidate code head: `7bbc37e3154f676b4fb5990a7a653da56b570e80`.
+- Main Security Hardening, Research Scope Gate, Security API checks, CodeQL, and Vercel Preview all passed for this exact commit.
 - These are simulated CI tests using fake database and scan clients; no live Supabase writes or customer scans were performed.
 - PR #90 remains Draft and unmerged. No `main`, Production, or live Supabase changes were made.
