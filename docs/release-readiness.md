@@ -91,3 +91,12 @@ Passing CI and a successful Preview build do not by themselves satisfy the remai
 - Main Security Hardening, Research Scope Gate, Security API checks, CodeQL, and Vercel Preview all passed for this exact commit.
 - These are simulated CI tests using fake database and scan clients; no live Supabase writes or customer scans were performed.
 - PR #90 remains Draft and unmerged. No `main`, Production, or live Supabase changes were made.
+
+
+## Live production scheduler verification (2026-11-26)
+
+- Read-only Supabase inspection confirms the job `sentinel-monitoring-every-15-minutes` is present and active with schedule `*/15 * * * *`.
+- The 10 most recent `cron.job_run_details` entries all report `succeeded`.
+- The latest retained `pg_net` HTTP response for the worker endpoint is HTTP **200**, with `ok: true`, `claimed: 1`, `succeeded: 1`, `failed: 0`, `alerts: 0`, and `retries: 0`.
+- This confirms the scheduler, authenticated worker invocation, and one real production monitoring batch succeeded. It does not prove email/webhook delivery; alerts remain in-app. Zero alerts means no alert condition was raised in that run, not that alert delivery was tested.
+- Secret values were not queried or exposed. No database writes or configuration changes were made during this verification.
