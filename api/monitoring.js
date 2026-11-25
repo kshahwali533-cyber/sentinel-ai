@@ -97,6 +97,7 @@ async function getUser(req) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
   if (!supabaseAdmin) return send(res, 503, { error: "Monitoring service is not configured." });
   if (!["GET", "POST"].includes(req.method)) {
     res.setHeader("Allow", "GET, POST");
