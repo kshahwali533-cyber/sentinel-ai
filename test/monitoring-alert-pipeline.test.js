@@ -172,7 +172,7 @@ test("the real dashboard renderer displays saved alerts and safely escapes untru
     "document",
     "escapeHTML",
     "monitoringDate",
-    rendererSource + "\\nreturn renderMonitoringDashboard;"
+    rendererSource + "\nreturn renderMonitoringDashboard;"
   )(document, escapeHTML, monitoringDate);
   renderMonitoringDashboard({
     sites: [],
