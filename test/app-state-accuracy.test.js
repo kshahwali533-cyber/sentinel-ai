@@ -19,17 +19,16 @@ test("saving a cloud scan refreshes analytics after cloud history", () => {
   assert.ok(analyticsRefresh > historyRefresh, "analytics must refresh after cloud history");
 });
 
-test("monitoring dashboard does not claim scheduled scans are active before worker setup", () => {
-  assert.ok(app.includes("Automated scans are not active on this deployment yet."));
-  assert.ok(app.includes("after the monitoring worker is configured."));
-  assert.ok(!app.includes("scheduled security checks run every 15 minutes."));
-  assert.ok(!app.includes("scheduled for automatic checks every 15 minutes"));
+test("monitoring dashboard accurately describes the active scheduler and pending first run", () => {
+  assert.ok(app.includes("scheduled for automatic checks every 15 minutes"));
+  assert.ok(app.includes("Confirm the first successful monitoring run in Monitoring Activity."));
+  assert.ok(!app.includes("Automated scans are not active on this deployment yet."));
 });
 
-test("monitoring page and verification API describe scheduler activation honestly", () => {
-  assert.ok(page.includes("automated monitoring is not active on this deployment yet."));
-  assert.ok(page.includes("Scheduled scans will begin only after the monitoring worker is configured."));
-  assert.ok(monitoringApi.includes("Automated scans are not active on this deployment yet; scheduled checks will begin after the monitoring worker is configured."));
-  assert.ok(!page.includes("Automated 15-minute scheduling is active."));
-  assert.ok(!monitoringApi.includes("next 15-minute run"));
+test("monitoring page and verification API accurately describe scheduler activation", () => {
+  assert.ok(page.includes("The 15-minute scheduler is active; scheduled scans begin after a domain is verified."));
+  assert.ok(page.includes("Monitoring runs and in-app alerts will appear after the first successful scan."));
+  assert.ok(monitoringApi.includes("Scheduled security checks will begin on the next 15-minute run."));
+  assert.ok(!page.includes("worker is configured."));
+  assert.ok(!monitoringApi.includes("worker is configured."));
 });
