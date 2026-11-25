@@ -168,11 +168,13 @@ test("the real dashboard renderer displays saved alerts and safely escapes untru
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
   const monitoringDate = () => "Test date";
-  new Function("document", "escapeHTML", "monitoringDate", rendererSource)(
-    document,
-    escapeHTML,
-    monitoringDate
-  )({
+  const renderMonitoringDashboard = new Function(
+    "document",
+    "escapeHTML",
+    "monitoringDate",
+    rendererSource + "\\nreturn renderMonitoringDashboard;"
+  )(document, escapeHTML, monitoringDate);
+  renderMonitoringDashboard({
     sites: [],
     runs: [],
     alerts: [{
