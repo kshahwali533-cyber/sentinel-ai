@@ -11,11 +11,13 @@ const routes = [
 test("security-sensitive JSON APIs enforce a Vercel parser limit before handler execution", () => {
   for (const route of routes) {
     const source = fs.readFileSync(route.path, "utf8");
-    assert.match(
-      source,
-      new RegExp("export const config = \\{ api: \\{ bodyParser: \\{ sizeLimit: \"" + route.parserLimit + "\" \\} \\} \\}"),
+    assert.ok(
+      source.includes('export const config = { api: { bodyParser: { sizeLimit: "' + route.parserLimit + '" } } }'),
       route.path + " must cap Vercel body parsing"
     );
-    assert.match(source, new RegExp("isWithinJsonBodyLimit\\(body, " + route.applicationLimit.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&") + "\\)"), route.path + " must retain its application-level byte guard");
+    assert.ok(
+      source.includes("isWithinJsonBodyLimit(body, " + route.applicationLimit + ")"),
+      route.path + " must retain its application-level byte guard"
+    );
   }
 });
