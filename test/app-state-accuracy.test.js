@@ -32,3 +32,34 @@ test("monitoring page and verification API describe scheduler activation honestl
   assert.ok(monitoringApi.includes("Scheduled security checks will begin on the next 15-minute run."));
   assert.ok(!monitoringApi.includes("15-minute monitoring is enabled."));
 });
+
+
+test("protected Preview safe mode uses a release-neutral notice and never starts live scans", () => {
+  assert.ok(app.includes("const IS_PREVIEW_SAFE_MODE ="));
+  assert.ok(app.includes("SENTINEL AI PREVIEW SAFE MODE:"));
+  assert.ok(!app.includes("PR #83 PREVIEW SAFE MODE"));
+  assert.match(app, /async function runSecurityScan\(isRescan = false\)\s*\{\s*if \(IS_PREVIEW_SAFE_MODE\)/);
+  const start = app.indexOf("async function runSecurityScan");
+  const end = app.indexOf("/* =========================", start);
+  const scanFunction = app.slice(start, end === -1 ? undefined : end);
+  const guard = scanFunction.indexOf("if (IS_PREVIEW_SAFE_MODE)");
+  const request = scanFunction.indexOf('fetch(\n        "/api/scan"');
+  assert.ok(guard >= 0, "Preview guard must exist in the scan action");
+  assert.ok(request > guard, "Preview guard must run before any scanner request");
+  assert.ok(scanFunction.includes("No scan request was sent"));
+});
+
+
+test("protected Preview clearly disables account-backed controls and labels unavailable features", () => {
+  assert.ok(page.includes('id="authIntro"'));
+  assert.ok(app.includes("Account creation and cloud scan history are unavailable in this protected Preview."));
+  for (const id of [
+    "analyticsStatus", "monitorStatus", "monitorAlerts", "monitorRuns",
+    "intelStatus", "researchStatus", "organizationStatus", "usageStatus"
+  ]) {
+    assert.ok(app.includes(id + ":"), `Preview safe mode must label ${id}`);
+  }
+  assert.ok(app.includes('button[data-action]:not([data-action="run-security-scan"])'));
+  assert.ok(app.includes('button.disabled = true;'));
+  assert.ok(app.includes('section.querySelectorAll("input, textarea, select")'));
+});

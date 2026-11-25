@@ -5,8 +5,14 @@
    SUPABASE CONFIGURATION
 ========================= */
 
-const SUPABASE_URL =
-  "https://vceqmqwszvisvxxbgbfs.supabase.co";
+// Production features are enabled only by the server-issued runtime
+// configuration. Missing or invalid configuration always fails closed.
+const IS_PREVIEW_SAFE_MODE =
+  window.SENTINEL_RUNTIME_CONFIG?.isProduction !== true;
+
+const SUPABASE_URL = IS_PREVIEW_SAFE_MODE
+  ? "https://preview-disabled.invalid"
+  : "https://vceqmqwszvisvxxbgbfs.supabase.co";
 
 
 const SUPABASE_PUBLISHABLE_KEY =
@@ -20,9 +26,21 @@ const supabaseClient =
     SUPABASE_PUBLISHABLE_KEY
   );
 
+if (IS_PREVIEW_SAFE_MODE) {
+  const safetyNotice = document.createElement("div");
+  safetyNotice.setAttribute("role", "status");
+  safetyNotice.textContent =
+    "SENTINEL AI PREVIEW SAFE MODE: account data, database-backed scans, AI Mentor, monitoring, and database actions are disabled here. Production is unchanged.";
+  safetyNotice.style.cssText =
+    "position:sticky;top:0;z-index:99999;padding:12px 16px;background:#7f1d1d;color:#fff;text-align:center;font-weight:700;font-size:14px;";
+  document.addEventListener("DOMContentLoaded", () => {
+    document.body.prepend(safetyNotice);
+  }, { once: true });
+}
+
 
 let latestScan = null;
-let isPasswordRecovery = false;
+let authUiRefreshTimer = null;
   function trackEvent(eventName) {
   try {
     if (typeof window.va === "function") {
@@ -57,6 +75,17 @@ function escapeHTML(value) {
    AUTH UI
 ========================= */
 
+function scheduleAuthUIRefresh() {
+  if (authUiRefreshTimer !== null) {
+    window.clearTimeout(authUiRefreshTimer);
+  }
+
+  authUiRefreshTimer = window.setTimeout(() => {
+    authUiRefreshTimer = null;
+    void updateAuthUI();
+  }, 0);
+}
+
 async function updateAuthUI() {
   const authStatus = document.getElementById("authStatus");
   const authForm = document.getElementById("authForm");
@@ -71,23 +100,91 @@ async function updateAuthUI() {
     return;
   }
 
+  if (IS_PREVIEW_SAFE_MODE) {
+    const previewMessage =
+      "Preview Safe Mode is active. Account data and database-backed features are disabled in this protected Preview. Production is unchanged.";
+    authStatus.className = "notice";
+    authStatus.textContent = previewMessage;
+    const authIntro = document.getElementById("authIntro");
+    if (authIntro) {
+      authIntro.textContent =
+        "Account creation and cloud scan history are unavailable in this protected Preview.";
+    }
+    if (authForm) authForm.classList.add("is-hidden");
+    if (passwordResetArea) passwordResetArea.classList.add("is-hidden");
+    if (loggedInArea) loggedInArea.classList.add("is-hidden");
+    if (loggedInEmail) loggedInEmail.textContent = "";
+
+    const previewStatuses = {
+      historyStatus: "Preview Safe Mode: cloud scan history is disabled here.",
+      analyticsStatus: "Preview Safe Mode: private account analytics are unavailable here.",
+      analyticsRisk: "Unavailable in protected Preview.",
+      analyticsTrend: "Unavailable in protected Preview.",
+      analyticsWarnings: "Unavailable in protected Preview.",
+      monitorStatus: "Preview Safe Mode: domain verification and scheduled monitoring are disabled here.",
+      monitorAlerts: "Security alerts are unavailable in protected Preview.",
+      monitorRuns: "Monitoring run history is unavailable in protected Preview.",
+      intelStatus: "Preview Safe Mode: account-linked vulnerability intelligence is disabled here.",
+      researchStatus: "Preview Safe Mode: private research actions are disabled here.",
+      organizationStatus: "Preview Safe Mode: team workspace actions are disabled here.",
+      usageStatus: "Preview Safe Mode: account usage data is unavailable here."
+    };
+    for (const [id, message] of Object.entries(previewStatuses)) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = message;
+        element.classList.add("notice");
+      }
+    }
+
+    for (const id of ["usageSummary", "monitorSites", "intelResults"]) {
+      const element = document.getElementById(id);
+      if (element) element.textContent = "";
+    }
+
+    document.querySelectorAll(
+      'button[data-action]:not([data-action="run-security-scan"]):not([data-action="toggle-password"])'
+    ).forEach((button) => {
+      button.disabled = true;
+      button.title = "Unavailable in protected Preview Safe Mode.";
+      button.setAttribute("aria-disabled", "true");
+    });
+    for (const sectionId of ["monitoring", "intelligence", "research", "teams"]) {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.querySelectorAll("input, textarea, select").forEach((control) => {
+          control.disabled = true;
+          control.setAttribute("aria-disabled", "true");
+        });
+      }
+    }
+    return;
+  }
+
   try {
-    console.log("AUTH DEBUG: before getSession");
+let sessionResult;
+  let sessionTimeoutId;
 
-const {
-  data: { session },
-  error
-} = await Promise.race([
-  supabaseClient.auth.getSession(),
-  new Promise((_, reject) =>
-    setTimeout(
-      () => reject(new Error("getSession timeout after 8 seconds")),
-      8000
-    )
-  )
-]);
+  try {
+    sessionResult = await Promise.race([
+      supabaseClient.auth.getSession(),
+      new Promise((_, reject) => {
+        sessionTimeoutId = window.setTimeout(
+          () => reject(new Error("getSession timeout after 8 seconds")),
+          8000
+        );
+      })
+    ]);
+  } finally {
+    if (sessionTimeoutId !== undefined) {
+      window.clearTimeout(sessionTimeoutId);
+    }
+  }
 
-console.log("AUTH DEBUG: after getSession");
+  const {
+    data: { session },
+    error
+  } = sessionResult;
 
 if (error) {
   throw error;
@@ -264,12 +361,6 @@ async function resetPassword() {
     authStatus.className = "success";
     authStatus.textContent =
       "✅ Password reset link sent. Please check your email.";
-const otpResetArea =
-  document.getElementById("otpResetArea");
-
-if (otpResetArea) {
-  otpResetArea.classList.remove("is-hidden");
-}
   } catch (error) {
     console.error("Password Reset Error:", error);
 
@@ -280,69 +371,6 @@ if (otpResetArea) {
   }
   }
   /* =========================
-   VERIFY PASSWORD RESET OTP
-========================= */
-
-async function verifyPasswordResetOtp() {
-  const emailInput = document.getElementById("authEmail");
-  const otpInput = document.getElementById("resetOtp");
-  const authStatus = document.getElementById("authStatus");
-
-  if (!emailInput || !otpInput || !authStatus) {
-    console.error("OTP Verification: Required elements not found.");
-    return;
-  }
-
-  const email = emailInput.value.trim();
-  const token = otpInput.value.trim();
-
-  if (!email || !token) {
-    authStatus.className = "error";
-    authStatus.textContent =
-      "⚠️ Please enter your email and OTP.";
-    return;
-  }
-
-  authStatus.className = "notice";
-  authStatus.textContent =
-    "🔐 Verifying OTP...";
-
-  try {
-    const { error } =
-      await supabaseClient.auth.verifyOtp({
-        email: email,
-        token: token,
-        type: "recovery"
-      });
-
-    if (error) {
-      throw error;
-    }
-
-    isPasswordRecovery = true;
-
-    authStatus.className = "success";
-    authStatus.textContent =
-      "✅ OTP verified. You can now create a new password.";
-
-    const passwordResetArea =
-      document.getElementById("passwordResetArea");
-
-    if (passwordResetArea) {
-      passwordResetArea.classList.remove("is-hidden");
-    }
-
-  } catch (error) {
-    console.error("OTP Verification Error:", error);
-
-    authStatus.className = "error";
-    authStatus.textContent =
-      "❌ " +
-      (error?.message || "Invalid or expired OTP.");
-  }
-}
-
-/* =========================
    UPDATE PASSWORD
 ========================= */
 
@@ -401,8 +429,6 @@ async function updatePassword() {
     newPasswordInput.value = "";
     confirmPasswordInput.value = "";
 
-    isPasswordRecovery = false;
-
     const passwordResetArea =
       document.getElementById("passwordResetArea");
 
@@ -410,7 +436,7 @@ async function updatePassword() {
       passwordResetArea.classList.add("is-hidden");
     }
 
-    await updateAuthUI();
+    scheduleAuthUIRefresh();
 
   } catch (error) {
     console.error("Update Password Error:", error);
@@ -480,7 +506,7 @@ if (data?.user) {
     }
 
     passwordInput.value = "";
-    await updateAuthUI();
+    if (data?.session) scheduleAuthUIRefresh();
 
   } catch (error) {
     console.error("Signup Error:", error);
@@ -538,7 +564,7 @@ async function signInUser() {
       "✅ Login successful. Welcome to Sentinel AI.";
 
     passwordInput.value = "";
-    await updateAuthUI();
+    scheduleAuthUIRefresh();
 
   } catch (error) {
     console.error("Login Error:", error);
@@ -576,27 +602,7 @@ async function signOutUser() {
     }
     trackSentinelEvent("logout_success");
     
-    const authForm = document.getElementById("authForm");
-    const loggedInArea = document.getElementById("loggedInArea");
-    const loggedInEmail = document.getElementById("loggedInEmail");
-    const historyStatus = document.getElementById("historyStatus");
-
-    if (authForm) {
-      authForm.classList.remove("is-hidden");
-    }
-
-    if (loggedInArea) {
-      loggedInArea.classList.add("is-hidden");
-    }
-
-    if (loggedInEmail) {
-      loggedInEmail.textContent = "";
-    }
-
-    if (historyStatus) {
-      historyStatus.textContent =
-        "📱 Local history is active. Log in to enable cloud history.";
-    }
+    scheduleAuthUIRefresh();
 
     authStatus.className = "success";
     authStatus.textContent =
@@ -1009,6 +1015,21 @@ async function clearSupabaseHistory() {
 ========================= */
 
 async function runSecurityScan(isRescan = false) {
+
+  if (IS_PREVIEW_SAFE_MODE) {
+    const previewResult = document.getElementById("result");
+    if (previewResult) {
+      previewResult.classList.remove("is-hidden");
+      previewResult.innerHTML = `
+        <div class="notice" role="status" aria-live="polite">
+          <strong>Preview Safe Mode is active.</strong>
+          <br><br>
+          Live website scanning is disabled in this protected Preview. No scan request was sent and no account or database data was accessed. Production is unchanged.
+        </div>
+      `;
+    }
+    return;
+  }
 
   const websiteInput =
     document.getElementById("website");
@@ -3632,12 +3653,25 @@ function renderMonitoringDashboard(data) {
       const verification = pending ? `
         <div class="notice">
           <strong>Verify domain ownership</strong>
-          <div class="monitoring-meta">Create this DNS TXT record at your domain provider:</div>
+          <div class="monitoring-meta">Smart mode — automatically checks all three proof methods and accepts the first exact match:</div>
+          <button class="secondary-button" type="button" data-action="verify-monitoring-auto" data-site-id="${escapeHTML(site.id)}">Smart Auto Verify</button>
+          <div class="monitoring-meta">Or choose a method manually:</div>
+          <div class="monitoring-meta">Option 1 — DNS TXT record</div>
           <div class="monitoring-meta">Record name</div>
           <code class="monitoring-code">${escapeHTML("_sentinel-ai-verification." + site.hostname)}</code>
           <div class="monitoring-meta">Record value</div>
           <code class="monitoring-code">${escapeHTML("sentinel-ai-verification=" + site.verification_token)}</code>
           <button class="secondary-button" type="button" data-action="verify-monitoring-site" data-site-id="${escapeHTML(site.id)}">Verify DNS Record</button>
+          <div class="monitoring-meta">Option 2 — HTTPS file (no DNS changes)</div>
+          <div class="monitoring-meta">Upload a plain-text file to this exact path on your website:</div>
+          <code class="monitoring-code">/.well-known/sentinel-ai-verification.txt</code>
+          <div class="monitoring-meta">File contents (one line):</div>
+          <code class="monitoring-code">${escapeHTML("sentinel-ai-verification=" + site.verification_token)}</code>
+          <button class="secondary-button" type="button" data-action="verify-monitoring-file" data-site-id="${escapeHTML(site.id)}">Verify HTTPS File</button>
+          <div class="monitoring-meta">Option 3 — HTML meta tag (no DNS changes or file upload)</div>
+          <div class="monitoring-meta">Add this single line inside the homepage head section:</div>
+          <code class="monitoring-code">${escapeHTML('<meta name="sentinel-ai-verification" content="' + site.verification_token + '">')}</code>
+          <button class="secondary-button" type="button" data-action="verify-monitoring-meta" data-site-id="${escapeHTML(site.id)}">Verify HTML Meta Tag</button>
         </div>
       ` : "";
       return `
@@ -3731,7 +3765,7 @@ async function addMonitoringSite() {
     input.value = "";
     await loadMonitoringDashboard();
     status.className = "success";
-    status.textContent = "Website added. Add the DNS TXT record shown below, then verify it.";
+    status.textContent = "Website added. Complete any one of the DNS TXT, HTTPS file, or HTML meta tag verification methods shown below.";
   } catch (error) {
     status.className = "error";
     status.textContent = error?.message || "Unable to add this website.";
@@ -3748,6 +3782,47 @@ async function verifyMonitoringSite(siteId) {
   } catch (error) {
     status.className = "error";
     status.textContent = error?.message || "DNS verification failed.";
+  }
+}
+
+async function verifyMonitoringFile(siteId) {
+  const status = document.getElementById("monitorStatus");
+  try {
+    await monitoringRequest({ action: "verify_file", siteId });
+    await loadMonitoringDashboard();
+    status.className = "success";
+    status.textContent = "Website ownership verified by HTTPS file. The next scheduled security check will run within 15 minutes.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "HTTPS file verification failed.";
+  }
+}
+
+async function verifyMonitoringAuto(siteId) {
+  const status = document.getElementById("monitorStatus");
+  try {
+    status.className = "notice";
+    status.textContent = "Smart verification is checking DNS, HTTPS file, and homepage meta tag...";
+    const result = await monitoringRequest({ action: "verify_auto", siteId });
+    await loadMonitoringDashboard();
+    status.className = "success";
+    status.textContent = "Ownership verified automatically using " + (result.verification_method || "a valid proof") + ". Security monitoring will begin within 15 minutes.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "Smart domain verification failed.";
+  }
+}
+
+async function verifyMonitoringMeta(siteId) {
+  const status = document.getElementById("monitorStatus");
+  try {
+    await monitoringRequest({ action: "verify_meta", siteId });
+    await loadMonitoringDashboard();
+    status.className = "success";
+    status.textContent = "Website ownership verified by its HTML meta tag. The next scheduled security check will run within 15 minutes.";
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "HTML meta tag verification failed.";
   }
 }
 
@@ -4241,39 +4316,37 @@ async function revokeOrganizationInvitation(organizationId, invitationId) {
 
 document.addEventListener(
   "DOMContentLoaded",
-  async function() {
-
+  function() {
     renderScanHistory();
 
-    await updateAuthUI();
+    // Subscribe before the initial refresh so no auth change can be missed.
+    // Supabase auth callbacks must stay synchronous: calling Supabase methods
+    // from inside this callback can deadlock its internal auth lock.
+    supabaseClient.auth.onAuthStateChange(function(event) {
+      if (event === "INITIAL_SESSION") {
+        return;
+      }
 
-    supabaseClient.auth.onAuthStateChange(
-      async function(event) {
+      if (event === "PASSWORD_RECOVERY") {
+        const passwordResetArea =
+          document.getElementById("passwordResetArea");
 
-        if (event === "PASSWORD_RECOVERY") {
-
-          isPasswordRecovery = true;
-
-          const passwordResetArea =
-            document.getElementById("passwordResetArea");
-
-          if (passwordResetArea) {
-            passwordResetArea.classList.remove("is-hidden");
-          }
-
-          const authStatus =
-            document.getElementById("authStatus");
-
-          if (authStatus) {
-            authStatus.className = "success";
-            authStatus.textContent =
-              "🔑 Password recovery verified. Please create a new password.";
-          }
+        if (passwordResetArea) {
+          passwordResetArea.classList.remove("is-hidden");
         }
 
-        await updateAuthUI();
+        const authStatus = document.getElementById("authStatus");
+        if (authStatus) {
+          authStatus.className = "success";
+          authStatus.textContent =
+            "🔑 Password recovery verified. Please create a new password.";
+        }
       }
-    );
 
+      // Run after the Supabase callback has returned and released its lock.
+      scheduleAuthUIRefresh();
+    });
+
+    void updateAuthUI();
   }
 );

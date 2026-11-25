@@ -101,6 +101,32 @@ test("monitoring scan retries one transient upstream failure and succeeds", asyn
   assert.equal(result.scan.score, 82);
 });
 
+test("monitoring scan rejects a successful HTTP response with an invalid score", async () => {
+  let calls = 0;
+  const fakeFetch = async () => {
+    calls += 1;
+    return { ok: true, status: 200, json: async () => ({ score: 140, riskLevel: "High" }) };
+  };
+  await assert.rejects(
+    fetchMonitoringScan(fakeFetch, "https://sentinel.example/api/scan", "https://owned.example", "cron-secret", { wait: async () => {} }),
+    /MONITORING_SCAN_INVALID_RESPONSE/
+  );
+  assert.equal(calls, 1);
+});
+
+test("monitoring scan rejects a successful HTTP response without a risk level", async () => {
+  let calls = 0;
+  const fakeFetch = async () => {
+    calls += 1;
+    return { ok: true, status: 200, json: async () => ({ score: 82 }) };
+  };
+  await assert.rejects(
+    fetchMonitoringScan(fakeFetch, "https://sentinel.example/api/scan", "https://owned.example", "cron-secret", { wait: async () => {} }),
+    /MONITORING_SCAN_INVALID_RESPONSE/
+  );
+  assert.equal(calls, 1);
+});
+
 test("monitoring scan does not retry permanent client errors", async () => {
   let calls = 0;
   const fakeFetch = async () => {

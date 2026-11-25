@@ -15,9 +15,11 @@ test("CSP limits images and fonts to first-party and data sources", () => {
 });
 
 test("cross-origin policies are explicit without requiring cross-origin isolation", () => {
+  assert.equal(get("Access-Control-Allow-Origin"), "", "same-origin APIs must not emit a stale fixed-origin CORS grant");
   assert.equal(get("Cross-Origin-Opener-Policy"), "same-origin-allow-popups");
   assert.equal(get("Cross-Origin-Resource-Policy"), "same-origin");
   assert.equal(get("X-Content-Type-Options"), "nosniff");
+  assert.equal(get("Strict-Transport-Security"), "max-age=31536000; includeSubDomains");
   assert.equal(get("Permissions-Policy"), "camera=(), microphone=(), geolocation=()");
   assert.equal(get("Cross-Origin-Embedder-Policy"), "");
 });

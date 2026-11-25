@@ -1,33 +1,43 @@
 import { extractHTMLLinks } from "./_lib/html-link-discovery.js";
+import { parseHttpUrl } from "./_lib/http-url.js";
 import dns from "node:dns/promises";
 import net from "node:net";
 import { isPublicIP } from "./_lib/public-ip.js";
 import { readTextLimited } from "./_lib/read-limited.js";
 import { calculateScanScore } from "./_lib/scan-score.js";
 import { createCheckEvidence } from "./_lib/finding-validation.js";
-import { hasValidFrameProtection } from "./_lib/security-header-analysis.js";
-import { createClient } from "@supabase/supabase-js";
+import { hasValidFrameProtection, hasRecognizedReferrerPolicy, hasRecognizedCrossOriginPolicy } from "./_lib/security-header-analysis.js";
+import { createSupabaseAdmin } from "./_lib/supabase-admin.js";
 import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 import { getTrustedClientIp } from "./_lib/client-ip.js";
 import { createSafeFetch } from "./_lib/safe-fetch.js";
 import { createPinnedRequest } from "./_lib/pinned-request.js";
 import { isConfirmedSurfaceReference } from "./_lib/surface-confidence.js";
+import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
+import { isApprovedProductionRequest } from "./_lib/runtime-config.js";
 
-const supabaseAdmin =
-  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(
-        process.env.SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
-        {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false
-          }
-        }
-      )
-    : null;
+// Reject oversized request bodies in Vercel's parser before req.body is allocated.
+export const config = { api: { bodyParser: { sizeLimit: "32kb" } } };
+
+const supabaseAdmin = createSupabaseAdmin();
 
 export default async function handler(req, res) {
+  // Reuse this existing API function for the tiny public runtime-config script.
+  // This avoids adding a 13th Serverless Function on the Vercel Hobby plan.
+  if (req.method === "GET" && req.query?.runtime_config === "1") {
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+    const isProduction = isApprovedProductionRequest({
+      env: process.env,
+      host: req.headers?.host
+    });
+    return res.status(200).send(
+      "window.SENTINEL_RUNTIME_CONFIG = Object.freeze(" +
+      JSON.stringify({ isProduction }) +
+      ");"
+    );
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed."
@@ -38,6 +48,12 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body || {};
+
+    // Bound decoded scan input before rate-limit, DNS, or network work.
+    // The platform has already parsed req.body; this limits downstream processing.
+    if (!isWithinJsonBodyLimit(body, 16 * 1024)) {
+      return res.status(413).json({ error: "Scan request is too large. Submit only the target website URL and try again." });
+    }
 
 if (
   typeof body !== "object" ||
@@ -654,18 +670,20 @@ if (
         "referrer-policy"
       );
 
-    if (referrerPolicy) {
+    if (hasRecognizedReferrerPolicy(referrerPolicy)) {
       addCheck(
         "Referrer-Policy",
         "PASS",
-        "Referrer-Policy was detected."
+        "A recognized Referrer-Policy value was detected."
       );
     } else {
       addCheck(
         "Referrer-Policy",
         "INFO",
-        "Referrer-Policy was not detected.",
-        "Consider using a restrictive Referrer-Policy."
+        referrerPolicy
+          ? "A Referrer-Policy header was present, but its value was not recognized."
+          : "Referrer-Policy was not detected.",
+        "Use a recognized Referrer-Policy value appropriate for the website."
       );
     }
 
@@ -675,20 +693,16 @@ if (
         "permissions-policy"
       );
 
-    if (permissionsPolicy) {
-      addCheck(
-        "Permissions-Policy",
-        "PASS",
-        "Permissions-Policy was detected."
-      );
-    } else {
-      addCheck(
-        "Permissions-Policy",
-        "INFO",
-        "Permissions-Policy was not detected.",
-        "Consider adding Permissions-Policy."
-      );
-    }
+    addCheck(
+      "Permissions-Policy",
+      "INFO",
+      permissionsPolicy
+        ? "Permissions-Policy was detected; individual directives and origins are not fully validated."
+        : "Permissions-Policy was not detected.",
+      permissionsPolicy
+        ? "Review each directive against the browser features the website actually needs."
+        : "Consider adding a Permissions-Policy appropriate for the website."
+    );
 
     // CORS
     const cors =
@@ -827,18 +841,20 @@ if (
         "cross-origin-opener-policy"
       );
 
-    if (coop) {
+    if (hasRecognizedCrossOriginPolicy(coop, "coop")) {
       addCheck(
         "Cross-Origin-Opener-Policy",
         "PASS",
-        "Cross-Origin-Opener-Policy was detected."
+        "A recognized Cross-Origin-Opener-Policy value was detected."
       );
     } else {
       addCheck(
         "Cross-Origin-Opener-Policy",
         "INFO",
-        "Cross-Origin-Opener-Policy was not detected.",
-        "Consider COOP where appropriate."
+        coop
+          ? "A Cross-Origin-Opener-Policy header was present, but its value was not recognized."
+          : "Cross-Origin-Opener-Policy was not detected.",
+        "Use a recognized Cross-Origin-Opener-Policy value appropriate for the application."
       );
     }
 
@@ -848,18 +864,20 @@ if (
         "cross-origin-resource-policy"
       );
 
-    if (corp) {
+    if (hasRecognizedCrossOriginPolicy(corp, "corp")) {
       addCheck(
         "Cross-Origin-Resource-Policy",
         "PASS",
-        "Cross-Origin-Resource-Policy was detected."
+        "A recognized Cross-Origin-Resource-Policy value was detected."
       );
     } else {
       addCheck(
         "Cross-Origin-Resource-Policy",
         "INFO",
-        "Cross-Origin-Resource-Policy was not detected.",
-        "Consider CORP where appropriate."
+        corp
+          ? "A Cross-Origin-Resource-Policy header was present, but its value was not recognized."
+          : "Cross-Origin-Resource-Policy was not detected.",
+        "Use a recognized Cross-Origin-Resource-Policy value appropriate for the application."
       );
     }
 
@@ -869,18 +887,20 @@ if (
         "cross-origin-embedder-policy"
       );
 
-    if (coep) {
+    if (hasRecognizedCrossOriginPolicy(coep, "coep")) {
       addCheck(
         "Cross-Origin-Embedder-Policy",
         "PASS",
-        "Cross-Origin-Embedder-Policy was detected."
+        "A recognized Cross-Origin-Embedder-Policy value was detected."
       );
     } else {
       addCheck(
         "Cross-Origin-Embedder-Policy",
         "INFO",
-        "Cross-Origin-Embedder-Policy was not detected.",
-        "Consider COEP where appropriate."
+        coep
+          ? "A Cross-Origin-Embedder-Policy header was present, but its value was not recognized."
+          : "Cross-Origin-Embedder-Policy was not detected.",
+        "Use a recognized Cross-Origin-Embedder-Policy value appropriate for the application."
       );
     }
 
@@ -1161,29 +1181,16 @@ if (html) {
     const rawHref =
       typeof match === "string" ? match.trim() : "";
 
-    if (!rawHref) {
-      continue;
-    }
-
-    if (
-      rawHref.startsWith("#") ||
-      rawHref.startsWith("mailto:") ||
-      rawHref.startsWith("tel:") ||
-      rawHref.startsWith("javascript:")
-    ) {
+    if (!rawHref || rawHref.startsWith("#")) {
       continue;
     }
 
     try {
-      const discoveredURL =
-        new URL(
-          rawHref,
-          finalTarget.href
-        );
+      const discoveredURL = parseHttpUrl(rawHref, finalTarget.href);
 
       if (
-        discoveredURL.origin !==
-        finalTarget.origin
+        !discoveredURL ||
+        discoveredURL.origin !== finalTarget.origin
       ) {
         continue;
       }
@@ -1929,31 +1936,12 @@ if (html) {
         continue;
       }
 
-      if (
-        rawSrc.startsWith("javascript:") ||
-        rawSrc.startsWith("data:") ||
-        rawSrc.startsWith("blob:")
-      ) {
-        continue;
-      }
-
       try {
-        const scriptURL =
-          new URL(
-            rawSrc,
-            finalTarget.href
-          );
+        const scriptURL = parseHttpUrl(rawSrc, finalTarget.href);
 
         if (
-          scriptURL.protocol !== "http:" &&
-          scriptURL.protocol !== "https:"
-        ) {
-          continue;
-        }
-
-        if (
-          scriptURL.origin !==
-          originalTargetOrigin
+          !scriptURL ||
+          scriptURL.origin !== originalTargetOrigin
         ) {
           continue;
         }

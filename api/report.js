@@ -1,10 +1,12 @@
 import { normalizeEvidence } from "./_lib/security-evidence.js";
 import { calculateScanScore } from "./_lib/scan-score.js";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseAdmin } from "./_lib/supabase-admin.js";
+import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
 
-const supabaseAdmin = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
-  : null;
+// Reject oversized request bodies in Vercel's parser before req.body is allocated.
+export const config = { api: { bodyParser: { sizeLimit: "1mb" } } };
+
+const supabaseAdmin = createSupabaseAdmin();
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -18,6 +20,10 @@ export default async function handler(req, res) {
   try {
 
     const body = req.body;
+
+    if (!isWithinJsonBodyLimit(body, 512 * 1024)) {
+      return res.status(413).json({ error: "Report request is too large. Reduce the number or size of security checks and try again." });
+    }
 
     let authenticatedUser = null;
     const authorization = req.headers?.authorization || "";

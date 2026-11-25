@@ -10,9 +10,29 @@ const styles = fs.readFileSync("sentinel.css", "utf8");
 const reportStyles = fs.readFileSync("sentinel-report.css", "utf8");
 const supabaseVersion = JSON.parse(fs.readFileSync("package.json", "utf8")).dependencies["@supabase/supabase-js"];
 
+test("preview safe mode explains disabled account actions without starting an auth request", () => {
+  const guard = app.indexOf("if (IS_PREVIEW_SAFE_MODE)", app.indexOf("async function updateAuthUI"));
+  const authRequest = app.indexOf("supabaseClient.auth.getSession()", guard);
+  assert.ok(guard >= 0, "Preview Safe Mode guard is present in auth UI");
+  assert.match(app.slice(guard, authRequest), /Account data and database-backed features are disabled in this protected Preview/);
+  assert.match(app.slice(guard, authRequest), /Account creation and cloud scan history are unavailable in this protected Preview/);
+  assert.match(app.slice(guard, authRequest), /authForm\.classList\.add\("is-hidden"\)/);
+  assert.match(app.slice(guard, authRequest), /return;/);
+  assert.ok(authRequest > guard, "Safe Mode returns before contacting Supabase auth");
+});
+
+test("production mode requires server-issued runtime config loaded before the app", () => {
+  const runtimeConfigScript = html.indexOf('<script defer src="/api/scan?runtime_config=1"></script>');
+  const appScript = html.indexOf('<script defer src="/sentinel-app.js"></script>');
+  assert.ok(runtimeConfigScript >= 0, "Server runtime config script is loaded");
+  assert.ok(appScript > runtimeConfigScript, "Runtime config loads before the app");
+  assert.match(app, /window\.SENTINEL_RUNTIME_CONFIG\?\.isProduction !== true/);
+  assert.doesNotMatch(app, /PRODUCTION_HOSTNAMES/);
+});
+
 test("all former inline click and change handlers are removed", () => {
   assert.equal((html.match(/\son(?:click|change)\s*=/gi) || []).length, 0);
-  assert.equal(((html + app).match(/data-action="/g) || []).length, 51);
+  assert.equal(((html + app).match(/data-action="/g) || []).length, 56);
   assert.match(html, /<script defer src="\/sentinel-actions\.js"><\/script>/);
   assert.match(actions, /document\.addEventListener\("click"/);
   assert.match(actions, /document\.addEventListener\("change"/);
@@ -25,7 +45,10 @@ test("all delegated UI actions are represented", () => {
     assert.ok(clickCases.has(action) || action === "update-research-finding-status",
       "Missing delegated handler: " + action);
   }
-  assert.equal(declared.size, 47);
+  assert.equal(declared.size, 50);
+  assert.ok(declared.has("verify-monitoring-file"));
+  assert.ok(declared.has("verify-monitoring-meta"));
+  assert.ok(declared.has("verify-monitoring-auto"));
 });
 
 test("professional report includes safe CSV export and report data payload", () => {
