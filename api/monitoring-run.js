@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       origin: appOrigin(req),
       secret
     });
-    return res.status(200).json({ ok: true, ...summary });
+    return res.status(200).json({ ok: summary.persistenceFailures === 0, ...summary });
   } catch (error) {
     console.error("Sentinel monitoring worker error:", error);
     return res.status(500).json({

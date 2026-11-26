@@ -11,7 +11,7 @@ export async function processMonitoringQueue({
   secret,
   now = () => new Date()
 }) {
-  const summary = { claimed: 0, succeeded: 0, failed: 0, alerts: 0, retries: 0 };
+  const summary = { claimed: 0, succeeded: 0, failed: 0, alerts: 0, retries: 0, persistenceFailures: 0 };
   const { data, error } = await supabaseAdmin.rpc("claim_due_monitoring_sites", { p_limit: 3 });
   if (error) throw error;
 
@@ -84,16 +84,34 @@ export async function processMonitoringQueue({
       console.error("Monitoring site run failed:", site.site_id, error);
       const timestamp = now().toISOString();
       if (runId) {
-        await supabaseAdmin.from("monitoring_runs").update({
-          status: "failed",
-          error_code: "MONITORING_SCAN_FAILED",
-          finished_at: timestamp
-        }).eq("id", runId);
+        try {
+          const { error: failedRunError } = await supabaseAdmin.from("monitoring_runs").update({
+            status: "failed",
+            error_code: "MONITORING_SCAN_FAILED",
+            finished_at: timestamp
+          }).eq("id", runId);
+          if (failedRunError) {
+            summary.persistenceFailures += 1;
+            console.error("Monitoring run failure status could not be persisted:", runId, failedRunError);
+          }
+        } catch (persistenceError) {
+          summary.persistenceFailures += 1;
+          console.error("Monitoring run failure status could not be persisted:", runId, persistenceError);
+        }
       }
-      await supabaseAdmin.from("monitoring_sites").update({
-        next_scan_at: getNextMonitoringScanAt(now()),
-        updated_at: timestamp
-      }).eq("id", site.site_id);
+      try {
+        const { error: rescheduleError } = await supabaseAdmin.from("monitoring_sites").update({
+          next_scan_at: getNextMonitoringScanAt(now()),
+          updated_at: timestamp
+        }).eq("id", site.site_id);
+        if (rescheduleError) {
+          summary.persistenceFailures += 1;
+          console.error("Monitoring site could not be rescheduled after failure:", site.site_id, rescheduleError);
+        }
+      } catch (persistenceError) {
+        summary.persistenceFailures += 1;
+        console.error("Monitoring site could not be rescheduled after failure:", site.site_id, persistenceError);
+      }
       summary.failed += 1;
     }
   }
