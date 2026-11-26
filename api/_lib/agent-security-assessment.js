@@ -185,6 +185,14 @@ export function assessAgentSecurity(input) {
   }
 
   const riskScore = Math.min(100, provisionalRiskScore);
+  const safeCapabilities = Object.fromEntries(CAPABILITY_KEYS.map((key) => [
+    key,
+    typeof capabilities[key] === "boolean" ? capabilities[key] : null
+  ]));
+  const safeControls = Object.fromEntries(CONTROL_KEYS.map((key) => [
+    key,
+    typeof controls[key] === "boolean" ? controls[key] : null
+  ]));
   const complete = unknownFields.length === 0;
   const riskLevel = !complete
     ? "Unknown"
@@ -209,8 +217,8 @@ export function assessAgentSecurity(input) {
     riskLevel,
     riskScore: complete ? riskScore : null,
     provisionalRiskScore: complete ? null : riskScore,
-    capabilities,
-    controls,
+    capabilities: safeCapabilities,
+    controls: safeControls,
     unknownFields,
     findings,
     limitations: [
