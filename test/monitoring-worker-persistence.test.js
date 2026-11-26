@@ -47,7 +47,7 @@ function createSupabaseWithFailedPersistence(siteCount = 1) {
 }
 
 test("monitoring worker reports failed run and reschedule persistence", async () => {
-  const supabaseAdmin = createSupabaseWithFailedPersistence(2);
+  const supabaseAdmin = createSupabaseWithFailedPersistence();
   const result = await processMonitoringQueue({
     supabaseAdmin,
     origin: "https://sentinel.example",
@@ -71,7 +71,7 @@ test("monitoring worker reports failed run and reschedule persistence", async ()
 });
 
 test("monitoring worker continues processing when failure-state writes fail", async () => {
-  const supabaseAdmin = createSupabaseWithFailedPersistence();
+  const supabaseAdmin = createSupabaseWithFailedPersistence(2);
   const result = await processMonitoringQueue({
     supabaseAdmin,
     origin: "https://sentinel.example",
@@ -87,4 +87,5 @@ test("monitoring worker continues processing when failure-state writes fail", as
   assert.equal(result.claimed, 2);
   assert.equal(result.failed, 2);
   assert.equal(result.persistenceFailures, 4);
+  assert.equal(supabaseAdmin.writes.length, 4);
 });
