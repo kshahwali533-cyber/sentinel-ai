@@ -1,4 +1,5 @@
 import { extractHTMLLinks } from "./_lib/html-link-discovery.js";
+import { parseHttpUrl } from "./_lib/http-url.js";
 import dns from "node:dns/promises";
 import net from "node:net";
 import { isPublicIP } from "./_lib/public-ip.js";
@@ -1158,16 +1159,8 @@ if (html) {
     }
 
     try {
-      const discoveredURL =
-        new URL(
-          rawHref,
-          finalTarget.href
-        );
-
-      if (
-        discoveredURL.origin !==
-        finalTarget.origin
-      ) {
+      const discoveredURL = parseHttpUrl(rawHref, finalTarget.href);
+      if (!discoveredURL || discoveredURL.origin !== finalTarget.origin) {
         continue;
       }
 
@@ -1672,13 +1665,8 @@ function addLinkedResourceFinding(
   type
 ) {
   try {
-    const resourceURL =
-      new URL(url, finalTarget.href);
-
-    if (
-      resourceURL.origin !==
-      originalTargetOrigin
-    ) {
+    const resourceURL = parseHttpUrl(url, finalTarget.href);
+    if (!resourceURL || resourceURL.origin !== originalTargetOrigin) {
       return;
     }
 
@@ -1730,16 +1718,8 @@ if (html) {
     }
 
     try {
-      const linkURL =
-        new URL(
-          rawURL,
-          finalTarget.href
-        );
-
-      if (
-        linkURL.origin !==
-        originalTargetOrigin
-      ) {
+      const linkURL = parseHttpUrl(rawURL, finalTarget.href);
+      if (!linkURL || linkURL.origin !== originalTargetOrigin) {
         continue;
       }
 
@@ -2326,13 +2306,8 @@ function addClientEndpointFinding(
   indicator
 ) {
   try {
-    const endpointURL =
-      new URL(url, finalTarget.href);
-
-    if (
-      endpointURL.origin !==
-      originalTargetOrigin
-    ) {
+    const endpointURL = parseHttpUrl(url, finalTarget.href);
+    if (!endpointURL || endpointURL.origin !== originalTargetOrigin) {
       return;
     }
 
