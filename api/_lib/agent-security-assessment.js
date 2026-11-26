@@ -194,9 +194,10 @@ export function assessAgentSecurity(input) {
     typeof controls[key] === "boolean" ? controls[key] : null
   ]));
   const complete = unknownFields.length === 0;
+  const hasCriticalFinding = findings.some((finding) => finding.severity === "critical");
   const riskLevel = !complete
     ? "Unknown"
-    : riskScore >= 70
+    : hasCriticalFinding || riskScore >= 70
       ? "Critical"
       : riskScore >= 40
         ? "High"
