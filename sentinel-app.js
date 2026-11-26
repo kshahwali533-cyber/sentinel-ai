@@ -135,9 +135,10 @@ async function updateAuthUI() {
       if (element) element.textContent = "";
     }
 
-    document.querySelectorAll(
-      'button[data-action]:not([data-action="run-security-scan"]):not([data-action="toggle-password"])'
-    ).forEach((button) => {
+    document.querySelectorAll("button[data-action]").forEach((button) => {
+      if (button.dataset.action === "run-security-scan" || button.dataset.action === "toggle-password") {
+        return;
+      }
       button.disabled = true;
       button.title = "Unavailable in protected Preview Safe Mode.";
       button.setAttribute("aria-disabled", "true");
