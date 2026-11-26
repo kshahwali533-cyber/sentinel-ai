@@ -5,7 +5,7 @@ import { isPublicIP } from "./_lib/public-ip.js";
 import { readTextLimited } from "./_lib/read-limited.js";
 import { calculateScanScore } from "./_lib/scan-score.js";
 import { createCheckEvidence } from "./_lib/finding-validation.js";
-import { hasValidFrameProtection } from "./_lib/security-header-analysis.js";
+import { hasValidFrameProtection, hasRecognizedReferrerPolicy, hasRecognizedCrossOriginPolicy } from "./_lib/security-header-analysis.js";
 import { createClient } from "@supabase/supabase-js";
 import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 import { getTrustedClientIp } from "./_lib/client-ip.js";
@@ -665,19 +665,12 @@ if (
         "referrer-policy"
       );
 
-    if (referrerPolicy) {
-      addCheck(
-        "Referrer-Policy",
-        "PASS",
-        "Referrer-Policy was detected."
-      );
+    if (hasRecognizedReferrerPolicy(referrerPolicy)) {
+      addCheck("Referrer-Policy", "PASS", "A recognized Referrer-Policy value was detected.");
+    } else if (referrerPolicy) {
+      addCheck("Referrer-Policy", "WARNING", "The Referrer-Policy header contains no recognized policy value.", "Use a recognized policy such as strict-origin-when-cross-origin or no-referrer.");
     } else {
-      addCheck(
-        "Referrer-Policy",
-        "INFO",
-        "Referrer-Policy was not detected.",
-        "Consider using a restrictive Referrer-Policy."
-      );
+      addCheck("Referrer-Policy", "INFO", "Referrer-Policy was not detected.", "Consider using a restrictive Referrer-Policy.");
     }
 
     // Permissions Policy
@@ -838,19 +831,12 @@ if (
         "cross-origin-opener-policy"
       );
 
-    if (coop) {
-      addCheck(
-        "Cross-Origin-Opener-Policy",
-        "PASS",
-        "Cross-Origin-Opener-Policy was detected."
-      );
+    if (hasRecognizedCrossOriginPolicy(coop, "coop")) {
+      addCheck("Cross-Origin-Opener-Policy", "PASS", "A recognized COOP value was detected.");
+    } else if (coop) {
+      addCheck("Cross-Origin-Opener-Policy", "WARNING", "The COOP header value is not recognized.", "Use a valid COOP value such as same-origin or same-origin-allow-popups.");
     } else {
-      addCheck(
-        "Cross-Origin-Opener-Policy",
-        "INFO",
-        "Cross-Origin-Opener-Policy was not detected.",
-        "Consider COOP where appropriate."
-      );
+      addCheck("Cross-Origin-Opener-Policy", "INFO", "Cross-Origin-Opener-Policy was not detected.", "Consider COOP where appropriate.");
     }
 
     // CORP
@@ -859,19 +845,12 @@ if (
         "cross-origin-resource-policy"
       );
 
-    if (corp) {
-      addCheck(
-        "Cross-Origin-Resource-Policy",
-        "PASS",
-        "Cross-Origin-Resource-Policy was detected."
-      );
+    if (hasRecognizedCrossOriginPolicy(corp, "corp")) {
+      addCheck("Cross-Origin-Resource-Policy", "PASS", "A recognized CORP value was detected.");
+    } else if (corp) {
+      addCheck("Cross-Origin-Resource-Policy", "WARNING", "The CORP header value is not recognized.", "Use same-origin, same-site, or cross-origin as appropriate.");
     } else {
-      addCheck(
-        "Cross-Origin-Resource-Policy",
-        "INFO",
-        "Cross-Origin-Resource-Policy was not detected.",
-        "Consider CORP where appropriate."
-      );
+      addCheck("Cross-Origin-Resource-Policy", "INFO", "Cross-Origin-Resource-Policy was not detected.", "Consider CORP where appropriate.");
     }
 
     // COEP
@@ -880,19 +859,12 @@ if (
         "cross-origin-embedder-policy"
       );
 
-    if (coep) {
-      addCheck(
-        "Cross-Origin-Embedder-Policy",
-        "PASS",
-        "Cross-Origin-Embedder-Policy was detected."
-      );
+    if (hasRecognizedCrossOriginPolicy(coep, "coep")) {
+      addCheck("Cross-Origin-Embedder-Policy", "PASS", "A recognized COEP value was detected.");
+    } else if (coep) {
+      addCheck("Cross-Origin-Embedder-Policy", "WARNING", "The COEP header value is not recognized.", "Use require-corp or credentialless where appropriate.");
     } else {
-      addCheck(
-        "Cross-Origin-Embedder-Policy",
-        "INFO",
-        "Cross-Origin-Embedder-Policy was not detected.",
-        "Consider COEP where appropriate."
-      );
+      addCheck("Cross-Origin-Embedder-Policy", "INFO", "Cross-Origin-Embedder-Policy was not detected.", "Consider COEP where appropriate.");
     }
 
     // HTTP Response Status
