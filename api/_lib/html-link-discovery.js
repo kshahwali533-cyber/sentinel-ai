@@ -1,23 +1,39 @@
+import { parse } from "parse5";
+
+const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
+
 /**
- * Extract real anchor hrefs from HTML without treating markup embedded in
- * JavaScript/CSS templates or comments as live document links.
+ * Extract document anchor hrefs with the HTML5 parsing algorithm.
+ *
+ * Script/style contents and inert template contents are deliberately excluded:
+ * markup-looking text inside those contexts is not a live document link.
  */
 export function extractHTMLLinks(html) {
-  if (typeof html !== "string" || !html) return [];
+  if (typeof html !== "string" || html.length === 0) return [];
 
-  const documentMarkup = html
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, " ")
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, " ");
-
+  const document = parse(html, { scriptingEnabled: true });
   const links = [];
-  const matches = documentMarkup.matchAll(
-    /<a\b[^>]*?href\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>/gi
-  );
+  const pending = [...(document.childNodes || [])].reverse();
 
-  for (const match of matches) {
-    const href = (match[1] ?? match[2] ?? "").trim();
-    if (href) links.push(href);
+  while (pending.length > 0) {
+    const node = pending.pop();
+
+    if (!node || node.nodeName === "script" || node.nodeName === "style" || node.nodeName === "template") {
+      continue;
+    }
+
+    if (
+      node.tagName === "a" &&
+      node.namespaceURI === HTML_NAMESPACE
+    ) {
+      const href = node.attrs?.find((attribute) => attribute.name === "href")?.value?.trim();
+      if (href) links.push(href);
+    }
+
+    const children = node.childNodes || [];
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      pending.push(children[index]);
+    }
   }
 
   return links;
