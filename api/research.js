@@ -4,13 +4,13 @@ import { evaluateResearchScope } from "./_lib/research-scope-gate.js";
 import { recordResearchCaseEvent } from "./_lib/research-case-events.js";
 import { loadResearchCaseWorkspace } from "./_lib/research-access.js";
 import {
-import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
   normalizeResearchText as textField,
   isValidResearchId as validId,
   sanitizeResearchAssetUrl,
   normalizeResearchEndpointPath as normalizeEndpointPath,
   normalizeResearchEvidence as normalizeEvidence
 } from "./_lib/research-validation.js";
+import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
 
 // Bound incoming JSON before route-specific work.
 export const config = { api: { bodyParser: { sizeLimit: "128kb" } } };
