@@ -1,6 +1,6 @@
 import { buildMentorFallback, normalizeMentorInput, normalizeMentorResponse } from "./_lib/mentor-validation.js";
 import { readOpenAIResponse } from "./_lib/mentor-openai-response.js";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseAdmin } from "./_lib/supabase-admin.js";
 import { getTrustedClientIp } from "./_lib/client-ip.js";
 import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
 
@@ -8,19 +8,7 @@ import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
 export const config = { api: { bodyParser: { sizeLimit: "64kb" } } };
 
 
-const supabaseAdmin =
-  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(
-        process.env.SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
-        {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false
-          }
-        }
-      )
-    : null;
+const supabaseAdmin = createSupabaseAdmin();
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
