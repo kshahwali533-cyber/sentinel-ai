@@ -123,7 +123,8 @@ test("monitoring worker persists a risk-only alert and updates the dashboard sou
     succeeded: 1,
     failed: 0,
     alerts: 1,
-    retries: 0
+    retries: 0,
+    persistenceFailures: 0
   });
   assert.equal(db.tables.monitoring_alerts.length, 1);
   assert.equal(db.tables.monitoring_alerts[0].severity, "medium");
