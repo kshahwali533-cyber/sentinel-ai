@@ -10,6 +10,10 @@ import {
   normalizeResearchEndpointPath as normalizeEndpointPath,
   normalizeResearchEvidence as normalizeEvidence
 } from "./_lib/research-validation.js";
+import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
+
+// Bound incoming JSON before route-specific work.
+export const config = { api: { bodyParser: { sizeLimit: "128kb" } } };
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -43,6 +47,10 @@ export default async function handler(req, res) {
     return send(res, 405, { error: "Method not allowed." });
   }
 
+
+  if (req.method === "POST" && req.body != null && !isWithinJsonBodyLimit(req.body, 65536)) {
+    return send(res, 413, { error: "Research request is too large. Reduce the supplied description or evidence." });
+  }
   try {
     const user = await getUser(req);
     if (!user) return send(res, 401, { error: "Please sign in to use the research workspace." });
