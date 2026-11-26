@@ -5,14 +5,13 @@ import {
   hashOrganizationInviteToken,
   isValidOrganizationInviteEmail
 } from "./_lib/organizations.js";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseAdmin } from "./_lib/supabase-admin.js";
+import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
 
-const supabaseAdmin =
-  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false }
-      })
-    : null;
+// Bound incoming JSON before route-specific work.
+export const config = { api: { bodyParser: { sizeLimit: "32kb" } } };
+
+const supabaseAdmin = createSupabaseAdmin();
 
 function send(res, status, body) {
   return res.status(status).json(body);
@@ -58,6 +57,10 @@ export default async function handler(req, res) {
     return send(res, 405, { error: "Method not allowed." });
   }
 
+
+  if (req.method === "POST" && req.body != null && !isWithinJsonBodyLimit(req.body, 16384)) {
+    return send(res, 413, { error: "Workspace request is too large." });
+  }
   try {
     const user = await getUser(req);
     if (!user) return send(res, 401, { error: "Please sign in to use team workspaces." });

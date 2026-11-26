@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseAdmin } from "./_lib/supabase-admin.js";
 import { createResearchPlanFingerprint } from "./_lib/research-plan-hash.js";
 import { evaluateResearchScope } from "./_lib/research-scope-gate.js";
 import { recordResearchCaseEvent } from "./_lib/research-case-events.js";
@@ -10,13 +10,12 @@ import {
   normalizeResearchEndpointPath as normalizeEndpointPath,
   normalizeResearchEvidence as normalizeEvidence
 } from "./_lib/research-validation.js";
+import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
 
-const supabaseAdmin =
-  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false }
-      })
-    : null;
+// Bound incoming JSON before route-specific work.
+export const config = { api: { bodyParser: { sizeLimit: "128kb" } } };
+
+const supabaseAdmin = createSupabaseAdmin();
 
 const FINDING_SELECT =
   "id,project_id,site_id,asset_hostname,asset_url,title,severity,status,endpoint_path,description,impact,remediation,evidence,discovered_at,created_at,updated_at";
@@ -43,6 +42,10 @@ export default async function handler(req, res) {
     return send(res, 405, { error: "Method not allowed." });
   }
 
+
+  if (req.method === "POST" && req.body != null && !isWithinJsonBodyLimit(req.body, 65536)) {
+    return send(res, 413, { error: "Research request is too large. Reduce the supplied description or evidence." });
+  }
   try {
     const user = await getUser(req);
     if (!user) return send(res, 401, { error: "Please sign in to use the research workspace." });

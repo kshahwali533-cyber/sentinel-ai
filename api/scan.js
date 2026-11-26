@@ -1,31 +1,25 @@
 import { extractHTMLLinks } from "./_lib/html-link-discovery.js";
+import { parseHttpUrl } from "./_lib/http-url.js";
 import dns from "node:dns/promises";
 import net from "node:net";
 import { isPublicIP } from "./_lib/public-ip.js";
 import { readTextLimited } from "./_lib/read-limited.js";
 import { calculateScanScore } from "./_lib/scan-score.js";
 import { createCheckEvidence } from "./_lib/finding-validation.js";
-import { hasValidFrameProtection } from "./_lib/security-header-analysis.js";
-import { createClient } from "@supabase/supabase-js";
+import { hasValidFrameProtection, hasRecognizedReferrerPolicy, hasRecognizedCrossOriginPolicy } from "./_lib/security-header-analysis.js";
+import { createSupabaseAdmin } from "./_lib/supabase-admin.js";
 import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 import { getTrustedClientIp } from "./_lib/client-ip.js";
 import { createSafeFetch } from "./_lib/safe-fetch.js";
 import { createPinnedRequest } from "./_lib/pinned-request.js";
 import { isConfirmedSurfaceReference } from "./_lib/surface-confidence.js";
+import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
 
-const supabaseAdmin =
-  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(
-        process.env.SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
-        {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false
-          }
-        }
-      )
-    : null;
+// Reject oversized request bodies before application work begins.
+export const config = { api: { bodyParser: { sizeLimit: "32kb" } } };
+
+
+const supabaseAdmin = createSupabaseAdmin();
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -39,6 +33,11 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body || {};
+
+    // Bound decoded scan input before rate-limit, DNS, or network work.
+    if (!isWithinJsonBodyLimit(body, 32 * 1024)) {
+      return res.status(413).json({ error: "Scan request is too large. Submit only the target website URL and try again." });
+    }
 
 if (
   typeof body !== "object" ||
@@ -655,19 +654,12 @@ if (
         "referrer-policy"
       );
 
-    if (referrerPolicy) {
-      addCheck(
-        "Referrer-Policy",
-        "PASS",
-        "Referrer-Policy was detected."
-      );
+    if (hasRecognizedReferrerPolicy(referrerPolicy)) {
+      addCheck("Referrer-Policy", "PASS", "A recognized Referrer-Policy value was detected.");
+    } else if (referrerPolicy) {
+      addCheck("Referrer-Policy", "WARNING", "The Referrer-Policy header contains no recognized policy value.", "Use a recognized policy such as strict-origin-when-cross-origin or no-referrer.");
     } else {
-      addCheck(
-        "Referrer-Policy",
-        "INFO",
-        "Referrer-Policy was not detected.",
-        "Consider using a restrictive Referrer-Policy."
-      );
+      addCheck("Referrer-Policy", "INFO", "Referrer-Policy was not detected.", "Consider using a restrictive Referrer-Policy.");
     }
 
     // Permissions Policy
@@ -828,19 +820,12 @@ if (
         "cross-origin-opener-policy"
       );
 
-    if (coop) {
-      addCheck(
-        "Cross-Origin-Opener-Policy",
-        "PASS",
-        "Cross-Origin-Opener-Policy was detected."
-      );
+    if (hasRecognizedCrossOriginPolicy(coop, "coop")) {
+      addCheck("Cross-Origin-Opener-Policy", "PASS", "A recognized COOP value was detected.");
+    } else if (coop) {
+      addCheck("Cross-Origin-Opener-Policy", "WARNING", "The COOP header value is not recognized.", "Use a valid COOP value such as same-origin or same-origin-allow-popups.");
     } else {
-      addCheck(
-        "Cross-Origin-Opener-Policy",
-        "INFO",
-        "Cross-Origin-Opener-Policy was not detected.",
-        "Consider COOP where appropriate."
-      );
+      addCheck("Cross-Origin-Opener-Policy", "INFO", "Cross-Origin-Opener-Policy was not detected.", "Consider COOP where appropriate.");
     }
 
     // CORP
@@ -849,19 +834,12 @@ if (
         "cross-origin-resource-policy"
       );
 
-    if (corp) {
-      addCheck(
-        "Cross-Origin-Resource-Policy",
-        "PASS",
-        "Cross-Origin-Resource-Policy was detected."
-      );
+    if (hasRecognizedCrossOriginPolicy(corp, "corp")) {
+      addCheck("Cross-Origin-Resource-Policy", "PASS", "A recognized CORP value was detected.");
+    } else if (corp) {
+      addCheck("Cross-Origin-Resource-Policy", "WARNING", "The CORP header value is not recognized.", "Use same-origin, same-site, or cross-origin as appropriate.");
     } else {
-      addCheck(
-        "Cross-Origin-Resource-Policy",
-        "INFO",
-        "Cross-Origin-Resource-Policy was not detected.",
-        "Consider CORP where appropriate."
-      );
+      addCheck("Cross-Origin-Resource-Policy", "INFO", "Cross-Origin-Resource-Policy was not detected.", "Consider CORP where appropriate.");
     }
 
     // COEP
@@ -870,19 +848,12 @@ if (
         "cross-origin-embedder-policy"
       );
 
-    if (coep) {
-      addCheck(
-        "Cross-Origin-Embedder-Policy",
-        "PASS",
-        "Cross-Origin-Embedder-Policy was detected."
-      );
+    if (hasRecognizedCrossOriginPolicy(coep, "coep")) {
+      addCheck("Cross-Origin-Embedder-Policy", "PASS", "A recognized COEP value was detected.");
+    } else if (coep) {
+      addCheck("Cross-Origin-Embedder-Policy", "WARNING", "The COEP header value is not recognized.", "Use require-corp or credentialless where appropriate.");
     } else {
-      addCheck(
-        "Cross-Origin-Embedder-Policy",
-        "INFO",
-        "Cross-Origin-Embedder-Policy was not detected.",
-        "Consider COEP where appropriate."
-      );
+      addCheck("Cross-Origin-Embedder-Policy", "INFO", "Cross-Origin-Embedder-Policy was not detected.", "Consider COEP where appropriate.");
     }
 
     // HTTP Response Status
@@ -1176,16 +1147,8 @@ if (html) {
     }
 
     try {
-      const discoveredURL =
-        new URL(
-          rawHref,
-          finalTarget.href
-        );
-
-      if (
-        discoveredURL.origin !==
-        finalTarget.origin
-      ) {
+      const discoveredURL = parseHttpUrl(rawHref, finalTarget.href);
+      if (!discoveredURL || discoveredURL.origin !== finalTarget.origin) {
         continue;
       }
 
@@ -1690,13 +1653,8 @@ function addLinkedResourceFinding(
   type
 ) {
   try {
-    const resourceURL =
-      new URL(url, finalTarget.href);
-
-    if (
-      resourceURL.origin !==
-      originalTargetOrigin
-    ) {
+    const resourceURL = parseHttpUrl(url, finalTarget.href);
+    if (!resourceURL || resourceURL.origin !== originalTargetOrigin) {
       return;
     }
 
@@ -1748,16 +1706,8 @@ if (html) {
     }
 
     try {
-      const linkURL =
-        new URL(
-          rawURL,
-          finalTarget.href
-        );
-
-      if (
-        linkURL.origin !==
-        originalTargetOrigin
-      ) {
+      const linkURL = parseHttpUrl(rawURL, finalTarget.href);
+      if (!linkURL || linkURL.origin !== originalTargetOrigin) {
         continue;
       }
 
@@ -2344,13 +2294,8 @@ function addClientEndpointFinding(
   indicator
 ) {
   try {
-    const endpointURL =
-      new URL(url, finalTarget.href);
-
-    if (
-      endpointURL.origin !==
-      originalTargetOrigin
-    ) {
+    const endpointURL = parseHttpUrl(url, finalTarget.href);
+    if (!endpointURL || endpointURL.origin !== originalTargetOrigin) {
       return;
     }
 
