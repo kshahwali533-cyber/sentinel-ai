@@ -8,18 +8,13 @@ import { normalizeMonitoringTarget } from "./_lib/monitoring.js";
 import { getMonitoringDashboardData } from "./_lib/monitoring-dashboard.js";
 import { randomBytes } from "node:crypto";
 import { extractVerificationMetaToken, chooseOwnershipVerificationMethod } from "./_lib/domain-verification.js";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseAdmin } from "./_lib/supabase-admin.js";
 import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
 
 // Bound incoming JSON before route-specific work.
 export const config = { api: { bodyParser: { sizeLimit: "32kb" } } };
 
-const supabaseAdmin =
-  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false }
-      })
-    : null;
+const supabaseAdmin = createSupabaseAdmin();
 
 function createOwnershipSafeFetch(hostname) {
   const validateTargetURL = async (url) => {
