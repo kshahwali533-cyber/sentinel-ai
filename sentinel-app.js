@@ -5,10 +5,10 @@
    SUPABASE CONFIGURATION
 ========================= */
 
-const IS_PR83_PREVIEW_SAFE_MODE =
-  window.location.hostname !== "project-3jyda.vercel.app";
+const IS_PREVIEW_SAFE_MODE =
+  window.SENTINEL_RUNTIME_CONFIG?.isProduction !== true;
 
-const SUPABASE_URL = IS_PR83_PREVIEW_SAFE_MODE
+const SUPABASE_URL = IS_PREVIEW_SAFE_MODE
   ? "https://preview-disabled.invalid"
   : "https://vceqmqwszvisvxxbgbfs.supabase.co";
 
@@ -24,7 +24,7 @@ const supabaseClient =
     SUPABASE_PUBLISHABLE_KEY
   );
 
-if (IS_PR83_PREVIEW_SAFE_MODE) {
+if (IS_PREVIEW_SAFE_MODE) {
   const safetyNotice = document.createElement("div");
   safetyNotice.setAttribute("role", "status");
   safetyNotice.textContent =
@@ -86,23 +86,73 @@ async function updateAuthUI() {
     return;
   }
 
-  if (IS_PR83_PREVIEW_SAFE_MODE) {
+  if (IS_PREVIEW_SAFE_MODE) {
+    const previewMessage =
+      "Preview Safe Mode is active. Account data, cloud history, AI Mentor, monitoring, research and workspace actions are disabled in this protected Preview. Production is unchanged.";
     authStatus.className = "notice";
-    authStatus.textContent =
-      "Preview Safe Mode: sign-in, account creation, password reset, and cloud history are disabled in this preview. Production is unchanged.";
+    authStatus.textContent = previewMessage;
+
+    const authIntro = document.getElementById("authIntro");
+    if (authIntro) {
+      authIntro.textContent =
+        "Account creation and cloud scan history are unavailable in this protected Preview.";
+    }
+
     for (const areaId of ["authForm", "passwordResetArea", "loggedInArea"]) {
       const area = document.getElementById(areaId);
       if (!area) continue;
+      area.classList.add("is-hidden");
       area.querySelectorAll("input, button, select, textarea").forEach((control) => {
         control.disabled = true;
         control.setAttribute("aria-disabled", "true");
       });
     }
-    if (historyStatus) {
-      historyStatus.textContent =
-        "Preview Safe Mode: cloud scan history is disabled here. Production is unchanged.";
+
+    const previewStatuses = {
+      historyStatus: "Preview Safe Mode: cloud scan history is disabled here.",
+      analyticsStatus: "Preview Safe Mode: private account analytics are unavailable here.",
+      analyticsRisk: "Unavailable in protected Preview.",
+      analyticsTrend: "Unavailable in protected Preview.",
+      analyticsWarnings: "Unavailable in protected Preview.",
+      monitorStatus: "Preview Safe Mode: domain verification and scheduled monitoring are disabled here.",
+      monitorAlerts: "Security alerts are unavailable in protected Preview.",
+      monitorRuns: "Monitoring run history is unavailable in protected Preview.",
+      intelStatus: "Preview Safe Mode: account-linked vulnerability intelligence is disabled here.",
+      researchStatus: "Preview Safe Mode: private research actions are disabled here.",
+      organizationStatus: "Preview Safe Mode: team workspace actions are disabled here.",
+      usageStatus: "Preview Safe Mode: account usage data is unavailable here."
+    };
+    for (const [id, message] of Object.entries(previewStatuses)) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = message;
+        element.classList.add("notice");
+      }
     }
-    if (loggedInArea) loggedInArea.classList.add("is-hidden");
+
+    for (const id of ["usageSummary", "monitorSites", "intelResults"]) {
+      const element = document.getElementById(id);
+      if (element) element.textContent = "";
+    }
+
+    document.querySelectorAll("button[data-action]").forEach((button) => {
+      if (button.dataset.action === "run-security-scan" || button.dataset.action === "toggle-password") {
+        return;
+      }
+      button.disabled = true;
+      button.title = "Unavailable in protected Preview Safe Mode.";
+      button.setAttribute("aria-disabled", "true");
+    });
+
+    for (const sectionId of ["monitoring", "intelligence", "research", "teams"]) {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.querySelectorAll("input, textarea, select").forEach((control) => {
+          control.disabled = true;
+          control.setAttribute("aria-disabled", "true");
+        });
+      }
+    }
     return;
   }
 
@@ -1044,6 +1094,14 @@ async function clearSupabaseHistory() {
 ========================= */
 
 async function runSecurityScan(isRescan = false) {
+  if (IS_PREVIEW_SAFE_MODE) {
+    const previewResult = document.getElementById("result");
+    if (previewResult) {
+      previewResult.classList.remove("is-hidden");
+      previewResult.innerHTML = '<div class="notice">Preview Safe Mode: scanning is disabled in this protected Preview. No scan request was sent. Production is unchanged.</div>';
+    }
+    return;
+  }
 
   const websiteInput =
     document.getElementById("website");

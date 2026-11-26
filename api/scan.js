@@ -14,6 +14,7 @@ import { createSafeFetch } from "./_lib/safe-fetch.js";
 import { createPinnedRequest } from "./_lib/pinned-request.js";
 import { isConfirmedSurfaceReference } from "./_lib/surface-confidence.js";
 import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
+import { isApprovedProductionRequest } from "./_lib/runtime-config.js";
 
 // Reject oversized request bodies before application work begins.
 export const config = { api: { bodyParser: { sizeLimit: "32kb" } } };
@@ -23,6 +24,20 @@ const supabaseAdmin = createSupabaseAdmin();
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
+
+  if (req.method === "GET" && req.query?.runtime_config === "1") {
+    res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+    const isProduction = isApprovedProductionRequest({
+      env: process.env,
+      host: req.headers?.host
+    });
+    return res.status(200).send(
+      "window.SENTINEL_RUNTIME_CONFIG = Object.freeze(" +
+      JSON.stringify({ isProduction }) +
+      ");"
+    );
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed."
