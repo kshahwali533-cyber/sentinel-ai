@@ -6,26 +6,14 @@ import { readTextLimited } from "./_lib/read-limited.js";
 import { calculateScanScore } from "./_lib/scan-score.js";
 import { createCheckEvidence } from "./_lib/finding-validation.js";
 import { hasValidFrameProtection } from "./_lib/security-header-analysis.js";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseAdmin } from "./_lib/supabase-admin.js";
 import { isValidMonitoringWorkerSecret } from "./_lib/monitoring.js";
 import { getTrustedClientIp } from "./_lib/client-ip.js";
 import { createSafeFetch } from "./_lib/safe-fetch.js";
 import { createPinnedRequest } from "./_lib/pinned-request.js";
 import { isConfirmedSurfaceReference } from "./_lib/surface-confidence.js";
 
-const supabaseAdmin =
-  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(
-        process.env.SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
-        {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false
-          }
-        }
-      )
-    : null;
+const supabaseAdmin = createSupabaseAdmin();
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
