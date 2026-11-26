@@ -119,7 +119,7 @@ test("does not execute or interpret untrusted prompt text", () => {
   };
   const result = assessAgentSecurity(input);
   assert.equal(result.assessmentStatus, "complete");
-  assert.equal(result.capabilities, input.capabilities);
+  assert.deepEqual(result.capabilities, safeConfig.capabilities);
   assert.equal(result.controls.outputValidation, true);
   assert.equal(Object.hasOwn(result.capabilities, "apiKey"), false);
   assert.equal(Object.hasOwn(result, "prompt"), false);
