@@ -9,6 +9,10 @@ import { getMonitoringDashboardData } from "./_lib/monitoring-dashboard.js";
 import { randomBytes } from "node:crypto";
 import { extractVerificationMetaToken, chooseOwnershipVerificationMethod } from "./_lib/domain-verification.js";
 import { createClient } from "@supabase/supabase-js";
+import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
+
+// Bound incoming JSON before route-specific work.
+export const config = { api: { bodyParser: { sizeLimit: "32kb" } } };
 
 const supabaseAdmin =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -102,6 +106,10 @@ export default async function handler(req, res) {
   if (!["GET", "POST"].includes(req.method)) {
     res.setHeader("Allow", "GET, POST");
     return send(res, 405, { error: "Method not allowed." });
+  }
+
+  if (req.method === "POST" && req.body != null && !isWithinJsonBodyLimit(req.body, 16384)) {
+    return send(res, 413, { error: "Monitoring request is too large. Submit only the required action and target URL." });
   }
 
   try {
