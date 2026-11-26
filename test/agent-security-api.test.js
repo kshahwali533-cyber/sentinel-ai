@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import handler from "../api/agent-security.js";
+import handler from "../api/assistant.js";
 
 function invoke(method, body) {
   const headers = {};
@@ -19,8 +19,7 @@ function invoke(method, body) {
       return this;
     }
   };
-  handler({ method, body }, res);
-  return { headers, statusCode, payload };
+  return Promise.resolve(handler({ method, body, headers: {} }, res)).then(() => ({ headers, statusCode, payload }));
 }
 
 const completeConfig = {
@@ -45,8 +44,8 @@ const completeConfig = {
   }
 };
 
-test("agent security endpoint accepts POST and returns a no-store assessment", () => {
-  const result = invoke("POST", completeConfig);
+test("assistant endpoint routes agent security assessment and returns no-store output", async () => {
+  const result = await invoke("POST", { action: "agent_security_assessment", assessment: completeConfig });
   assert.equal(result.statusCode, 200);
   assert.equal(result.payload.assessmentStatus, "complete");
   assert.equal(result.payload.riskLevel, "Low");
@@ -54,19 +53,19 @@ test("agent security endpoint accepts POST and returns a no-store assessment", (
   assert.equal(result.headers["X-Content-Type-Options"], "nosniff");
 });
 
-test("agent security endpoint rejects methods other than POST", () => {
-  const result = invoke("GET", completeConfig);
+test("assistant endpoint rejects methods other than POST", async () => {
+  const result = await invoke("GET", { action: "agent_security_assessment", assessment: completeConfig });
   assert.equal(result.statusCode, 405);
   assert.equal(result.headers.Allow, "POST");
 });
 
-test("agent security endpoint rejects oversized payloads before assessment", () => {
-  const result = invoke("POST", { data: "x".repeat(17 * 1024) });
+test("assistant endpoint rejects oversized agent assessment payloads", async () => {
+  const result = await invoke("POST", { action: "agent_security_assessment", assessment: { data: "x".repeat(17 * 1024) } });
   assert.equal(result.statusCode, 413);
 });
 
-test("agent security endpoint rejects malformed assessment input", () => {
-  const result = invoke("POST", []);
+test("assistant endpoint rejects malformed agent assessment input", async () => {
+  const result = await invoke("POST", { action: "agent_security_assessment", assessment: [] });
   assert.equal(result.statusCode, 400);
   assert.match(result.payload.error, /configuration object/i);
 });
