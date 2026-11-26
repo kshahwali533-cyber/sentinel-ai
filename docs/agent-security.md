@@ -6,16 +6,17 @@ Status: **Static assessment engine and API implemented; UI and runtime verificat
 
 The first slice provides a deterministic, defensive review of a user-supplied AI-agent capability and control inventory.
 
-Endpoint: `POST /api/agent-security`
+Endpoint: `POST /api/assistant` with `action: "agent_security_assessment"`
 
 The endpoint:
-- accepts a JSON configuration only;
+- accepts a JSON configuration only through the existing AI Mentor serverless function, preserving the Vercel Hobby function-count limit;
 - enforces a 16 KiB serialized request limit after platform parsing;
 - evaluates declared tool capabilities against explicit safeguards;
 - returns prioritized findings, remediation guidance, and an incomplete-assessment state when declarations are missing;
 - sends no request to an external AI provider;
 - does not execute tools, scan third-party systems, or persist submitted configuration;
-- returns `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`.
+- returns `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`;
+- returns only recognized boolean fields and never echoes arbitrary extra input fields.
 
 ## Capability inventory
 
