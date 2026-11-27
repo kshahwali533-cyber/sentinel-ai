@@ -38,6 +38,7 @@ if (IS_PREVIEW_SAFE_MODE) {
 
 let latestScan = null;
 let isPasswordRecovery = false;
+let authUiRefreshTimer = null;
   function trackEvent(eventName) {
   try {
     if (typeof window.va === "function") {
@@ -71,6 +72,17 @@ function escapeHTML(value) {
 /* =========================
    AUTH UI
 ========================= */
+
+function scheduleAuthUIRefresh() {
+  if (authUiRefreshTimer !== null) {
+    window.clearTimeout(authUiRefreshTimer);
+  }
+
+  authUiRefreshTimer = window.setTimeout(() => {
+    authUiRefreshTimer = null;
+    void updateAuthUI();
+  }, 0);
+}
 
 async function updateAuthUI() {
   const authStatus = document.getElementById("authStatus");
@@ -4387,41 +4399,36 @@ async function revokeOrganizationInvitation(organizationId, invitationId) {
    PAGE LOAD
 ========================= */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  async function() {
+document.addEventListener("DOMContentLoaded", function() {
+  renderScanHistory();
 
-    renderScanHistory();
+  // Supabase auth callbacks must stay synchronous. Schedule UI work after the
+  // callback returns so Supabase can release its internal auth lock.
+  supabaseClient.auth.onAuthStateChange(function(event) {
+    if (event === "INITIAL_SESSION") {
+      return;
+    }
 
-    await updateAuthUI();
+    if (event === "PASSWORD_RECOVERY") {
+      isPasswordRecovery = true;
 
-    supabaseClient.auth.onAuthStateChange(
-      async function(event) {
-
-        if (event === "PASSWORD_RECOVERY") {
-
-          isPasswordRecovery = true;
-
-          const passwordResetArea =
-            document.getElementById("passwordResetArea");
-
-          if (passwordResetArea) {
-            passwordResetArea.classList.remove("is-hidden");
-          }
-
-          const authStatus =
-            document.getElementById("authStatus");
-
-          if (authStatus) {
-            authStatus.className = "success";
-            authStatus.textContent =
-              "🔑 Password recovery verified. Please create a new password.";
-          }
-        }
-
-        await updateAuthUI();
+      const passwordResetArea =
+        document.getElementById("passwordResetArea");
+      if (passwordResetArea) {
+        passwordResetArea.classList.remove("is-hidden");
       }
-    );
 
-  }
-);
+      const authStatus = document.getElementById("authStatus");
+      if (authStatus) {
+        authStatus.className = "success";
+        authStatus.textContent =
+          "🔑 Password recovery verified. Please create a new password.";
+      }
+    }
+
+    scheduleAuthUIRefresh();
+  });
+
+  // Subscribe first, then perform the initial state refresh.
+  void updateAuthUI();
+});
