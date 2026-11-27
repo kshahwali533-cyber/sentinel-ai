@@ -39,7 +39,20 @@ These are logical database exports, not a full platform backup. Confirm the CLI 
 
 1. Create a separate disposable Supabase project or a local Supabase/Postgres environment. Do not point restore commands at the Production connection string.
 2. Configure required PostgreSQL extensions and database webhooks in the test target as appropriate.
-3. Follow the current official Supabase **Backup and Restore using the CLI** guide to restore `roles.sql`, `schema.sql`, and `data.sql` into the empty test target. The official procedure uses a single-transaction `psql` restore and has special handling for data import; follow its current instructions exactly.
+3. Follow the current official Supabase **Backup and Restore using the CLI** guide to restore `roles.sql`, `schema.sql`, and `data.sql` into the empty test target. The documented restore pattern is:
+
+```sh
+psql \
+  --single-transaction \
+  --variable ON_ERROR_STOP=1 \
+  --file roles.sql \
+  --file schema.sql \
+  --command 'SET session_replication_role = replica' \
+  --file data.sql \
+  --dbname "$TEST_DB_URL"
+```
+
+Use only the isolated test target in `TEST_DB_URL`. This is a privileged restore operation; confirm the target project/ref and connection string before running. Follow any version-specific official instructions and special handling for the project.
 4. Verify schema objects, row counts for required Sentinel tables, indexes, constraints, grants, RLS enabled state and policies, and representative application queries. Verify that no secrets or production credentials were copied into the test environment.
 5. Test Storage object recovery separately. Reconfigure Auth settings, API keys, Edge Functions, Realtime publications, integrations, and project settings using a reviewed inventory; these are not automatically restored by the database dump.
 6. Record the restore date, CLI/Postgres versions, checksums, target environment, validation results, and any omissions. Destroying the disposable test project is a separate deliberate action and is not part of this runbook.
