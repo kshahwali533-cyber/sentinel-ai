@@ -97,8 +97,11 @@ test("existing scan API serves a fail-closed runtime config response", async () 
 
     assert.equal(previewResponse.statusCode, 200);
     assert.equal(previewResponse.headers["cache-control"], "no-store");
-    assert.match(previewResponse.body, /"isProduction":false/);
-    assert.doesNotMatch(previewResponse.body, /local-test\\.supabase\\.co|test-public-key/);
+    const previewConfig = JSON.parse(previewResponse.body.slice(
+      "window.SENTINEL_RUNTIME_CONFIG = Object.freeze(".length,
+      -2
+    ));
+    assert.deepEqual(previewConfig, { isProduction: false });
 
     process.env.VERCEL_ENV = "production";
     const productionResponse = createResponse();
@@ -109,9 +112,15 @@ test("existing scan API serves a fail-closed runtime config response", async () 
     }, productionResponse);
 
     assert.equal(productionResponse.statusCode, 200);
-    assert.match(productionResponse.body, /"isProduction":true/);
-    assert.match(productionResponse.body, /"supabaseUrl":"https:\\/\\/local-test\\.supabase\\.co"/);
-    assert.match(productionResponse.body, /"supabasePublishableKey":"test-public-key"/);
+    const productionConfig = JSON.parse(productionResponse.body.slice(
+      "window.SENTINEL_RUNTIME_CONFIG = Object.freeze(".length,
+      -2
+    ));
+    assert.deepEqual(productionConfig, {
+      isProduction: true,
+      supabaseUrl: "https://local-test.supabase.co",
+      supabasePublishableKey: "test-public-key"
+    });
   } finally {
     for (const name of names) {
       if (previous[name] === undefined) delete process.env[name];
