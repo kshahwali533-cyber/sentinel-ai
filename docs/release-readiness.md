@@ -162,3 +162,20 @@ Exact candidate head: `dd84d560b68cca1d5c18b4b9e55b12a28137aea7`.
 - The CLI logical dump excludes Supabase-managed `auth` and `storage` schemas and Storage file objects; Auth configuration, Storage objects, Edge Functions, Realtime and project settings need separate recovery steps. A SQL dump alone is not a complete Supabase project backup.
 - Sources checked: Supabase [Database Backups](https://supabase.com/docs/guides/platform/backups), [Backup and Restore using the CLI](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore), and [Free-plan pricing](https://supabase.com/pricing). 
 - These documentation corrections do not close the browser/mobile, isolated Auth E2E, live monitoring-alert E2E, Auth plan-capability, or backup/restore verification gates.
+
+
+## Preview verification checkpoint — 2026-11-27 12:41 UTC
+
+For documentation head `1cd997dbef813e0b9a62fd568499ea233e8dedaf` (application code remains unchanged from the tested `dd84d560...`):
+
+- Vercel Preview deployment `dpl_FcJkkRCdA4hv6XNkVXgnSKrPNJJK` reached **READY** and its Vercel commit status is success.
+- Homepage returned HTTP 200. Runtime config returned exactly `isProduction:false` with `Cache-Control:no-store`.
+- `sentinel-app.js`, `sentinel-actions.js`, `sentinel-analytics.js`, `sentinel.css`, and the Researcher Preview guide all returned HTTP 200.
+- CSP, HSTS (`max-age=31536000; includeSubDomains`), nosniff, X-Frame-Options DENY, Referrer-Policy, and Permissions-Policy were present.
+- `robots.txt`, `sitemap.xml`, and `.well-known/security.txt` returned HTTP 200. Canonical URLs still point to the current Production Vercel origin; no custom-domain change is implied.
+- Direct GET to `/api/scan` without the required method returned HTTP 405 with `Cache-Control:no-store`, as expected.
+- No Preview runtime logs were found in the inspected 30-minute window.
+- GitHub workflow jobs on this docs checkpoint: Main Security Hardening success; Security API checks success; Research Scope Gate success; CodeQL success. These checks do not replace interactive browser testing.
+- Static mobile CSS review shows a max-width 650px layout adjustment, single-column summary/auth controls, responsive card/analytics grids, and wrapping research action controls. This is source inspection, not a device/browser accessibility audit.
+
+The subsequent runbook-only commits correct the documented CLI flag to `--db-url` and add the official isolated `psql` restore pattern. No backup, restore, Production request, or live Supabase operation was performed. The newest documentation-only head must still receive its own Preview/CI confirmation.
