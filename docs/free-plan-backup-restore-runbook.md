@@ -15,19 +15,19 @@ This runbook is for Sentinel AI's Supabase Free project. It is intentionally non
 
 A trusted computer with the current Supabase CLI, Docker, PostgreSQL client tools, and encrypted local storage is required. A phone-only workflow is not a safe or practical way to perform a full export and restore verification.
 
-Check installed versions using `supabase --version`, `supabase --help`, and `supabase db dump --help`. Supabase CLI v3 uses explicit `--remote` targets; verify flags against the installed CLI before running. Do not assume a command targets local or remote correctly.
+Check installed versions using `supabase --version`, `supabase --help`, and `supabase db dump --help`. The current official backup guide uses `--db-url` with an explicit database connection string. Verify flags against the installed CLI before running; do not assume a command targets local or remote correctly.
 
 ## 2. Create logical exports
 
 1. Open Supabase Dashboard → Project → Connect and obtain the database connection string. Prefer the direct connection; use the Session Pooler if the network cannot reach the direct endpoint.
-2. Store the connection string in a local shell variable or secret manager, not in a committed file or shell history. Never paste it into chat.
+2. Store the connection string in a local secret manager or enter it through a secure, non-echoing prompt into a shell variable. Do not put it in a command literal, committed file, shell history, terminal transcript, or chat. Never paste it into chat.
 3. Create a new, access-restricted backup directory outside the repository.
 4. Run the current documented CLI dump workflow, explicitly targeting the Production database URL:
 
 ```sh
-supabase db dump --remote="$PRODUCTION_DB_URL" -f roles.sql --role-only
-supabase db dump --remote="$PRODUCTION_DB_URL" -f schema.sql
-supabase db dump --remote="$PRODUCTION_DB_URL" -f data.sql --use-copy --data-only -x "storage.buckets_vectors" -x "storage.vector_indexes"
+supabase db dump --db-url "$PRODUCTION_DB_URL" -f roles.sql --role-only
+supabase db dump --db-url "$PRODUCTION_DB_URL" -f schema.sql
+supabase db dump --db-url "$PRODUCTION_DB_URL" -f data.sql --use-copy --data-only -x "storage.buckets_vectors" -x "storage.vector_indexes"
 ```
 
 These are logical database exports, not a full platform backup. Confirm the CLI output's `Target:` line identifies the intended Production project before relying on the files. If the CLI version rejects a flag, stop and consult its installed help and current official documentation; do not improvise against Production.
@@ -55,7 +55,7 @@ These are logical database exports, not a full platform backup. Confirm the CLI 
 
 - [Supabase Database Backups](https://supabase.com/docs/guides/platform/backups)
 - [Supabase Backup and Restore using the CLI](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore)
-- [Supabase CLI reference: db dump](https://supabase.com/docs/reference/cli/supabase-issue-feature)
+- [Supabase CLI reference: db dump](https://supabase.com/docs/reference/cli/supabase-db-dump)
 
 ## Release-gate status
 
