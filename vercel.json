@@ -65,5 +65,11 @@
     {
       "handle": "filesystem"
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/research-scope-check",
+      "destination": "/api/research?__action=check_scope"
+    }
   ]
 }
