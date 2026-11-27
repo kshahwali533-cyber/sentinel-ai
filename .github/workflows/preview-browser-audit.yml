@@ -46,7 +46,7 @@ jobs:
               echo "available=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            if [[ "$status" == "401" || "$status" == "403" ]]; then
+            if [[ "$status" == "401" || "$status" == "403" || "$status" == "302" || "$status" == "303" || "$status" == "307" || "$status" == "308" ]]; then
               echo "available=false" >> "$GITHUB_OUTPUT"
               echo "Preview is protected by Vercel authentication. Browser tests are skipped rather than exposing a bypass token to a public CI runner." >> "$GITHUB_STEP_SUMMARY"
               exit 0
