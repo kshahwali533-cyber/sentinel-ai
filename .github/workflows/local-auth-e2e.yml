@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/sentinel-auth-e2e
           cd /tmp/sentinel-auth-e2e
-          npx supabase init
+          $GITHUB_WORKSPACE/node_modules/.bin/supabase init
           mkdir -p supabase/migrations
           cp -R "$GITHUB_WORKSPACE/supabase/migrations/." supabase/migrations/
           sed -i 's|http://localhost:3000|http://127.0.0.1:4173|g' supabase/config.toml
@@ -46,13 +46,13 @@ jobs:
 
       - name: Start local Supabase Auth and database only
         working-directory: /tmp/sentinel-auth-e2e
-        run: npx supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,postgres-meta,supavisor
+        run: $GITHUB_WORKSPACE/node_modules/.bin/supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,postgres-meta,supavisor
 
       - name: Export isolated local Supabase connection values
         working-directory: /tmp/sentinel-auth-e2e
         run: |
           set -euo pipefail
-          eval "$(npx supabase status -o env)"
+          eval "$($GITHUB_WORKSPACE/node_modules/.bin/supabase status -o env)"
           test -n "$API_URL"
           test -n "$ANON_KEY"
           {
@@ -85,4 +85,4 @@ jobs:
       - name: Stop isolated local Supabase stack
         if: always()
         working-directory: /tmp/sentinel-auth-e2e
-        run: npx supabase stop --no-backup
+        run: $GITHUB_WORKSPACE/node_modules/.bin/supabase stop --no-backup
