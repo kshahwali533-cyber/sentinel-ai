@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const routes = [
-  { path: "api/scan.js", parserLimit: "32kb", applicationLimit: "16 * 1024" },
+  { path: "api/scan.js", parserLimit: "32kb", applicationLimit: "32 * 1024" },
   { path: "api/assistant.js", parserLimit: "64kb", applicationLimit: "32 * 1024" },
   { path: "api/report.js", parserLimit: "1mb", applicationLimit: "512 * 1024" }
 ];
