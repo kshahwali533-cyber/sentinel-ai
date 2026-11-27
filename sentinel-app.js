@@ -10,10 +10,10 @@ const IS_PREVIEW_SAFE_MODE =
 
 const SUPABASE_URL = IS_PREVIEW_SAFE_MODE
   ? "https://preview-disabled.invalid"
-  : "https://vceqmqwszvisvxxbgbfs.supabase.co";
-
+  : (window.SENTINEL_RUNTIME_CONFIG?.supabaseUrl || "https://vceqmqwszvisvxxbgbfs.supabase.co");
 
 const SUPABASE_PUBLISHABLE_KEY =
+  window.SENTINEL_RUNTIME_CONFIG?.supabasePublishableKey ||
   "sb_publishable_t4A5zMUDFmPY4Q7bJA0tBA_nrCfe2RC"
 ;
 
