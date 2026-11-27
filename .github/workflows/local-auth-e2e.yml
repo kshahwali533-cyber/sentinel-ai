@@ -42,7 +42,23 @@ jobs:
           mkdir -p supabase/migrations
           cp -R "$GITHUB_WORKSPACE/supabase/migrations/." supabase/migrations/
           sed -i 's|http://localhost:3000|http://127.0.0.1:4173|g' supabase/config.toml
-          grep -q 'enable_confirmations = false' supabase/config.toml
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          path = Path("supabase/config.toml")
+          content = path.read_text()
+          match = re.search(r"(?ms)^\\[auth\\.email\\]\\n(.*?)(?=^\\[|\\Z)", content)
+          if match:
+              section = match.group(1)
+              if re.search(r"(?m)^enable_confirmations\\s*=", section):
+                  section = re.sub(r"(?m)^enable_confirmations\\s*=.*$", "enable_confirmations = false", section)
+              else:
+                  section += "enable_confirmations = false\\n"
+              content = content[:match.start(1)] + section + content[match.end(1):]
+          else:
+              content += "\\n[auth.email]\\nenable_confirmations = false\\n"
+          path.write_text(content)
+          PY
 
       - name: Start local Supabase Auth and database only
         working-directory: /tmp/sentinel-auth-e2e
