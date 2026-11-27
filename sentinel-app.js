@@ -29,8 +29,7 @@ if (IS_PREVIEW_SAFE_MODE) {
   safetyNotice.setAttribute("role", "status");
   safetyNotice.textContent =
     "Preview Safe Mode: live account data and database actions are disabled here. Production is unchanged.";
-  safetyNotice.style.cssText =
-    "position:sticky;top:0;z-index:99999;padding:12px 16px;background:#7f1d1d;color:#fff;text-align:center;font-weight:700;font-size:14px;";
+  safetyNotice.className = "preview-safe-mode-banner";
   document.addEventListener("DOMContentLoaded", () => {
     document.body.prepend(safetyNotice);
   }, { once: true });
