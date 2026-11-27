@@ -45,7 +45,7 @@
   },
   "routes": [
     {
-      "src": "^/\\\\.well-known/security\\\\.txt$",
+      "src": "^/\\.well-known/security\\.txt$",
       "methods": [
         "GET"
       ],
