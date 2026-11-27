@@ -1,0 +1,32 @@
+name: AI Agent Security Assessment
+
+on:
+  push:
+    branches:
+      - feature/agent-security-assessment-20261126
+  pull_request:
+    branches:
+      - fix/api-request-size-limits-2026-11-24
+
+permissions:
+  contents: read
+
+jobs:
+  assessment-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Check syntax
+        run: |
+          node --check api/assistant.js
+          node --check api/_lib/agent-security-assessment.js
+      - name: Run Agent Security tests
+        run: node --test test/agent-security-assessment.test.js test/agent-security-api.test.js

@@ -3,6 +3,7 @@ import { readOpenAIResponse } from "./_lib/mentor-openai-response.js";
 import { createSupabaseAdmin } from "./_lib/supabase-admin.js";
 import { getTrustedClientIp } from "./_lib/client-ip.js";
 import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
+import { assessAgentSecurity } from "./_lib/agent-security-assessment.js";
 
 // Reject oversized request bodies in Vercel's parser before req.body is allocated.
 export const config = { api: { bodyParser: { sizeLimit: "64kb" } } };
@@ -13,6 +14,7 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
   if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
     return res.status(405).json({
       error: "Only POST requests are allowed."
     });
@@ -23,6 +25,19 @@ export default async function handler(req, res) {
 
     if (!isWithinJsonBodyLimit(body, 32 * 1024)) {
       return res.status(413).json({ error: "AI Mentor request is too large. Reduce the supplied finding or evidence and try again." });
+    }
+
+    // The deterministic Agent Security review is stateless and does not call an AI provider.
+    if (body.action === "agent_security_assessment") {
+      if (!isWithinJsonBodyLimit(body.assessment, 16 * 1024)) {
+        return res.status(413).json({ error: "Agent security assessment payload is too large or invalid." });
+      }
+      const assessment = assessAgentSecurity(body.assessment);
+      if (!assessment.valid) {
+        return res.status(400).json({ error: assessment.error });
+      }
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      return res.status(200).json(assessment);
     }
 
     let authenticatedUser = null;
