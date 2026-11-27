@@ -30,7 +30,9 @@ test("Preview renders and remains usable at mobile, tablet, and desktop widths",
     ).toBeLessThanOrEqual(dimensions.viewport + 1);
   }
 
-  await page.locator('a[href="#scanner"]').first().click();
+  const scannerLink = page.locator('a[href="#scanner"]').first();
+  await scannerLink.focus();
+  await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/#scanner$/);
 
   await page.locator('[data-action="toggle-password"]').click();
