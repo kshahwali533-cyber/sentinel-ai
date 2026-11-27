@@ -6,12 +6,16 @@ on:
     branches: [main, reconcile/main-integration-2026-11-15]
 permissions:
   contents: read
+concurrency:
+  group: sentinel-main-security-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   security-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
       - name: Install dependencies
@@ -27,7 +31,7 @@ jobs:
           node --check api/_lib/public-ip.js
           node --check api/_lib/read-limited.js
       - name: Run security tests
-        run: node --test
+        run: node --test test/*.test.js tests/*.test.js
       - name: Live scanner smoke test for PR 80 only
         if: github.event_name == 'pull_request' && github.event.pull_request.number == 80
         run: |

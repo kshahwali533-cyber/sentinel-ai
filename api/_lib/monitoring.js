@@ -134,16 +134,23 @@ export async function fetchMonitoringScan(
         signal: AbortSignal.timeout(timeoutMs)
       });
       const scan = await response.json().catch(() => ({}));
-      if (response.ok && Number.isFinite(Number(scan.score ?? scan.securityScore))) {
-        return { scan, attempts: attempt + 1 };
+      if (response.ok) {
+        const score = Number(scan?.score ?? scan?.securityScore);
+        const hasValidScore = Number.isFinite(score) && score >= 0 && score <= 100;
+        const hasValidRisk = typeof scan?.riskLevel === "string" && scan.riskLevel.trim().length > 0;
+        if (hasValidScore && hasValidRisk) {
+          return { scan, attempts: attempt + 1 };
+        }
+        lastError = new Error("MONITORING_SCAN_INVALID_RESPONSE");
+        lastError.retryable = false;
+        throw lastError;
       }
       const retryable = response.status === 429 || response.status >= 500;
       lastError = new Error("MONITORING_SCAN_HTTP_" + response.status);
       lastError.retryable = retryable;
       if (!retryable) throw lastError;
     } catch (error) {
-      if (error?.message?.startsWith("MONITORING_SCAN_HTTP_") &&
-          error?.retryable === false) throw error;
+      if (error?.retryable === false) throw error;
       lastError = error;
     }
     if (attempt === 0) await wait(1000);

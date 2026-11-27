@@ -1,0 +1,77 @@
+name: Sentinel AI Preview browser and mobile audit
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-preview-browser-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview-browser-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out reviewed pull request
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install pinned browser audit dependencies
+        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @playwright/test@1.56.1 @axe-core/playwright@4.10.2
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Check whether the protected Preview is publicly reachable
+        id: preview
+        env:
+          PREVIEW_URL: https://project-3jyda-git-reconcile-release-candid-0c2371-sentinel-ai14.vercel.app
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            status="$(curl --connect-timeout 5 --max-time 10 --silent --show-error --output /tmp/sentinel-preview.html --write-out '%{http_code}' "$PREVIEW_URL/" || true)"
+            if [[ "$status" == "200" ]] && grep -q "Sentinel AI | Cybersecurity Scanner" /tmp/sentinel-preview.html; then
+              echo "available=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [[ "$status" == "401" || "$status" == "403" || "$status" == "302" || "$status" == "303" || "$status" == "307" || "$status" == "308" ]]; then
+              echo "available=false" >> "$GITHUB_OUTPUT"
+              echo "Protected Preview requires Vercel authentication. The browser suite will run against an isolated local build; this does not claim a live protected-Preview browser session." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Preview branch alias did not become ready."
+          exit 1
+
+      - name: Start isolated Preview-safe app server
+        run: |
+          set -euo pipefail
+          node test/fixtures/preview-browser-server.js > /tmp/sentinel-preview-browser-server.log 2>&1 &
+          echo "$!" > /tmp/sentinel-preview-browser-server.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4174/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/sentinel-preview-browser-server.log
+          exit 1
+
+      - name: Run desktop, tablet, mobile, keyboard, and accessibility checks
+        env:
+          BASE_URL: http://127.0.0.1:4174
+        run: npx playwright test .github/e2e/sentinel-responsive.spec.js --reporter=line
+

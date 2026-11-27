@@ -8,16 +8,12 @@
           "value": "nosniff"
         },
         {
-          "key": "Access-Control-Allow-Origin",
-          "value": "https://project-3jyda.vercel.app"
-        },
-        {
           "key": "X-Frame-Options",
           "value": "DENY"
         },
         {
           "key": "Strict-Transport-Security",
-          "value": "max-age=31536000"
+          "value": "max-age=31536000; includeSubDomains"
         },
         {
           "key": "Referrer-Policy",
@@ -47,6 +43,36 @@
       "maxDuration": 300
     }
   },
+  "routes": [
+    {
+      "src": "^/\\.well-known/security\\.txt$",
+      "methods": [
+        "GET"
+      ],
+      "dest": "/api/scan?canonical_asset=security"
+    },
+    {
+      "src": "^/robots\\.txt$",
+      "methods": [
+        "GET"
+      ],
+      "dest": "/api/scan?canonical_asset=robots"
+    },
+    {
+      "src": "^/sitemap\\.xml$",
+      "methods": [
+        "GET"
+      ],
+      "dest": "/api/scan?canonical_asset=sitemap"
+    },
+    {
+      "src": "^/api/research-scope-check$",
+      "dest": "/api/research?__action=check_scope"
+    },
+    {
+      "handle": "filesystem"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/research-scope-check",

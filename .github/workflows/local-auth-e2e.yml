@@ -1,0 +1,105 @@
+name: Sentinel AI isolated Supabase Auth E2E
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-local-auth-e2e-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  local-auth-e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "true"
+    steps:
+      - name: Check out reviewed pull request
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install pinned local Supabase and browser test tools
+        run: npm install --no-save --package-lock=false --no-audit --no-fund supabase@2.65.5 @playwright/test@1.56.1
+
+      - name: Initialize an isolated local Supabase project
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/sentinel-auth-e2e
+          cd /tmp/sentinel-auth-e2e
+          $GITHUB_WORKSPACE/node_modules/.bin/supabase init
+          sed -i 's|http://localhost:3000|http://127.0.0.1:4173|g' supabase/config.toml
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          path = Path("supabase/config.toml")
+          content = path.read_text()
+          match = re.search(r"(?ms)^\[auth\.email\]\n(.*?)(?=^\[|\Z)", content)
+          if match:
+              section = match.group(1)
+              if re.search(r"(?m)^enable_confirmations\s*=", section):
+                  section = re.sub(r"(?m)^enable_confirmations\s*=.*$", "enable_confirmations = false", section)
+              else:
+                  section += "enable_confirmations = false\n"
+              content = content[:match.start(1)] + section + content[match.end(1):]
+          else:
+              content += "\n[auth.email]\nenable_confirmations = false\n"
+          path.write_text(content)
+          PY
+
+      - name: Start local Supabase Auth and database only
+        working-directory: /tmp/sentinel-auth-e2e
+        run: $GITHUB_WORKSPACE/node_modules/.bin/supabase start -x studio -x imgproxy -x edge-runtime -x logflare -x vector -x realtime -x storage-api -x postgres-meta -x supavisor
+
+      - name: Export isolated local Supabase connection values
+        working-directory: /tmp/sentinel-auth-e2e
+        run: |
+          set -euo pipefail
+          eval "$($GITHUB_WORKSPACE/node_modules/.bin/supabase status -o env)"
+          test -n "$API_URL"
+          test -n "$ANON_KEY"
+          {
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY"
+            echo "MAILPIT_URL=http://127.0.0.1:54324"
+            echo "BASE_URL=http://127.0.0.1:4173"
+          } >> "$GITHUB_ENV"
+
+      - name: Start the app with the isolated Auth runtime config
+        run: |
+          set -euo pipefail
+          node test/fixtures/auth-e2e-server.js > /tmp/sentinel-auth-e2e-server.log 2>&1 &
+          echo "$!" > /tmp/sentinel-auth-e2e-server.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/sentinel-auth-e2e-server.log
+          exit 1
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run real signup, login, logout, recovery email, and password update
+        run: npx playwright test .github/e2e/auth-local-supabase.spec.js --reporter=line
+
+      - name: Stop isolated local Supabase stack
+        if: always()
+        working-directory: /tmp/sentinel-auth-e2e
+        run: |
+          if [ -x "$GITHUB_WORKSPACE/node_modules/.bin/supabase" ] && [ -f /tmp/sentinel-auth-e2e/supabase/config.toml ]; then
+            $GITHUB_WORKSPACE/node_modules/.bin/supabase stop --no-backup
+          fi

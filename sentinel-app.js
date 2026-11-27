@@ -10,10 +10,10 @@ const IS_PREVIEW_SAFE_MODE =
 
 const SUPABASE_URL = IS_PREVIEW_SAFE_MODE
   ? "https://preview-disabled.invalid"
-  : "https://vceqmqwszvisvxxbgbfs.supabase.co";
-
+  : (window.SENTINEL_RUNTIME_CONFIG?.supabaseUrl || "https://vceqmqwszvisvxxbgbfs.supabase.co");
 
 const SUPABASE_PUBLISHABLE_KEY =
+  window.SENTINEL_RUNTIME_CONFIG?.supabasePublishableKey ||
   "sb_publishable_t4A5zMUDFmPY4Q7bJA0tBA_nrCfe2RC"
 ;
 
@@ -29,15 +29,14 @@ if (IS_PREVIEW_SAFE_MODE) {
   safetyNotice.setAttribute("role", "status");
   safetyNotice.textContent =
     "Preview Safe Mode: live account data and database actions are disabled here. Production is unchanged.";
-  safetyNotice.style.cssText =
-    "position:sticky;top:0;z-index:99999;padding:12px 16px;background:#7f1d1d;color:#fff;text-align:center;font-weight:700;font-size:14px;";
+  safetyNotice.className = "preview-safe-mode-banner";
   document.addEventListener("DOMContentLoaded", () => {
     document.body.prepend(safetyNotice);
   }, { once: true });
 }
 
 let latestScan = null;
-let isPasswordRecovery = false;
+let authUiRefreshTimer = null;
   function trackEvent(eventName) {
   try {
     if (typeof window.va === "function") {
@@ -71,6 +70,17 @@ function escapeHTML(value) {
 /* =========================
    AUTH UI
 ========================= */
+
+function scheduleAuthUIRefresh() {
+  if (authUiRefreshTimer !== null) {
+    window.clearTimeout(authUiRefreshTimer);
+  }
+
+  authUiRefreshTimer = window.setTimeout(() => {
+    authUiRefreshTimer = null;
+    void updateAuthUI();
+  }, 0);
+}
 
 async function updateAuthUI() {
   const authStatus = document.getElementById("authStatus");
@@ -157,22 +167,30 @@ async function updateAuthUI() {
   }
 
   try {
-    console.log("AUTH DEBUG: before getSession");
 
-const {
-  data: { session },
-  error
-} = await Promise.race([
-  supabaseClient.auth.getSession(),
-  new Promise((_, reject) =>
-    setTimeout(
-      () => reject(new Error("getSession timeout after 8 seconds")),
-      8000
-    )
-  )
-]);
+let sessionResult;
+  let sessionTimeoutId;
 
-console.log("AUTH DEBUG: after getSession");
+  try {
+    sessionResult = await Promise.race([
+      supabaseClient.auth.getSession(),
+      new Promise((_, reject) => {
+        sessionTimeoutId = window.setTimeout(
+          () => reject(new Error("getSession timeout after 8 seconds")),
+          8000
+        );
+      })
+    ]);
+  } finally {
+    if (sessionTimeoutId !== undefined) {
+      window.clearTimeout(sessionTimeoutId);
+    }
+  }
+
+  const {
+    data: { session },
+    error
+  } = sessionResult;
 
 if (error) {
   throw error;
@@ -181,7 +199,7 @@ if (error) {
     const user = session?.user;
 
     if (user) {
-      console.log("AUTH UI: user detected");
+
       authStatus.className = "success";
       authStatus.textContent =
         "✅ Your Sentinel AI account is active. Your scan history can be saved securely.";
@@ -349,12 +367,6 @@ async function resetPassword() {
     authStatus.className = "success";
     authStatus.textContent =
       "✅ Password reset link sent. Please check your email.";
-const otpResetArea =
-  document.getElementById("otpResetArea");
-
-if (otpResetArea) {
-  otpResetArea.classList.remove("is-hidden");
-}
   } catch (error) {
     console.error("Password Reset Error:", error);
 
@@ -364,69 +376,6 @@ if (otpResetArea) {
       (error?.message || "Unable to send password reset email.");
   }
   }
-  /* =========================
-   VERIFY PASSWORD RESET OTP
-========================= */
-
-async function verifyPasswordResetOtp() {
-  const emailInput = document.getElementById("authEmail");
-  const otpInput = document.getElementById("resetOtp");
-  const authStatus = document.getElementById("authStatus");
-
-  if (!emailInput || !otpInput || !authStatus) {
-    console.error("OTP Verification: Required elements not found.");
-    return;
-  }
-
-  const email = emailInput.value.trim();
-  const token = otpInput.value.trim();
-
-  if (!email || !token) {
-    authStatus.className = "error";
-    authStatus.textContent =
-      "⚠️ Please enter your email and OTP.";
-    return;
-  }
-
-  authStatus.className = "notice";
-  authStatus.textContent =
-    "🔐 Verifying OTP...";
-
-  try {
-    const { error } =
-      await supabaseClient.auth.verifyOtp({
-        email: email,
-        token: token,
-        type: "recovery"
-      });
-
-    if (error) {
-      throw error;
-    }
-
-    isPasswordRecovery = true;
-
-    authStatus.className = "success";
-    authStatus.textContent =
-      "✅ OTP verified. You can now create a new password.";
-
-    const passwordResetArea =
-      document.getElementById("passwordResetArea");
-
-    if (passwordResetArea) {
-      passwordResetArea.classList.remove("is-hidden");
-    }
-
-  } catch (error) {
-    console.error("OTP Verification Error:", error);
-
-    authStatus.className = "error";
-    authStatus.textContent =
-      "❌ " +
-      (error?.message || "Invalid or expired OTP.");
-  }
-}
-
 /* =========================
    UPDATE PASSWORD
 ========================= */
@@ -451,10 +400,10 @@ async function updatePassword() {
     return;
   }
 
-  if (newPassword.length < 6) {
+  const passwordPolicyError = getPasswordPolicyError(newPassword);
+  if (passwordPolicyError) {
     authStatus.className = "error";
-    authStatus.textContent =
-      "⚠️ Password must be at least 6 characters.";
+    authStatus.textContent = "⚠️ " + passwordPolicyError;
     return;
   }
 
@@ -486,8 +435,6 @@ async function updatePassword() {
     newPasswordInput.value = "";
     confirmPasswordInput.value = "";
 
-    isPasswordRecovery = false;
-
     const passwordResetArea =
       document.getElementById("passwordResetArea");
 
@@ -495,7 +442,7 @@ async function updatePassword() {
       passwordResetArea.classList.add("is-hidden");
     }
 
-    await updateAuthUI();
+    scheduleAuthUIRefresh();
 
   } catch (error) {
     console.error("Update Password Error:", error);
@@ -509,6 +456,13 @@ async function updatePassword() {
 /* =========================
    CREATE ACCOUNT
 ========================= */
+
+function getPasswordPolicyError(password) {
+  if (typeof password !== "string" || password.length < 12) {
+    return "Use a unique password with at least 12 characters.";
+  }
+  return "";
+}
 
 async function signUpUser() {
   const emailInput = document.getElementById("authEmail");
@@ -530,10 +484,10 @@ async function signUpUser() {
     return;
   }
 
-  if (password.length < 6) {
+  const passwordPolicyError = getPasswordPolicyError(password);
+  if (passwordPolicyError) {
     authStatus.className = "error";
-    authStatus.textContent =
-      "⚠️ Password must be at least 6 characters.";
+    authStatus.textContent = "⚠️ " + passwordPolicyError;
     return;
   }
 
@@ -565,7 +519,7 @@ if (data?.user) {
     }
 
     passwordInput.value = "";
-    await updateAuthUI();
+    scheduleAuthUIRefresh();
 
   } catch (error) {
     console.error("Signup Error:", error);
@@ -623,7 +577,7 @@ async function signInUser() {
       "✅ Login successful. Welcome to Sentinel AI.";
 
     passwordInput.value = "";
-    await updateAuthUI();
+    scheduleAuthUIRefresh();
 
   } catch (error) {
     console.error("Login Error:", error);
@@ -660,6 +614,7 @@ async function signOutUser() {
       throw error;
     }
     trackSentinelEvent("logout_success");
+    scheduleAuthUIRefresh();
     
     const authForm = document.getElementById("authForm");
     const loggedInArea = document.getElementById("loggedInArea");
@@ -1098,7 +1053,12 @@ async function runSecurityScan(isRescan = false) {
     const previewResult = document.getElementById("result");
     if (previewResult) {
       previewResult.classList.remove("is-hidden");
-      previewResult.innerHTML = '<div class="notice">Preview Safe Mode: scanning is disabled in this protected Preview. No scan request was sent. Production is unchanged.</div>';
+      previewResult.innerHTML = `
+        <div class="notice" role="status" aria-live="polite">
+          <strong>Preview Safe Mode is active.</strong>
+          <br><br>
+          Live website scanning is disabled in this protected Preview. No scan request was sent. No account or database data was accessed. Production is unchanged.
+        </div>`;
     }
     return;
   }
@@ -4387,41 +4347,34 @@ async function revokeOrganizationInvitation(organizationId, invitationId) {
    PAGE LOAD
 ========================= */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  async function() {
+document.addEventListener("DOMContentLoaded", function() {
+  renderScanHistory();
 
-    renderScanHistory();
+  // Supabase auth callbacks must stay synchronous. Schedule UI work after the
+  // callback returns so Supabase can release its internal auth lock.
+  supabaseClient.auth.onAuthStateChange(function(event) {
+    if (event === "INITIAL_SESSION") {
+      return;
+    }
 
-    await updateAuthUI();
-
-    supabaseClient.auth.onAuthStateChange(
-      async function(event) {
-
-        if (event === "PASSWORD_RECOVERY") {
-
-          isPasswordRecovery = true;
-
-          const passwordResetArea =
-            document.getElementById("passwordResetArea");
-
-          if (passwordResetArea) {
-            passwordResetArea.classList.remove("is-hidden");
-          }
-
-          const authStatus =
-            document.getElementById("authStatus");
-
-          if (authStatus) {
-            authStatus.className = "success";
-            authStatus.textContent =
-              "🔑 Password recovery verified. Please create a new password.";
-          }
-        }
-
-        await updateAuthUI();
+    if (event === "PASSWORD_RECOVERY") {
+      const passwordResetArea =
+        document.getElementById("passwordResetArea");
+      if (passwordResetArea) {
+        passwordResetArea.classList.remove("is-hidden");
       }
-    );
 
-  }
-);
+      const authStatus = document.getElementById("authStatus");
+      if (authStatus) {
+        authStatus.className = "success";
+        authStatus.textContent =
+          "🔑 Password recovery verified. Please create a new password.";
+      }
+    }
+
+    scheduleAuthUIRefresh();
+    });;
+
+  // Subscribe first, then perform the initial state refresh.
+  void updateAuthUI();
+});

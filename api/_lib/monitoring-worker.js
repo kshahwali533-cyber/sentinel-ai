@@ -7,6 +7,7 @@ import {
 export async function processMonitoringQueue({
   supabaseAdmin,
   fetchImpl = fetch,
+  waitImpl,
   origin,
   secret,
   now = () => new Date()
@@ -31,7 +32,8 @@ export async function processMonitoringQueue({
         fetchImpl,
         origin + "/api/scan",
         site.target_url,
-        secret
+        secret,
+        typeof waitImpl === "function" ? { wait: waitImpl } : {}
       );
       const scan = scanResult.scan;
       summary.retries += Math.max(0, scanResult.attempts - 1);
