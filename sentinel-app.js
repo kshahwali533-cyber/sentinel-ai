@@ -168,7 +168,6 @@ async function updateAuthUI() {
   }
 
   try {
-    console.log("AUTH DEBUG: before getSession");
 
 let sessionResult;
   let sessionTimeoutId;
@@ -194,8 +193,6 @@ let sessionResult;
     error
   } = sessionResult;
 
-console.log("AUTH DEBUG: after getSession");
-
 if (error) {
   throw error;
 }
@@ -203,7 +200,7 @@ if (error) {
     const user = session?.user;
 
     if (user) {
-      console.log("AUTH UI: user detected");
+
       authStatus.className = "success";
       authStatus.textContent =
         "✅ Your Sentinel AI account is active. Your scan history can be saved securely.";
