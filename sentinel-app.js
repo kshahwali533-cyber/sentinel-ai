@@ -1054,7 +1054,7 @@ async function runSecurityScan(isRescan = false) {
         <div class="notice" role="status" aria-live="polite">
           <strong>Preview Safe Mode is active.</strong>
           <br><br>
-          Live website scanning is disabled in this protected Preview. No scan request was sent and no account or database data was accessed. Production is unchanged.
+          Live website scanning is disabled in this protected Preview. No scan request was sent. No account or database data was accessed. Production is unchanged.
         </div>`;
     }
     return;
