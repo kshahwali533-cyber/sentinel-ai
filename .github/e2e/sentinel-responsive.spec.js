@@ -7,6 +7,11 @@ if (!baseURL) throw new Error("BASE_URL is required for the Preview browser audi
 test("Preview renders and remains usable at mobile, tablet, and desktop widths", async ({ page }) => {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.addInitScript(() => {
+    if (!window.supabase) {
+      window.supabase = { createClient: () => ({ auth: {} }) };
+    }
+  });
 
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto(baseURL, { waitUntil: "domcontentloaded" });
@@ -15,7 +20,10 @@ test("Preview renders and remains usable at mobile, tablet, and desktop widths",
   await expect(page.locator("#scanner")).toBeAttached();
   await expect(page.locator("#monitoring")).toBeAttached();
   await expect(page.locator("#research")).toBeAttached();
-  await expect(page.locator("#authEmail")).toBeVisible();
+  await expect(page.locator("#authStatus")).toContainText("Preview Safe Mode");
+  await expect(page.locator(".preview-safe-mode-banner")).toBeVisible();
+  await expect(page.locator("#authForm")).toBeHidden();
+  await expect(page.locator("#monitoring")).toBeAttached();
 
   for (const width of [360, 390, 768, 1280]) {
     await page.setViewportSize({ width, height: 900 });
@@ -34,11 +42,6 @@ test("Preview renders and remains usable at mobile, tablet, and desktop widths",
   await scannerLink.focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/#scanner$/);
-
-  await page.locator('[data-action="toggle-password"]').click();
-  await expect(page.locator("#authPassword")).toHaveAttribute("type", "text");
-  await page.locator('[data-action="toggle-password"]').click();
-  await expect(page.locator("#authPassword")).toHaveAttribute("type", "password");
 
   expect(pageErrors).toEqual([]);
 });
@@ -59,6 +62,11 @@ test("Preview serves canonical metadata from the configured Production origin", 
 });
 
 test("Preview meets the critical WCAG accessibility checks", async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!window.supabase) {
+      window.supabase = { createClient: () => ({ auth: {} }) };
+    }
+  });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(baseURL, { waitUntil: "domcontentloaded" });
 
