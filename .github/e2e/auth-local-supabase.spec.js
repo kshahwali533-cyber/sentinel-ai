@@ -36,8 +36,8 @@ test("local Supabase Auth supports signup, login, logout, recovery email, and pa
   await expect(page.locator("#loggedInEmail")).toHaveText(email, { timeout: 30000 });
 
   await page.locator('[data-action="sign-out-user"]').click();
-  await expect(page.locator("#authStatus")).toContainText("logged out successfully");
   await expect(page.locator("#authForm")).toBeVisible();
+  await expect(page.locator("#loggedInArea")).toBeHidden();
 
   await page.locator("#authEmail").fill(email);
   await page.locator("#authPassword").fill(initialPassword);
@@ -45,7 +45,8 @@ test("local Supabase Auth supports signup, login, logout, recovery email, and pa
   await expect(page.locator("#loggedInEmail")).toHaveText(email, { timeout: 30000 });
 
   await page.locator('[data-action="sign-out-user"]').click();
-  await expect(page.locator("#authStatus")).toContainText("logged out successfully");
+  await expect(page.locator("#authForm")).toBeVisible();
+  await expect(page.locator("#loggedInArea")).toBeHidden();
   await page.locator("#authEmail").fill(email);
   await page.locator('[data-action="reset-password"]').click();
   await expect(page.locator("#authStatus")).toContainText("Password reset link sent", { timeout: 30000 });
