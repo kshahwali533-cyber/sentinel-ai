@@ -37,7 +37,6 @@ if (IS_PREVIEW_SAFE_MODE) {
 }
 
 let latestScan = null;
-let isPasswordRecovery = false;
 let authUiRefreshTimer = null;
   function trackEvent(eventName) {
   try {
@@ -372,12 +371,6 @@ async function resetPassword() {
     authStatus.className = "success";
     authStatus.textContent =
       "✅ Password reset link sent. Please check your email.";
-const otpResetArea =
-  document.getElementById("otpResetArea");
-
-if (otpResetArea) {
-  otpResetArea.classList.remove("is-hidden");
-}
   } catch (error) {
     console.error("Password Reset Error:", error);
 
@@ -387,69 +380,6 @@ if (otpResetArea) {
       (error?.message || "Unable to send password reset email.");
   }
   }
-  /* =========================
-   VERIFY PASSWORD RESET OTP
-========================= */
-
-async function verifyPasswordResetOtp() {
-  const emailInput = document.getElementById("authEmail");
-  const otpInput = document.getElementById("resetOtp");
-  const authStatus = document.getElementById("authStatus");
-
-  if (!emailInput || !otpInput || !authStatus) {
-    console.error("OTP Verification: Required elements not found.");
-    return;
-  }
-
-  const email = emailInput.value.trim();
-  const token = otpInput.value.trim();
-
-  if (!email || !token) {
-    authStatus.className = "error";
-    authStatus.textContent =
-      "⚠️ Please enter your email and OTP.";
-    return;
-  }
-
-  authStatus.className = "notice";
-  authStatus.textContent =
-    "🔐 Verifying OTP...";
-
-  try {
-    const { error } =
-      await supabaseClient.auth.verifyOtp({
-        email: email,
-        token: token,
-        type: "recovery"
-      });
-
-    if (error) {
-      throw error;
-    }
-
-    isPasswordRecovery = true;
-
-    authStatus.className = "success";
-    authStatus.textContent =
-      "✅ OTP verified. You can now create a new password.";
-
-    const passwordResetArea =
-      document.getElementById("passwordResetArea");
-
-    if (passwordResetArea) {
-      passwordResetArea.classList.remove("is-hidden");
-    }
-
-  } catch (error) {
-    console.error("OTP Verification Error:", error);
-
-    authStatus.className = "error";
-    authStatus.textContent =
-      "❌ " +
-      (error?.message || "Invalid or expired OTP.");
-  }
-}
-
 /* =========================
    UPDATE PASSWORD
 ========================= */
@@ -508,8 +438,6 @@ async function updatePassword() {
 
     newPasswordInput.value = "";
     confirmPasswordInput.value = "";
-
-    isPasswordRecovery = false;
 
     const passwordResetArea =
       document.getElementById("passwordResetArea");
@@ -4422,8 +4350,6 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     if (event === "PASSWORD_RECOVERY") {
-      isPasswordRecovery = true;
-
       const passwordResetArea =
         document.getElementById("passwordResetArea");
       if (passwordResetArea) {
