@@ -33,7 +33,7 @@ On PR #109 code checkpoint `79aad9eca09fac82ccf46c70121556b95c69f1c5`, all four 
 ## Remaining work before calling custom-domain support ready
 
 - Re-run all four checks and Preview validation after each subsequent code or documentation update.
-- Make the canonical public origin configurable for `robots.txt`, `sitemap.xml`, `.well-known/security.txt`, generated absolute links, and email links; verify the result without changing Production now.
+- Extend the canonical public origin configuration to every generated absolute link and email link; the three public security metadata endpoints are now configurable through `SENTINEL_CANONICAL_HOSTNAME`. Verify all output without changing Production now.
 - Review the complete signup, login, password recovery, sign-out, scanner, reports, monitoring, and browser security-header flows on protected Preview. Preview must remain isolated from Production Supabase.
 - Confirm the exact Vercel system environment variables available to this project and ensure the future custom-host allowlist is set only in the Production environment.
 
@@ -41,7 +41,7 @@ On PR #109 code checkpoint `79aad9eca09fac82ccf46c70121556b95c69f1c5`, all four 
 
 1. User purchases and controls the domain; no purchase is implied by this document.
 2. Record the exact chosen hostname(s), preferred canonical host, and registrar.
-3. Configure `SENTINEL_PRODUCTION_HOSTNAMES` and canonical-origin settings in Vercel Production only, after verifying Preview/Production separation.
+3. Configure `SENTINEL_PRODUCTION_HOSTNAMES` and `SENTINEL_CANONICAL_HOSTNAME` in Vercel Production only, after verifying Preview/Production separation. The canonical hostname must be the chosen verified domain; keep it unset until domain ownership and Vercel assignment are complete.
 4. Add the domain to the Vercel project and apply only the exact DNS records Vercel requests. Preserve existing MX/TXT/email records.
 5. Verify DNS propagation and automatic SSL certificate issuance.
 6. Configure Supabase Auth Site URL and exact redirect allowlist; leave the Supabase project API URL unchanged.
@@ -81,8 +81,8 @@ At documentation checkpoint `c0e8fbfd09399ffb4f10670c89d28073fa686c59`, the auth
 
 ## Canonical metadata implementation update — 2026-11-27
 
-- `robots.txt` and `sitemap.xml` are now routed before static filesystem lookup to the existing `api/scan.js` function. The handler derives the canonical origin from Vercel's `VERCEL_PROJECT_PRODUCTION_URL` system variable, validates it as a hostname, and returns a cached public metadata response. Preview responses carry `X-Robots-Tag: noindex`.
-- This reuses the existing scanner function and does not add another Vercel Serverless Function. The route behavior is covered by unit tests and a new Preview Playwright assertion; the latest Preview run must pass before calling it verified.
-- `.well-known/security.txt` remains a static file because Vercel reserves that path from rewrites. It currently points to the correct existing Production hostname `project-3jyda.vercel.app`. Update that file as part of any future custom-domain cutover, before changing canonical traffic.
+- `robots.txt`, `sitemap.xml`, and `.well-known/security.txt` are routed to the existing `api/scan.js` function, which renders the canonical URL from `SENTINEL_CANONICAL_HOSTNAME` when explicitly configured, otherwise falling back to Vercel's `VERCEL_PROJECT_PRODUCTION_URL` system variable. Hostnames are validated before use; Preview responses carry `X-Robots-Tag: noindex`.
+- This reuses the existing scanner function and does not add another Vercel Serverless Function. Security metadata unit tests cover the configurable hostname and rolling security.txt expiry. The latest Preview route smoke must pass before calling the change verified.
+- Do not set `SENTINEL_CANONICAL_HOSTNAME` until a user-controlled domain has been assigned to Vercel and its DNS/SSL state is verified. No real domain is configured now.
 - The current site remains on its Vercel Production domain; no custom domain is owned or configured, and no DNS or Production settings were changed.
 - Supabase's private scan-reservation RLS migration is already present in live migration history and was verified read-only. This is not a custom-domain dependency.
