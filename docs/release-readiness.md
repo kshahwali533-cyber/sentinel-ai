@@ -179,3 +179,13 @@ For documentation head `1cd997dbef813e0b9a62fd568499ea233e8dedaf` (application c
 - Static mobile CSS review shows a max-width 650px layout adjustment, single-column summary/auth controls, responsive card/analytics grids, and wrapping research action controls. This is source inspection, not a device/browser accessibility audit.
 
 The subsequent runbook-only commits correct the documented CLI flag to `--db-url` and add the official isolated `psql` restore pattern. No backup, restore, Production request, or live Supabase operation was performed. The newest documentation-only head must still receive its own Preview/CI confirmation.
+
+
+## Reconciliation checkpoint — 2026-11-27 (latest documentation head before this note)
+
+- Exact candidate head checked: `896d8cab2236d7874d06ab4ca70b10a3de157070`; PR #109 is open, Draft, and GitHub reports `mergeable: true`. This is not release approval.
+- Four PR workflows on that exact head completed successfully: Main Security Hardening, Security API checks, Research Scope Gate, and CodeQL. The authoritative application-code test counts remain 317, 260, and 57 respectively on tested code commit `dd84d560b68cca1d5c18b4b9e55b12a28137aea7`; the latest docs-only head does not change application code.
+- Vercel Preview `dpl_FEbiYzYq7ssfzVtZ5wW5N6yqaEQu` is READY for that exact docs head. The authenticated HTTP smoke and runbook delivery were previously verified; this does not constitute an interactive browser audit.
+- The mobile Lighthouse workflow currently runs against Production on main push, weekly schedule, or manual dispatch. It does not test PR #109 Preview. No Preview Lighthouse score or interactive mobile/browser result is claimed. Protected Preview authentication cannot safely be bypassed or exposed to a public CI runner; the billable Vercel GUI browser sandbox was not used.
+- The three static canonical assets (`robots.txt`, `sitemap.xml`, and `.well-known/security.txt`) still embed the current Vercel Production hostname. No custom domain is owned/configured. Do not add a runtime API function or alter the Vercel build/output pipeline merely to replace these static URLs without a separately tested implementation; Vercel Hobby has a 12-function ceiling and the current static deployment has no package build script.
+- The isolated Supabase Auth/account E2E, owned-domain monitoring-alert E2E, actual backup/checksum/off-site/restore proof, live private-table RLS rollout, and Free-plan Auth risk decision remain open. They require an isolated test project, user-owned domain/asset registration approval, a secure workstation and isolated restore target, and/or explicit user risk acceptance. No Production or live Supabase changes were made.
