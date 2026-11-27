@@ -75,6 +75,20 @@ test("monitoring worker rejects an incorrect bearer secret before accessing Supa
   assert.match(result.payload.error, /Unauthorized/);
 });
 
+test("production monitoring worker never trusts a request host when its canonical Vercel host is missing", async () => {
+  let databaseCalls = 0;
+  let fetchCalls = 0;
+  const worker = createMonitoringWorkerHandler({
+    supabaseAdmin: { async rpc() { databaseCalls += 1; return { data: [], error: null }; } },
+    fetchImpl: async () => { fetchCalls += 1; throw new Error("must not send the worker secret"); },
+    env: { CRON_SECRET: "production-test-secret", VERCEL_ENV: "production" }
+  });
+  const result = await invoke(worker, "GET", "Bearer production-test-secret");
+  assert.equal(result.statusCode, 500);
+  assert.equal(databaseCalls, 0);
+  assert.equal(fetchCalls, 0);
+});
+
 test("monitoring worker rejects non-string authorization headers", async () => {
   const worker = createMonitoringWorkerHandler({
     supabaseAdmin: {},
