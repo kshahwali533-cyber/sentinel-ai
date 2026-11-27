@@ -62,6 +62,8 @@ test("runtime config reuses the existing scan function without adding a Vercel f
   assert.match(scanSource, /req\.method === "GET" && req\.query\?\.runtime_config === "1"/);
   assert.match(scanSource, /isApprovedProductionRequest\(/);
   assert.equal(fs.existsSync(new URL("../api/runtime-config.js", import.meta.url)), false);
+  const apiFunctions = fs.readdirSync(new URL("../api/", import.meta.url)).filter(name => name.endsWith(".js"));
+  assert.ok(apiFunctions.length <= 12, "Vercel Hobby function cap must not be exceeded");
 });
 
 test("existing scan API serves a fail-closed runtime config response", async () => {
