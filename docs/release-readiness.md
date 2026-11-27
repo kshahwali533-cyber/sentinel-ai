@@ -4,7 +4,7 @@ Status: **Reconciled release candidate; NOT yet approved for Production rollout.
 
 Candidate PR: #109 (draft, base `main`; GitHub currently reports mergeable)
 Candidate branch: `reconcile/release-candidate-2026-11-27`
-Latest code verification checkpoint: `79aad9eca09fac82ccf46c70121556b95c69f1c5` (2026-11-27).
+Latest verified release-candidate head: `dd84d560b68cca1d5c18b4b9e55b12a28137aea7` (2026-11-27).
 Latest documentation-only candidate checkpoint: the current PR #109 head; use the PR's exact commit and attached status checks for traceability.
 Current known-good Production deployment to preserve for rollback: `dpl_9eJzwsTPcCLcVLWJNXXHS7nge9ae` (Production target, `main`, commit `e8c0ae65d7b9f79291b3e2cdfb890af6b3ebd401`).
 
@@ -63,7 +63,7 @@ The Security API job applies the candidate private-table RLS migration to its di
 2. The user has authorized merge to `main` and Production deployment once all release gates are satisfied. Do not bypass an open gate; live Supabase schema, data, or Auth-setting changes still require separate explicit approval.
 3. Before an approved rollout, capture a verified database backup/export and confirm production environment variables.
 4. Deploy only after approval, then verify homepage, scanner, auth, reports, monitoring, and alert delivery.
-5. If release verification fails, restore the previous known-good Vercel Production deployment `dpl_EMgCFrnCnwDuk9NPdzQWTJj2rjW8` and investigate before retrying.
+5. If release verification fails, restore the previous known-good Vercel Production deployment `dpl_9eJzwsTPcCLcVLWJNXXHS7nge9ae` and investigate before retrying.
 
 ## Safety boundaries
 
@@ -131,3 +131,23 @@ This was an authenticated HTTP smoke check, not a full interactive browser test.
 ## Mobile audit scope clarification
 
 The existing `.github/workflows/mobile-lighthouse.yml` runs on pushes to `main`, weekly schedule, or manual dispatch, and its target is the Production URL. It does not automatically audit this protected Preview. No candidate-specific Lighthouse score is claimed here; mobile and cross-browser verification remains open.
+
+
+## Latest candidate verification and monitoring-origin hardening — 2026-11-27
+
+Exact candidate head: `dd84d560b68cca1d5c18b4b9e55b12a28137aea7`.
+
+- Main Security Hardening: **317 passed, 0 failed**.
+- Security API checks: **260 passed, 0 failed**.
+- Research Scope Gate: **57 passed, 0 failed**.
+- CodeQL Security Analysis: **success**.
+- Vercel Preview for this exact commit: **READY**; Vercel commit status: success.
+- Authenticated Preview HTTP smoke: homepage 200; `/api/scan?runtime_config=1` returned `isProduction: false` and `Cache-Control: no-store`.
+- Preview response headers include CSP, HSTS, nosniff, frame denial, Referrer-Policy, and Permissions-Policy.
+- `robots.txt`, `sitemap.xml`, and `.well-known/security.txt` each returned HTTP 200. Their canonical references still point to `https://project-3jyda.vercel.app`; replace these references as part of a future authorized custom-domain cutover.
+- Preview runtime logs: no entries in the inspected 30-minute window.
+- A production-specific monitoring-origin guard was added: when `VERCEL_ENV=production`, the worker derives its origin only from `VERCEL_PROJECT_PRODUCTION_URL` and does not trust request Host / Forwarded-Host. If the configured Production host is missing or invalid, it fails closed before queue processing, database access, or outbound requests.
+- Regression test confirms that missing Production canonical host results in zero Supabase calls and zero outbound fetches. The test passed in Main Security Hardening (317) and Security API checks (260).
+- Source inspection of Preview JavaScript found no use of `eval()` or `new Function()`; inspected dynamic HTML render paths escape database/API-provided values with `escapeHTML`. This is a focused source review, not a complete browser XSS assessment.
+- The Vercel GUI sandbox was not used because it is billable. Therefore full interactive browser/mobile accessibility verification remains open; no Lighthouse score is claimed for this candidate.
+- No Production deployment, `main` merge, live Supabase schema/data/Auth-setting change, DNS change, or custom-domain change was made.
