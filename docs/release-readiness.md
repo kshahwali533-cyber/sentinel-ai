@@ -189,3 +189,33 @@ The subsequent runbook-only commits correct the documented CLI flag to `--db-url
 - The mobile Lighthouse workflow currently runs against Production on main push, weekly schedule, or manual dispatch. It does not test PR #109 Preview. No Preview Lighthouse score or interactive mobile/browser result is claimed. Protected Preview authentication cannot safely be bypassed or exposed to a public CI runner; the billable Vercel GUI browser sandbox was not used.
 - The three static canonical assets (`robots.txt`, `sitemap.xml`, and `.well-known/security.txt`) still embed the current Vercel Production hostname. No custom domain is owned/configured. Do not add a runtime API function or alter the Vercel build/output pipeline merely to replace these static URLs without a separately tested implementation; Vercel Hobby has a 12-function ceiling and the current static deployment has no package build script.
 - The isolated Supabase Auth/account E2E, owned-domain monitoring-alert E2E, actual backup/checksum/off-site/restore proof, live private-table RLS rollout, and Free-plan Auth risk decision remain open. They require an isolated test project, user-owned domain/asset registration approval, a secure workstation and isolated restore target, and/or explicit user risk acceptance. No Production or live Supabase changes were made.
+
+
+## Authoritative live Supabase and monitoring verification — 2026-11-27
+
+The following read-only checks were performed directly against the current Supabase Production project after the earlier readiness notes above. These results supersede the older statements that the private-table RLS migration and scheduler setup were not live.
+
+- Migration `20261124120500_sentinel_scan_usage_reservations_rls` is present in the live migration history.
+- Live catalog inspection confirms `private.scan_usage_reservations` has RLS enabled. `anon`, `authenticated`, and `service_role` have no direct SELECT/INSERT/UPDATE/DELETE privilege; PUBLIC has no such grant.
+- The three reservation functions (`reserve_scan_allowance`, `complete_scan_allowance`, `cancel_scan_allowance`) are owned by `postgres`, run as SECURITY DEFINER with an empty search_path, deny EXECUTE to `anon` and `authenticated`, and grant EXECUTE only to `service_role`.
+- Supabase's `rls_enabled_no_policy` advisory on this private table is expected for this design: clients have no table privileges and the server calls only the narrowly granted SECURITY DEFINER functions. Do not add a client policy or grant direct table access to silence the advisory.
+- Production `cron.job` confirms the 15-minute monitoring job is active. The Production Vercel environment contains `CRON_SECRET`; the matching named secret exists in Supabase Vault. Secret values were not read.
+- One user-owned verified asset, `https://project-3jyda.vercel.app/`, is active in monitoring. The live database contains 169 monitoring runs; the 12 most recent inspected runs succeeded with score 100 / Low. Total alerts currently equals zero. This proves recurring live scans, not an alert-delivery event; no alert was expected because the target remained clean.
+- The private-table RLS rollout gate is therefore **closed and verified live**. The real 15-minute scheduler and recurring scan gate is **closed and verified live**. The real alert-trigger/delivery gate remains open because no real alert condition has been triggered and alerts are in-app only.
+
+## Latest candidate implementation — 2026-11-27
+
+- Added a Preview-only Playwright workflow with mobile/tablet/desktop viewport checks, keyboard interaction, password-visibility control, axe critical accessibility checks, and canonical metadata endpoint assertions. It uses the Vercel branch Preview alias and no Vercel/Supabase secrets. Its result must be checked on the latest PR head before claiming browser verification.
+- Added canonical robots.txt and sitemap responses through the existing `api/scan.js` function, using the Vercel system Production hostname and explicit Preview noindex. This does not add a serverless function. The `.well-known/security.txt` file remains static and correctly points to the current Production hostname; update it as part of any future custom-domain cutover. The Vercel routes and Preview behavior must pass the latest Preview checks before release.
+- Added CI assertions that the private scan reservation table has no direct client/service-role table grants and that only `service_role` can execute the tightly scoped reservation functions.
+- Signup and password recovery UI now require a unique password of at least 12 characters. This is an application-side usability/security guard only; it does **not** replace Supabase's server-side leaked-password protection. Supabase documents leaked-password protection as Pro-and-above, so the Free-plan limitation remains explicit.
+- No Production deployment, main merge, DNS/custom-domain change, or live Supabase schema/data/Auth-setting mutation was made by these candidate updates.
+
+## Remaining blockers after latest live checks
+
+- [ ] Latest Preview Playwright run must pass, including actual canonical route resolution and responsive/axe checks.
+- [ ] Full authentication/account-data E2E still needs an isolated Supabase test environment. No test user was created in Production and no production user data was changed.
+- [ ] A real alert event and delivery proof remains open; existing monitoring has 169 successful runs and no alerts because the monitored production asset is clean. Email/webhook delivery is not configured.
+- [ ] Actual database export, checksum, off-site copy, and isolated restore are still not performed. The mobile-only workflow and missing secure workstation/database password prevent a trustworthy restore proof through the currently available access. No live data export was attempted.
+- [ ] Supabase Free leaked-password protection remains unavailable. The UI 12-character guard is compensating only, not server-side enforcement. No paid plan change was made.
+- [ ] `.well-known/security.txt` must be updated during any future custom-domain cutover; no custom domain is currently owned or configured.
