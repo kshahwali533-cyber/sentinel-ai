@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - reconcile/release-candidate-2026-11-27
 
 permissions:
   contents: read
