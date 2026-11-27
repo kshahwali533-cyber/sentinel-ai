@@ -37,12 +37,15 @@ test("login, signup, password update and logout defer refresh instead of awaitin
   }
 });
 
-test("password recovery UI matches the supported email-link flow", () => {
+test("password recovery UI retains the supported email and OTP recovery flow", () => {
   assert.match(app, /resetPasswordForEmail\(email/);
   assert.match(app, /event === "PASSWORD_RECOVERY"/);
   assert.match(html, /id="passwordResetArea"/);
   assert.match(html, /data-action="update-password"/);
-  assert.doesNotMatch(app, /verifyPasswordResetOtp|otpResetArea|resetOtp/);
+  assert.match(app, /verifyPasswordResetOtp/);
+  assert.match(app, /type:\s*"recovery"/);
+  assert.match(html, /id="otpResetArea"/);
+  assert.match(html, /id="resetOtp"/);
 });
 
 test("login and logout buttons remain connected to delegated handlers and analytics", () => {
