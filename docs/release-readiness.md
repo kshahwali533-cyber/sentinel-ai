@@ -5,7 +5,7 @@ Status: **Reconciled release candidate; NOT yet approved for Production rollout.
 Candidate PR: #109 (draft, base `main`; GitHub currently reports mergeable)
 Candidate branch: `reconcile/release-candidate-2026-11-27`
 Latest code verification checkpoint: `79aad9eca09fac82ccf46c70121556b95c69f1c5` (2026-11-27).
-Latest documentation-only candidate head at this checkpoint: `c0e8fbfd09399ffb4f10670c89d28073fa686c59`.
+Latest documentation-only candidate checkpoint: the current PR #109 head; use the PR's exact commit and attached status checks for traceability.
 Current known-good Production deployment to preserve for rollback: `dpl_9eJzwsTPcCLcVLWJNXXHS7nge9ae` (Production target, `main`, commit `e8c0ae65d7b9f79291b3e2cdfb890af6b3ebd401`).
 
 ## Included development work
@@ -32,7 +32,7 @@ The following results are historical evidence for the earlier PR #90 candidate c
 - [x] Vercel Preview: **success/READY**, Preview deployment only. No Production deployment was changed.
 - [x] All seven check runs for this exact candidate code commit completed successfully.
 
-For the reconciled PR #109 code checkpoint `79aad9eca09fac82ccf46c70121556b95c69f1c5`, Main Security Hardening, Research Scope Gate, Security API checks, and CodeQL all completed successfully. The documentation-only head `c0e8fbfd09399ffb4f10670c89d28073fa686c59` also received fresh successful runs for all four workflows and a READY Vercel Preview.
+For the reconciled PR #109 code checkpoint `79aad9eca09fac82ccf46c70121556b95c69f1c5`, Main Security Hardening, Research Scope Gate, Security API checks, and CodeQL all completed successfully. The latest documentation-only PR #109 head also received fresh successful runs for all four workflows and a READY Vercel Preview.
 
 The monitoring tests use fake database and scan clients. They prove simulated worker control flow and failure isolation, not a live Supabase/customer-domain scan or real alert delivery.
 
@@ -117,7 +117,7 @@ Passing CI and a successful Preview build do not by themselves satisfy the remai
 
 ## Protected Preview smoke check — 2026-11-27
 
-For documentation checkpoint `c0e8fbfd09399ffb4f10670c89d28073fa686c59`, the protected Preview was fetched through Vercel's authenticated share mechanism:
+For the latest verified PR #109 Preview checkpoint, the protected Preview was fetched through Vercel's authenticated share mechanism:
 
 - Homepage returned HTTP 200.
 - `/api/scan?runtime_config=1` returned HTTP 200 and explicitly set `isProduction: false`; Preview Safe Mode therefore remains active.
@@ -126,3 +126,8 @@ For documentation checkpoint `c0e8fbfd09399ffb4f10670c89d28073fa686c59`, the pro
 - No Preview runtime logs were recorded in the inspected 30-minute window.
 
 This was an authenticated HTTP smoke check, not a full interactive browser test. It did not sign in, access user data, submit a scan, call live Supabase, or prove domain ownership.
+
+
+## Mobile audit scope clarification
+
+The existing `.github/workflows/mobile-lighthouse.yml` runs on pushes to `main`, weekly schedule, or manual dispatch, and its target is the Production URL. It does not automatically audit this protected Preview. No candidate-specific Lighthouse score is claimed here; mobile and cross-browser verification remains open.
