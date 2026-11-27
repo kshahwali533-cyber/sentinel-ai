@@ -31,7 +31,7 @@ jobs:
           node --check api/_lib/public-ip.js
           node --check api/_lib/read-limited.js
       - name: Run security tests
-        run: node --test
+        run: node --test test/*.test.js tests/*.test.js
       - name: Live scanner smoke test for PR 80 only
         if: github.event_name == 'pull_request' && github.event.pull_request.number == 80
         run: |
