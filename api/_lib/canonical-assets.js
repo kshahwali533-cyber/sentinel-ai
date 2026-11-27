@@ -1,0 +1,46 @@
+const HOST_PATTERN = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$/i;
+
+function canonicalOrigin(env) {
+  const raw = typeof env?.VERCEL_PROJECT_PRODUCTION_URL === "string"
+    ? env.VERCEL_PROJECT_PRODUCTION_URL.trim().toLowerCase().replace(/\\.$/, "")
+    : "";
+  if (!HOST_PATTERN.test(raw)) return null;
+  return "https://" + raw;
+}
+
+export function renderCanonicalAsset(resource, env = process.env) {
+  const origin = canonicalOrigin(env);
+  if (!origin) return null;
+
+  if (resource === "robots") {
+    return {
+      contentType: "text/plain; charset=utf-8",
+      body: "User-agent: *\\nAllow: /\\nDisallow: /api/\\n\\nSitemap: " + origin + "/sitemap.xml\\n"
+    };
+  }
+
+  if (resource === "sitemap") {
+    return {
+      contentType: "application/xml; charset=utf-8",
+      body: '<?xml version="1.0" encoding="UTF-8"?>\\n' +
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\\n' +
+        "  <url><loc>" + origin + "/</loc></url>\\n" +
+        "</urlset>\\n"
+    };
+  }
+
+  if (resource === "security") {
+    return {
+      contentType: "text/plain; charset=utf-8",
+      body: [
+        "Contact: mailto:securitysentinelai093@gmail.com",
+        "Expires: 2027-11-27T23:59:59.000Z",
+        "Preferred-Languages: en, ur",
+        "Canonical: " + origin + "/.well-known/security.txt",
+        ""
+      ].join("\\n")
+    };
+  }
+
+  return null;
+}
