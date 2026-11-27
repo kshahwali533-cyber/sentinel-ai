@@ -58,7 +58,7 @@ test("local Supabase Auth supports signup, login, logout, recovery email, and pa
   const detail = await detailResponse.json();
   const emailBody = String(detail.HTML || detail.html || "") + "\n" + String(detail.Text || detail.text || "");
   const links = emailBody.split(/https?:/).slice(1).map((part) =>
-    ("https:" + part.split(/[\\s"'<>]/, 1)[0]).replace(/&amp;/g, "&")
+    ("https:" + part.split(/[\s"'<>]/, 1)[0]).replace(/&amp;/g, "&")
   );
   const recoveryLink = links.find((link) => link.includes("type=recovery") || link.includes("token="));
   expect(recoveryLink, "Recovery email should contain a usable recovery link").toBeTruthy();
