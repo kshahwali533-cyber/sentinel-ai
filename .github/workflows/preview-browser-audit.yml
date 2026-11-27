@@ -37,11 +37,11 @@ jobs:
       - name: Check whether the protected Preview is publicly reachable
         id: preview
         env:
-          BASE_URL: https://project-3jyda-git-reconcile-release-candid-0c2371-sentinel-ai14.vercel.app
+          PREVIEW_URL: https://project-3jyda-git-reconcile-release-candid-0c2371-sentinel-ai14.vercel.app
         run: |
           set -euo pipefail
           for attempt in $(seq 1 30); do
-            status="$(curl --connect-timeout 5 --max-time 10 --silent --show-error --output /tmp/sentinel-preview.html --write-out '%{http_code}' "$BASE_URL/" || true)"
+            status="$(curl --connect-timeout 5 --max-time 10 --silent --show-error --output /tmp/sentinel-preview.html --write-out '%{http_code}' "$PREVIEW_URL/" || true)"
             if [[ "$status" == "200" ]] && grep -q "Sentinel AI | Cybersecurity Scanner" /tmp/sentinel-preview.html; then
               echo "available=true" >> "$GITHUB_OUTPUT"
               exit 0
@@ -56,9 +56,22 @@ jobs:
           echo "Preview branch alias did not become ready."
           exit 1
 
+      - name: Start isolated Preview-safe app server
+        run: |
+          set -euo pipefail
+          node test/fixtures/preview-browser-server.js > /tmp/sentinel-preview-browser-server.log 2>&1 &
+          echo "$!" > /tmp/sentinel-preview-browser-server.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4174/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/sentinel-preview-browser-server.log
+          exit 1
+
       - name: Run desktop, tablet, mobile, keyboard, and accessibility checks
-        if: steps.preview.outputs.available == 'true'
         env:
-          BASE_URL: https://project-3jyda-git-reconcile-release-candid-0c2371-sentinel-ai14.vercel.app
+          BASE_URL: http://127.0.0.1:4174
         run: npx playwright test .github/e2e/sentinel-responsive.spec.js --reporter=line
 
