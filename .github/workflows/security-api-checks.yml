@@ -139,7 +139,7 @@ jobs:
               AND p.proname IN ('reserve_scan_allowance', 'complete_scan_allowance', 'cancel_scan_allowance')
               AND p.prosecdef
               AND p.proowner = (SELECT oid FROM pg_roles WHERE rolname = 'postgres')
-              AND p.proconfig @> ARRAY['search_path=""']
+              AND p.proconfig @> ARRAY['search_path=' || chr(34) || chr(34)]
               AND NOT has_function_privilege('anon', p.oid, 'EXECUTE')
               AND NOT has_function_privilege('authenticated', p.oid, 'EXECUTE')
               AND has_function_privilege('service_role', p.oid, 'EXECUTE');
