@@ -54,5 +54,5 @@ jobs:
       - name: Run desktop, tablet, mobile, keyboard, and accessibility checks
         env:
           BASE_URL: https://project-3jyda-git-reconcile-release-candid-0c2371-sentinel-ai14.vercel.app
-        run: npx playwright test test/browser/sentinel-responsive.spec.js --reporter=line
+        run: npx playwright test .github/e2e/sentinel-responsive.spec.js --reporter=line
 
