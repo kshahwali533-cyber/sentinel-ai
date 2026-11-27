@@ -5,8 +5,8 @@ Status: **Reconciled release candidate; NOT yet approved for Production rollout.
 Candidate PR: #109 (draft, base `main`; GitHub currently reports mergeable)
 Candidate branch: `reconcile/release-candidate-2026-11-27`
 Latest code verification checkpoint: `79aad9eca09fac82ccf46c70121556b95c69f1c5` (2026-11-27).
-Latest documentation-only candidate head: `f04ad93f0d11d4d85f70b522db8e8c95da8a27b6`.
-Previous known-good production deployment to preserve for rollback: `dpl_EMgCFrnCnwDuk9NPdzQWTJj2rjW8` (main deployment, commit `0f9f61da9447c40320d91ef4a3f61ce53b84e744`).
+Latest documentation-only candidate head at this checkpoint: `c0e8fbfd09399ffb4f10670c89d28073fa686c59`.
+Current known-good Production deployment to preserve for rollback: `dpl_9eJzwsTPcCLcVLWJNXXHS7nge9ae` (Production target, `main`, commit `e8c0ae65d7b9f79291b3e2cdfb890af6b3ebd401`).
 
 ## Included development work
 
@@ -32,7 +32,7 @@ The following results are historical evidence for the earlier PR #90 candidate c
 - [x] Vercel Preview: **success/READY**, Preview deployment only. No Production deployment was changed.
 - [x] All seven check runs for this exact candidate code commit completed successfully.
 
-For the reconciled PR #109 checkpoint `79aad9eca09fac82ccf46c70121556b95c69f1c5`, Main Security Hardening, Research Scope Gate, and Security API checks completed successfully; Vercel Preview is READY. CodeQL was still in progress at the time of this update. The next branch commit must receive its own fresh checks before any merge.
+For the reconciled PR #109 code checkpoint `79aad9eca09fac82ccf46c70121556b95c69f1c5`, Main Security Hardening, Research Scope Gate, Security API checks, and CodeQL all completed successfully. The documentation-only head `c0e8fbfd09399ffb4f10670c89d28073fa686c59` also received fresh successful runs for all four workflows and a READY Vercel Preview.
 
 The monitoring tests use fake database and scan clients. They prove simulated worker control flow and failure isolation, not a live Supabase/customer-domain scan or real alert delivery.
 
@@ -60,7 +60,7 @@ The Security API job applies the candidate private-table RLS migration to its di
 ## Rollout and rollback plan
 
 1. Keep PR #109 as a draft until every release blocker above is resolved or explicitly accepted with documented risk.
-2. Do not merge to `main` or deploy to Production without explicit user approval.
+2. The user has authorized merge to `main` and Production deployment once all release gates are satisfied. Do not bypass an open gate; live Supabase schema, data, or Auth-setting changes still require separate explicit approval.
 3. Before an approved rollout, capture a verified database backup/export and confirm production environment variables.
 4. Deploy only after approval, then verify homepage, scanner, auth, reports, monitoring, and alert delivery.
 5. If release verification fails, restore the previous known-good Vercel Production deployment `dpl_EMgCFrnCnwDuk9NPdzQWTJj2rjW8` and investigate before retrying.
@@ -70,7 +70,7 @@ The Security API job applies the candidate private-table RLS migration to its di
 - Preparation changes are confined to `reconcile/release-candidate-2026-11-27` and protected Preview deployments.
 - Production deployment and live Supabase schema/data/settings have not been changed by this readiness update.
 - No branches, files, or deployments have been deleted.
-- Do not merge, deploy to Production, change Supabase, or delete branches/files/deployments without explicit approval.
+- Merge and Production deployment are authorized only after every required release gate is passed. Live Supabase schema, data, and Auth-setting changes still require separate explicit approval. Never delete branches, files, or deployments.
 
 Passing CI and a successful Preview build do not by themselves satisfy the remaining end-to-end release gates above.
 
@@ -113,3 +113,16 @@ Passing CI and a successful Preview build do not by themselves satisfy the remai
 - Updated parser-limit and URL-scheme regression tests to match the current `main` implementation.
 - At checkpoint `79aad9eca09fac82ccf46c70121556b95c69f1c5`, GitHub reported PR #109 mergeable, Main Security Hardening passed, Research Scope Gate passed, Security API checks passed, and Vercel Preview reached READY. CodeQL was still running.
 - No Production deployment, `main` update, or live Supabase migration/settings/data change was performed.
+
+
+## Protected Preview smoke check — 2026-11-27
+
+For documentation checkpoint `c0e8fbfd09399ffb4f10670c89d28073fa686c59`, the protected Preview was fetched through Vercel's authenticated share mechanism:
+
+- Homepage returned HTTP 200.
+- `/api/scan?runtime_config=1` returned HTTP 200 and explicitly set `isProduction: false`; Preview Safe Mode therefore remains active.
+- The homepage response included CSP, HSTS (`max-age=31536000; includeSubDomains`), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, Referrer-Policy, and a restrictive Permissions-Policy.
+- `robots.txt`, `sitemap.xml`, and `.well-known/security.txt` returned HTTP 200. Their canonical references still use the current `project-3jyda.vercel.app` origin; configurable canonical-origin support remains open before any future custom-domain cutover.
+- No Preview runtime logs were recorded in the inspected 30-minute window.
+
+This was an authenticated HTTP smoke check, not a full interactive browser test. It did not sign in, access user data, submit a scan, call live Supabase, or prove domain ownership.
