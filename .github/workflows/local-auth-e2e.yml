@@ -31,7 +31,7 @@ jobs:
           package-manager-cache: false
 
       - name: Install pinned local Supabase and browser test tools
-        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund supabase@2.65.5 @playwright/test@1.56.1
+        run: npm install --no-save --package-lock=false --no-audit --no-fund supabase@2.65.5 @playwright/test@1.56.1
 
       - name: Initialize an isolated local Supabase project
         run: |
@@ -101,4 +101,7 @@ jobs:
       - name: Stop isolated local Supabase stack
         if: always()
         working-directory: /tmp/sentinel-auth-e2e
-        run: $GITHUB_WORKSPACE/node_modules/.bin/supabase stop --no-backup
+        run: |
+          if [ -x "$GITHUB_WORKSPACE/node_modules/.bin/supabase" ] && [ -f /tmp/sentinel-auth-e2e/supabase/config.toml ]; then
+            $GITHUB_WORKSPACE/node_modules/.bin/supabase stop --no-backup
+          fi
