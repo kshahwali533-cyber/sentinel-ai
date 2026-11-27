@@ -77,3 +77,12 @@ At documentation checkpoint `c0e8fbfd09399ffb4f10670c89d28073fa686c59`, the auth
 - The mobile Lighthouse workflow currently targets Production only; it is not a Preview browser audit. No Preview Lighthouse score is claimed.
 - The three static canonical assets still contain the Vercel Production origin. The current repository has no package build script, and adding a dynamic API route would consume the limited Vercel Hobby function budget. Do not change the static deployment/build architecture without a separate tested design.
 - The remaining interactive browser, isolated Supabase Auth/data, live owned-domain monitoring-alert, backup/restore, and Auth-plan risk gates remain open. No Production, live Supabase, DNS, or custom-domain change is authorized by this documentation.
+
+
+## Canonical metadata implementation update — 2026-11-27
+
+- `robots.txt` and `sitemap.xml` are now routed before static filesystem lookup to the existing `api/scan.js` function. The handler derives the canonical origin from Vercel's `VERCEL_PROJECT_PRODUCTION_URL` system variable, validates it as a hostname, and returns a cached public metadata response. Preview responses carry `X-Robots-Tag: noindex`.
+- This reuses the existing scanner function and does not add another Vercel Serverless Function. The route behavior is covered by unit tests and a new Preview Playwright assertion; the latest Preview run must pass before calling it verified.
+- `.well-known/security.txt` remains a static file because Vercel reserves that path from rewrites. It currently points to the correct existing Production hostname `project-3jyda.vercel.app`. Update that file as part of any future custom-domain cutover, before changing canonical traffic.
+- The current site remains on its Vercel Production domain; no custom domain is owned or configured, and no DNS or Production settings were changed.
+- Supabase's private scan-reservation RLS migration is already present in live migration history and was verified read-only. This is not a custom-domain dependency.
