@@ -17,6 +17,7 @@ test("Supabase auth-state callback is synchronous and defers UI refresh", () => 
   assert.match(callback, /scheduleAuthUIRefresh\(\)/);
   assert.match(callback, /event === "INITIAL_SESSION"/);
   assert.match(app, /supabaseClient\.auth\.onAuthStateChange[\s\S]*?void updateAuthUI\(\)/);
+  assert.doesNotMatch(app, /AUTH DEBUG:|AUTH UI: user detected/);
 });
 
 test("auth UI refreshes are coalesced and the session timeout is cleared", () => {
