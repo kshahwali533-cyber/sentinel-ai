@@ -171,18 +171,29 @@ async function updateAuthUI() {
   try {
     console.log("AUTH DEBUG: before getSession");
 
-const {
-  data: { session },
-  error
-} = await Promise.race([
-  supabaseClient.auth.getSession(),
-  new Promise((_, reject) =>
-    setTimeout(
-      () => reject(new Error("getSession timeout after 8 seconds")),
-      8000
-    )
-  )
-]);
+let sessionResult;
+  let sessionTimeoutId;
+
+  try {
+    sessionResult = await Promise.race([
+      supabaseClient.auth.getSession(),
+      new Promise((_, reject) => {
+        sessionTimeoutId = window.setTimeout(
+          () => reject(new Error("getSession timeout after 8 seconds")),
+          8000
+        );
+      })
+    ]);
+  } finally {
+    if (sessionTimeoutId !== undefined) {
+      window.clearTimeout(sessionTimeoutId);
+    }
+  }
+
+  const {
+    data: { session },
+    error
+  } = sessionResult;
 
 console.log("AUTH DEBUG: after getSession");
 
@@ -507,7 +518,7 @@ async function updatePassword() {
       passwordResetArea.classList.add("is-hidden");
     }
 
-    await updateAuthUI();
+    scheduleAuthUIRefresh();
 
   } catch (error) {
     console.error("Update Password Error:", error);
@@ -577,7 +588,7 @@ if (data?.user) {
     }
 
     passwordInput.value = "";
-    await updateAuthUI();
+    scheduleAuthUIRefresh();
 
   } catch (error) {
     console.error("Signup Error:", error);
@@ -635,7 +646,7 @@ async function signInUser() {
       "✅ Login successful. Welcome to Sentinel AI.";
 
     passwordInput.value = "";
-    await updateAuthUI();
+    scheduleAuthUIRefresh();
 
   } catch (error) {
     console.error("Login Error:", error);
@@ -672,6 +683,7 @@ async function signOutUser() {
       throw error;
     }
     trackSentinelEvent("logout_success");
+    scheduleAuthUIRefresh();
     
     const authForm = document.getElementById("authForm");
     const loggedInArea = document.getElementById("loggedInArea");
@@ -4427,7 +4439,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     scheduleAuthUIRefresh();
-  });
+    });;
 
   // Subscribe first, then perform the initial state refresh.
   void updateAuthUI();
