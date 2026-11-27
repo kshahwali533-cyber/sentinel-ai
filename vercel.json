@@ -45,14 +45,14 @@
   },
   "routes": [
     {
-      "src": "^/robots\\\\.txt$",
+      "src": "^/robots\\.txt$",
       "methods": [
         "GET"
       ],
       "dest": "/api/scan?canonical_asset=robots"
     },
     {
-      "src": "^/sitemap\\\\.xml$",
+      "src": "^/sitemap\\.xml$",
       "methods": [
         "GET"
       ],
