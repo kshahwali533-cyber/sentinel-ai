@@ -4,7 +4,7 @@ Status: **Reconciled release candidate; NOT yet approved for Production rollout.
 
 Candidate PR: #109 (draft, base `main`; GitHub currently reports mergeable)
 Candidate branch: `reconcile/release-candidate-2026-11-27`
-Latest verified release-candidate head: `dd84d560b68cca1d5c18b4b9e55b12a28137aea7` (2026-11-27).
+Latest Preview candidate checkpoint: `708fa4492b15bc168daad6696e6e8fe1da830dde` (2026-11-27). This head is Preview READY; its fresh CI runs are still in progress/queued.
 Latest documentation-only candidate checkpoint: the current PR #109 head; use the PR's exact commit and attached status checks for traceability.
 Current known-good Production deployment to preserve for rollback: `dpl_9eJzwsTPcCLcVLWJNXXHS7nge9ae` (Production target, `main`, commit `e8c0ae65d7b9f79291b3e2cdfb890af6b3ebd401`).
 
@@ -40,14 +40,14 @@ The Security API job applies the candidate private-table RLS migration to its di
 
 ## Remaining release blockers
 
-- [ ] **Protected Preview browser test:** Vercel SSO protection prevents a complete browser interaction test until an authorized preview session is available.
+- [ ] **Protected Preview browser test:** the CI browser suite now runs desktop/tablet/mobile, keyboard navigation, and Axe WCAG checks against an isolated local Preview-safe build. It does not bypass Vercel SSO or claim an authenticated browser session against the protected hosted Preview. The hosted Preview's HTTP smoke is verified separately.
 - [ ] **Domain ownership end-to-end test:** DNS TXT, HTTPS file, homepage meta-tag, and Smart Auto Verify logic have automated unit coverage. A full proof using a real domain controlled by the user remains unverified. Do not require the user to buy a domain; use a controlled test domain or isolated test harness where possible.
-- [ ] **Authentication and user-data end-to-end test:** verify sign-up, sign-in, recovery, session, scan history, reports, and AI flows against a dedicated isolated Supabase test project. Generic Preview database access is intentionally blocked because its environment currently contains the production Supabase URL.
-- [ ] **Monitoring live end-to-end:** the worker's simulated successful path passes, and a production scheduler batch was verified on 2026-11-26 (one claimed site, one successful scan, no failure). However, an owned customer domain with a verified ownership proof and a deliberately triggered real alert has not been demonstrated. Alerts are currently in-app only; email/webhook delivery is not configured.
+- [ ] **Authentication and user-data end-to-end test:** a local isolated Supabase Auth browser workflow now covers sign-up, sign-in, sign-out, recovery email, and password update. The first run exposed a test-only transient-status race, which was corrected; the next run must pass. Scan history, reports, and AI/account-data flows still require separate isolated integration coverage. Generic Preview database access remains intentionally blocked.
+- [ ] **Monitoring alert end-to-end:** live read-only verification on 2026-11-27 found one active, verified owned project hostname (`project-3jyda.vercel.app`), 171 successful monitoring runs, and the latest 10 runs all 100/100 Low with no errors. The alert table is currently empty; no controlled alert was triggered, and external email/webhook delivery is not configured. Do not induce a Production regression merely to create an alert.
 - [ ] **Supabase Auth hardening:** leaked-password protection is not included in the Supabase Free plan (current plan documentation). It cannot be treated as a setting we can simply enable on the current tier. Before public release, either obtain an eligible plan with separate user approval or document an explicit risk acceptance and compensating controls; do not attempt a paid upgrade.
-- [ ] **Private-table RLS defense-in-depth:** CI tests the candidate migration enabling RLS on `private.scan_usage_reservations`. It is not applied to live Supabase and must be reviewed/approved before rollout.
-- [ ] **Backup readiness:** Supabase Free does not provide scheduled database backups. A verified export and restore procedure is needed before production release.
-- [ ] **Mobile/browser verification:** complete real mobile accessibility, layout, and cross-browser checks against the candidate.
+- [x] **Private-table RLS defense-in-depth:** live migration history contains `20261125121456 enable_rls_private_scan_usage_reservations`. Read-only checks confirm RLS is enabled, there are no client-facing table grants or policies, and the three SECURITY DEFINER allowance functions are owned by `postgres`, executable by `service_role` only, and not executable by `anon` or `authenticated`. The Supabase advisor's INFO finding (RLS enabled/no policy) is expected for this private fail-closed table.
+- [ ] **Backup readiness:** the Free-plan export/restore runbook is documented, but no Production export, checksum, encrypted off-site copy, or isolated restore has been performed.
+- [ ] **Mobile/browser verification:** the local browser suite now covers 360/390/768/1280px widths, horizontal overflow, keyboard activation, password visibility, page errors, and critical WCAG violations. It must pass on the latest head. A real hosted protected-Preview browser session and additional cross-browser/device testing remain open.
 
 ## Verified environment configuration (2026-11-26)
 
@@ -229,3 +229,15 @@ The following read-only checks were performed directly against the current Supab
 - The protected Preview browser workflow completes safely but skips its Playwright step when Vercel redirects/blocks the public runner. The Preview remains protected; no bypass token is stored in GitHub or exposed in workflow logs. A narrowly scoped GitHub OIDC trusted-source rule is awaiting explicit user authorization before enabling CI access.
 - Local Auth E2E now uses a temporary local Supabase stack and Mailpit; it does not connect to Production. The first run reached the real local Auth service but failed on a malformed recovery-link regex in the test itself. That test parser has been corrected; the next run must pass before marking Auth lifecycle E2E closed.
 - Full Production backup/restore is still not verified. The current release candidate has no unapplied schema migration, so this remains an operational resilience gap rather than a pending database deployment step. Do not claim backup/restore completion.
+
+
+## Read-only Production verification — 2026-11-27
+
+- Supabase migration history includes `20261125121456 enable_rls_private_scan_usage_reservations`.
+- `private.scan_usage_reservations` has RLS enabled; only the `postgres` role has direct table privileges; there are no policies. This is deliberate fail-closed behavior because the table is private and application access is through restricted SECURITY DEFINER functions.
+- `reserve_scan_allowance`, `complete_scan_allowance`, and `cancel_scan_allowance` are SECURITY DEFINER functions owned by `postgres`; only `service_role` can execute them. `anon` and `authenticated` cannot execute them.
+- Supabase Security Advisor reports one WARN: leaked-password protection disabled (not available on the current Free plan), plus one INFO for the private RLS/no-policy table (expected). Health Advisor reports no findings. Performance Advisor lists 16 unused indexes; they are not being dropped because the low-volume beta does not justify a speculative Production schema change.
+- Monitoring database read-only checks: 1 active verified site; 171 monitoring runs, all succeeded; latest 10 consecutive runs each scored 100/100 Low; no monitoring alerts exist. This proves scheduler/scan persistence, not alert delivery.
+- Candidate Preview head `708fa4492b15bc168daad6696e6e8fe1da830dde` reached Vercel READY. Homepage, runtime config, robots.txt, sitemap.xml, and .well-known/security.txt returned HTTP 200. Preview runtime config was `isProduction:false` with `Cache-Control:no-store`; all three metadata resources now render the configured canonical Production origin. The security.txt expiry is generated one year ahead.
+- The browser CI workflow was changed to run the browser/accessibility suite against an isolated local Preview-safe server. It does not use a Vercel bypass token and does not claim direct browser access to the protected Preview.
+- Latest CI runs for this candidate are queued/pending; do not mark this checkpoint fully verified until all required checks complete successfully.
