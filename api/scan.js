@@ -45,9 +45,17 @@ export default async function handler(req, res) {
       env: process.env,
       host: req.headers?.host
     });
+    const runtimeConfig = { isProduction };
+    if (isProduction) {
+      runtimeConfig.supabaseUrl =
+        process.env.SUPABASE_URL || "https://vceqmqwszvisvxxbgbfs.supabase.co";
+      runtimeConfig.supabasePublishableKey =
+        process.env.SUPABASE_PUBLISHABLE_KEY ||
+        "sb_publishable_t4A5zMUDFmPY4Q7bJA0tBA_nrCfe2RC";
+    }
     return res.status(200).send(
       "window.SENTINEL_RUNTIME_CONFIG = Object.freeze(" +
-      JSON.stringify({ isProduction }) +
+      JSON.stringify(runtimeConfig) +
       ");"
     );
   }
