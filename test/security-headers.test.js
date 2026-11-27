@@ -8,6 +8,7 @@ const get = name => headers.find(item => item.key.toLowerCase() === name.toLower
 const csp = get("Content-Security-Policy");
 const app = readFileSync(new URL("../sentinel-app.js", import.meta.url), "utf8");
 const cssFile = readFileSync(new URL("../sentinel.css", import.meta.url), "utf8");
+const actions = readFileSync(new URL("../sentinel-actions.js", import.meta.url), "utf8");
 
 test("CSP limits images and fonts to first-party and data sources", () => {
   assert.match(csp, /img-src 'self' data:/);
@@ -38,4 +39,5 @@ test("Preview safety banner uses a stylesheet class compatible with strict CSP",
   assert.match(app, /safetyNotice\.className = "preview-safe-mode-banner"/);
   assert.match(cssFile, /\.preview-safe-mode-banner\s*\{/);
   assert.doesNotMatch(app, /safetyNotice\.style\.cssText/);
+  assert.doesNotMatch(actions, /link\.style\.display/);
 });
