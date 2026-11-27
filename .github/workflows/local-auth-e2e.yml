@@ -39,8 +39,6 @@ jobs:
           mkdir -p /tmp/sentinel-auth-e2e
           cd /tmp/sentinel-auth-e2e
           $GITHUB_WORKSPACE/node_modules/.bin/supabase init
-          mkdir -p supabase/migrations
-          cp -R "$GITHUB_WORKSPACE/supabase/migrations/." supabase/migrations/
           sed -i 's|http://localhost:3000|http://127.0.0.1:4173|g' supabase/config.toml
           python3 - <<'PY'
           from pathlib import Path
@@ -62,7 +60,7 @@ jobs:
 
       - name: Start local Supabase Auth and database only
         working-directory: /tmp/sentinel-auth-e2e
-        run: $GITHUB_WORKSPACE/node_modules/.bin/supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,postgres-meta,supavisor
+        run: $GITHUB_WORKSPACE/node_modules/.bin/supabase start -x studio -x imgproxy -x edge-runtime -x logflare -x vector -x realtime -x storage-api -x postgres-meta -x supavisor
 
       - name: Export isolated local Supabase connection values
         working-directory: /tmp/sentinel-auth-e2e
