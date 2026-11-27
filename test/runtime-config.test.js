@@ -67,7 +67,7 @@ test("runtime config reuses the existing scan function without adding a Vercel f
 });
 
 test("existing scan API serves a fail-closed runtime config response", async () => {
-  const names = ["VERCEL_ENV", "VERCEL_PROJECT_PRODUCTION_URL", "SENTINEL_PRODUCTION_HOSTNAMES"];
+  const names = ["VERCEL_ENV", "VERCEL_PROJECT_PRODUCTION_URL", "SENTINEL_PRODUCTION_HOSTNAMES", "SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY"];
   const previous = Object.fromEntries(names.map((name) => [name, process.env[name]]));
 
   function createResponse() {
@@ -85,6 +85,8 @@ test("existing scan API serves a fail-closed runtime config response", async () 
     process.env.VERCEL_ENV = "preview";
     process.env.VERCEL_PROJECT_PRODUCTION_URL = "sentinel.example.com";
     process.env.SENTINEL_PRODUCTION_HOSTNAMES = "sentinel.example.com";
+    process.env.SUPABASE_URL = "https://local-test.supabase.co";
+    process.env.SUPABASE_PUBLISHABLE_KEY = "test-public-key";
 
     const previewResponse = createResponse();
     await scanHandler({
@@ -96,6 +98,7 @@ test("existing scan API serves a fail-closed runtime config response", async () 
     assert.equal(previewResponse.statusCode, 200);
     assert.equal(previewResponse.headers["cache-control"], "no-store");
     assert.match(previewResponse.body, /"isProduction":false/);
+    assert.doesNotMatch(previewResponse.body, /local-test\\.supabase\\.co|test-public-key/);
 
     process.env.VERCEL_ENV = "production";
     const productionResponse = createResponse();
@@ -107,6 +110,8 @@ test("existing scan API serves a fail-closed runtime config response", async () 
 
     assert.equal(productionResponse.statusCode, 200);
     assert.match(productionResponse.body, /"isProduction":true/);
+    assert.match(productionResponse.body, /"supabaseUrl":"https:\\/\\/local-test\\.supabase\\.co"/);
+    assert.match(productionResponse.body, /"supabasePublishableKey":"test-public-key"/);
   } finally {
     for (const name of names) {
       if (previous[name] === undefined) delete process.env[name];
