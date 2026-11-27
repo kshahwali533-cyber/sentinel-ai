@@ -1,0 +1,88 @@
+name: Sentinel AI isolated Supabase Auth E2E
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-local-auth-e2e-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  local-auth-e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "true"
+    steps:
+      - name: Check out reviewed pull request
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install pinned local Supabase and browser test tools
+        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund supabase@2.65.5 @playwright/test@1.56.1
+
+      - name: Initialize an isolated local Supabase project
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/sentinel-auth-e2e
+          cd /tmp/sentinel-auth-e2e
+          npx supabase init
+          mkdir -p supabase/migrations
+          cp -R "$GITHUB_WORKSPACE/supabase/migrations/." supabase/migrations/
+          sed -i 's|http://localhost:3000|http://127.0.0.1:4173|g' supabase/config.toml
+          grep -q 'enable_confirmations = false' supabase/config.toml
+
+      - name: Start local Supabase Auth and database only
+        working-directory: /tmp/sentinel-auth-e2e
+        run: npx supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,postgres-meta,supavisor
+
+      - name: Export isolated local Supabase connection values
+        working-directory: /tmp/sentinel-auth-e2e
+        run: |
+          set -euo pipefail
+          eval "$(npx supabase status -o env)"
+          test -n "$API_URL"
+          test -n "$ANON_KEY"
+          {
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY"
+            echo "MAILPIT_URL=http://127.0.0.1:54324"
+            echo "BASE_URL=http://127.0.0.1:4173"
+          } >> "$GITHUB_ENV"
+
+      - name: Start the app with the isolated Auth runtime config
+        run: |
+          set -euo pipefail
+          node test/fixtures/auth-e2e-server.js > /tmp/sentinel-auth-e2e-server.log 2>&1 &
+          echo "$!" > /tmp/sentinel-auth-e2e-server.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/sentinel-auth-e2e-server.log
+          exit 1
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run real signup, login, logout, recovery email, and password update
+        run: npx playwright test .github/e2e/auth-local-supabase.spec.js --reporter=line
+
+      - name: Stop isolated local Supabase stack
+        if: always()
+        working-directory: /tmp/sentinel-auth-e2e
+        run: npx supabase stop --no-backup
