@@ -219,3 +219,13 @@ The following read-only checks were performed directly against the current Supab
 - [ ] Actual database export, checksum, off-site copy, and isolated restore are still not performed. The mobile-only workflow and missing secure workstation/database password prevent a trustworthy restore proof through the currently available access. No live data export was attempted.
 - [ ] Supabase Free leaked-password protection remains unavailable. The UI 12-character guard is compensating only, not server-side enforcement. No paid plan change was made.
 - [ ] `.well-known/security.txt` must be updated during any future custom-domain cutover; no custom domain is currently owned or configured.
+
+
+## Release candidate scope and live operations refresh — 2026-11-27 15:00 UTC
+
+- PR #109 contains exactly one database migration: `20261124120500_sentinel_scan_usage_reservations_rls.sql`. That migration is already recorded in the live Production migration history and its table/function grants were independently verified. There is no unapplied database migration in this candidate; merging this PR does not itself run SQL against Production.
+- A fresh read-only Production check confirms cron job 1 is active on `*/15 * * * *`, Vercel Production has a `CRON_SECRET` environment variable, and Supabase Vault contains `sentinel_monitoring_cron_secret`. Secret values were not read.
+- Monitoring now records 170 runs across one active verified asset. The latest 10 runs all succeeded with score 100 / Low. There are currently zero alert rows; no alert has been fabricated or forced against the live site.
+- The protected Preview browser workflow completes safely but skips its Playwright step when Vercel redirects/blocks the public runner. The Preview remains protected; no bypass token is stored in GitHub or exposed in workflow logs. A narrowly scoped GitHub OIDC trusted-source rule is awaiting explicit user authorization before enabling CI access.
+- Local Auth E2E now uses a temporary local Supabase stack and Mailpit; it does not connect to Production. The first run reached the real local Auth service but failed on a malformed recovery-link regex in the test itself. That test parser has been corrected; the next run must pass before marking Auth lifecycle E2E closed.
+- Full Production backup/restore is still not verified. The current release candidate has no unapplied schema migration, so this remains an operational resilience gap rather than a pending database deployment step. Do not claim backup/restore completion.
