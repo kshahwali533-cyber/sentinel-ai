@@ -1,7 +1,11 @@
 function canonicalOrigin(env) {
-  const raw = typeof env?.VERCEL_PROJECT_PRODUCTION_URL === "string"
-    ? env.VERCEL_PROJECT_PRODUCTION_URL.trim().toLowerCase()
+  const configuredCanonicalHost = typeof env?.SENTINEL_CANONICAL_HOSTNAME === "string"
+    ? env.SENTINEL_CANONICAL_HOSTNAME.trim()
     : "";
+  const productionHost = typeof env?.VERCEL_PROJECT_PRODUCTION_URL === "string"
+    ? env.VERCEL_PROJECT_PRODUCTION_URL.trim()
+    : "";
+  const raw = (configuredCanonicalHost || productionHost).toLowerCase();
   const host = raw.endsWith(".") ? raw.slice(0, -1) : raw;
   const labels = host.split(".");
   const validLabels = labels.length >= 2 && labels.every((label) =>
@@ -40,7 +44,7 @@ export function renderCanonicalAsset(resource, env = process.env) {
       contentType: "text/plain; charset=utf-8",
       body: [
         "Contact: mailto:securitysentinelai093@gmail.com",
-        "Expires: 2027-11-27T23:59:59.000Z",
+        "Expires: " + new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
         "Preferred-Languages: en, ur",
         "Canonical: " + origin + "/.well-known/security.txt",
         ""
