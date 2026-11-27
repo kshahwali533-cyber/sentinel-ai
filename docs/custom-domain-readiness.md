@@ -1,12 +1,12 @@
 # Custom Domain Readiness — Sentinel AI
 
 Status: **CORE HOST-DETECTION AND CORS BLOCKERS IMPLEMENTED ON PREVIEW; DOMAIN CUTOVER NOT YET READY.**
-Candidate PR: #90 (draft; open; unmerged).
-Latest implementation and integration tests: `893531c1d28f79ad46da1f6791ec2f759276d6ea`.
+Candidate PR: #109 (draft; open; unmerged).
+Latest reconciled implementation checkpoint: `79aad9eca09fac82ccf46c70121556b95c69f1c5`.
 
 ## Safety boundary
 
-All work so far is limited to the PR #90 candidate branch and protected Preview deployments. No Vercel Production settings, DNS records, Production deployment, Supabase settings/data/schema, or live website were changed. Do not merge, deploy, or alter live services without explicit user approval.
+All work so far is limited to the PR #109 reconciliation branch and protected Preview deployments. No Vercel Production settings, DNS records, Production deployment, Supabase settings/data/schema, or live website were changed. Do not merge, deploy, or alter live services without explicit user approval.
 
 ## Original findings
 
@@ -28,11 +28,11 @@ All work so far is limited to the PR #90 candidate branch and protected Preview 
 
 ## Verification snapshot
 
-At commit `893531c1d28f79ad46da1f6791ec2f759276d6ea`, Vercel Preview reached READY and all four CI workflows passed: Main Security Hardening, Research Scope Gate Tests, Sentinel AI security API checks, and CodeQL Security Analysis. The API security workflow also confirmed JavaScript syntax and unit tests, concurrent scan allowance, two-user Research Lab isolation, pinned DNS connections, Vercel security headers, and redirect safety.
+Historical baseline: at commit `893531c1d28f79ad46da1f6791ec2f759276d6ea`, Vercel Preview reached READY and all four CI workflows passed. On the latest PR #109 checkpoint `79aad9eca09fac82ccf46c70121556b95c69f1c5`, Main Security Hardening, Research Scope Gate, and Security API checks passed and Vercel Preview reached READY; CodeQL was still running.
 
 ## Remaining work before calling custom-domain support ready
 
-- Complete the latest CI run, including CodeQL, and inspect any failures.
+- Complete CodeQL for the latest PR #109 head and re-run all checks after the next code or documentation update.
 - Make the canonical public origin configurable for `robots.txt`, `sitemap.xml`, `.well-known/security.txt`, generated absolute links, and email links; verify the result without changing Production now.
 - Review the complete signup, login, password recovery, sign-out, scanner, reports, monitoring, and browser security-header flows on protected Preview. Preview must remain isolated from Production Supabase.
 - Confirm the exact Vercel system environment variables available to this project and ensure the future custom-host allowlist is set only in the Production environment.
@@ -55,3 +55,12 @@ The goal is a controlled cutover without a broad code rewrite. It is not honest 
 ## Current decision
 
 **Do not add a real domain now. Do not change Production or live Supabase.** Finish the Preview integration tests, canonical-origin preparation, and all CI checks on PR #90 first.
+
+
+## Reconciliation update — 2026-11-27
+
+- The current reconciliation branch preserves the newer main-side runtime configuration, Preview isolation, API request guards, monitoring dashboard, and hardened URL handling.
+- The fixed-origin `Access-Control-Allow-Origin` header is removed; same-origin API calls do not require a global CORS grant.
+- HSTS now includes `includeSubDomains`.
+- Supabase recovery is aligned with the email-link flow; the unused OTP-only UI code was removed.
+- No Production domain settings, DNS records, Supabase configuration, or Production deployment were changed.
