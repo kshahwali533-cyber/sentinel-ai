@@ -45,6 +45,13 @@
   },
   "routes": [
     {
+      "src": "^/\\\\.well-known/security\\\\.txt$",
+      "methods": [
+        "GET"
+      ],
+      "dest": "/api/scan?canonical_asset=security"
+    },
+    {
       "src": "^/robots\\.txt$",
       "methods": [
         "GET"
