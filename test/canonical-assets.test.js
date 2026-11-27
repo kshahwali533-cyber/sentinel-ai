@@ -21,7 +21,17 @@ test("security.txt canonical points to the configured production origin", () => 
   const asset = renderCanonicalAsset("security", env);
   assert.equal(asset.contentType, "text/plain; charset=utf-8");
   assert.ok(asset.body.includes("Canonical: https://project-3jyda.vercel.app/.well-known/security.txt"));
-  assert.ok(asset.body.includes("Expires: 2027-11-27T23:59:59.000Z"));
+  const expires = asset.body.match(/^Expires: (.+)$/m)?.[1];
+  assert.ok(expires && Number.isFinite(Date.parse(expires)));
+  assert.ok(Date.parse(expires) > Date.now() + 364 * 24 * 60 * 60 * 1000);
+});
+
+test("an explicitly configured canonical hostname takes precedence over the Vercel fallback", () => {
+  const asset = renderCanonicalAsset("sitemap", {
+    VERCEL_PROJECT_PRODUCTION_URL: "project-3jyda.vercel.app",
+    SENTINEL_CANONICAL_HOSTNAME: "security.example.com"
+  });
+  assert.ok(asset.body.includes("<loc>https://security.example.com/</loc>"));
 });
 
 test("canonical origin rejects missing, URL-shaped, and hostile host values", () => {
