@@ -2,7 +2,7 @@
 
 Status: **CORE HOST-DETECTION AND CORS BLOCKERS IMPLEMENTED ON PREVIEW; DOMAIN CUTOVER NOT YET READY.**
 Candidate PR: #109 (draft; open; unmerged).
-Latest reconciled implementation checkpoint: `79aad9eca09fac82ccf46c70121556b95c69f1c5`.
+Latest reconciled documentation checkpoint: `c0e8fbfd09399ffb4f10670c89d28073fa686c59`.
 
 ## Safety boundary
 
@@ -28,11 +28,11 @@ All work so far is limited to the PR #109 reconciliation branch and protected Pr
 
 ## Verification snapshot
 
-Historical baseline: at commit `893531c1d28f79ad46da1f6791ec2f759276d6ea`, Vercel Preview reached READY and all four CI workflows passed. On the latest PR #109 checkpoint `79aad9eca09fac82ccf46c70121556b95c69f1c5`, Main Security Hardening, Research Scope Gate, and Security API checks passed and Vercel Preview reached READY; CodeQL was still running.
+On PR #109 code checkpoint `79aad9eca09fac82ccf46c70121556b95c69f1c5`, all four CI workflows (Main Security Hardening, Research Scope Gate, Security API checks, and CodeQL) passed and Vercel Preview reached READY. The documentation-only checkpoint `c0e8fbfd09399ffb4f10670c89d28073fa686c59` also passed all four workflows and reached READY.
 
 ## Remaining work before calling custom-domain support ready
 
-- Complete CodeQL for the latest PR #109 head and re-run all checks after the next code or documentation update.
+- Re-run all four checks and Preview validation after each subsequent code or documentation update.
 - Make the canonical public origin configurable for `robots.txt`, `sitemap.xml`, `.well-known/security.txt`, generated absolute links, and email links; verify the result without changing Production now.
 - Review the complete signup, login, password recovery, sign-out, scanner, reports, monitoring, and browser security-header flows on protected Preview. Preview must remain isolated from Production Supabase.
 - Confirm the exact Vercel system environment variables available to this project and ensure the future custom-host allowlist is set only in the Production environment.
@@ -64,3 +64,8 @@ The goal is a controlled cutover without a broad code rewrite. It is not honest 
 - HSTS now includes `includeSubDomains`.
 - Supabase recovery is aligned with the email-link flow; the unused OTP-only UI code was removed.
 - No Production domain settings, DNS records, Supabase configuration, or Production deployment were changed.
+
+
+## Protected Preview HTTP smoke check — 2026-11-27
+
+At documentation checkpoint `c0e8fbfd09399ffb4f10670c89d28073fa686c59`, the authenticated Preview homepage returned HTTP 200 and the server-issued runtime config returned `isProduction: false`. Security response headers included HSTS with `includeSubDomains`, CSP, `nosniff`, frame denial, Referrer-Policy, and Permissions-Policy. Static robots, sitemap, and security.txt endpoints returned HTTP 200 but still reference the existing Vercel production origin. This confirms Preview isolation at the runtime-config boundary and basic HTTP delivery only; it is not a full browser/authentication test.
