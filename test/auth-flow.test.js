@@ -54,3 +54,18 @@ test("login and logout buttons remain connected to delegated handlers and analyt
   assert.match(analytics, /function trackSentinelEvent\(/);
   assert.match(app, /trackSentinelEvent\("logout_success"\)/);
 });
+
+
+test("new passwords require a 12-character minimum for signup and recovery updates", () => {
+  assert.match(app, /function getPasswordPolicyError\(password\)/);
+  assert.match(app, /password\.length < 12/);
+  const signupStart = app.indexOf("async function signUpUser(");
+  const signupEnd = app.indexOf("\\nasync function ", signupStart + 1);
+  const signup = app.slice(signupStart, signupEnd);
+  assert.match(signup, /getPasswordPolicyError\(password\)/);
+  const updateStart = app.indexOf("async function updatePassword(");
+  const updateEnd = app.indexOf("\\nasync function ", updateStart + 1);
+  const update = app.slice(updateStart, updateEnd);
+  assert.match(update, /getPasswordPolicyError\(newPassword\)/);
+  assert.doesNotMatch(app, /Password must be at least 6 characters/);
+});
