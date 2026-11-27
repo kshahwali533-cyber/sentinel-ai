@@ -400,10 +400,10 @@ async function updatePassword() {
     return;
   }
 
-  if (newPassword.length < 6) {
+  const passwordPolicyError = getPasswordPolicyError(newPassword);
+  if (passwordPolicyError) {
     authStatus.className = "error";
-    authStatus.textContent =
-      "⚠️ Password must be at least 6 characters.";
+    authStatus.textContent = "⚠️ " + passwordPolicyError;
     return;
   }
 
@@ -457,6 +457,13 @@ async function updatePassword() {
    CREATE ACCOUNT
 ========================= */
 
+function getPasswordPolicyError(password) {
+  if (typeof password !== "string" || password.length < 12) {
+    return "Use a unique password with at least 12 characters.";
+  }
+  return "";
+}
+
 async function signUpUser() {
   const emailInput = document.getElementById("authEmail");
   const passwordInput = document.getElementById("authPassword");
@@ -477,10 +484,10 @@ async function signUpUser() {
     return;
   }
 
-  if (password.length < 6) {
+  const passwordPolicyError = getPasswordPolicyError(password);
+  if (passwordPolicyError) {
     authStatus.className = "error";
-    authStatus.textContent =
-      "⚠️ Password must be at least 6 characters.";
+    authStatus.textContent = "⚠️ " + passwordPolicyError;
     return;
   }
 
