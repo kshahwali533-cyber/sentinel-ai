@@ -7,6 +7,18 @@ test("local Supabase Auth supports signup, login, logout, recovery email, and pa
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
+  // Keep this test focused on real GoTrue/Auth behavior. Account-data REST
+  // requests use empty fixtures so no Production-only schema is required.
+  await page.route("**/rest/v1/**", (route) => route.fulfill({
+    status: 200,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "content-range": "0-0/*"
+    },
+    body: "[]"
+  }));
+
+
   const email = "sentinel-e2e-" + Date.now() + "@example.test";
   const initialPassword = "Sentinel-E2E-Password-2026!";
   const updatedPassword = "Sentinel-E2E-Updated-2026!";
