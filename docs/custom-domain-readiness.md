@@ -54,7 +54,7 @@ The goal is a controlled cutover without a broad code rewrite. It is not honest 
 
 ## Current decision
 
-**Do not add a real domain now. Do not change Production or live Supabase.** Finish the Preview integration tests, canonical-origin preparation, and all CI checks on PR #90 first.
+**Do not add a real domain now. Do not change Production or live Supabase.** Finish the Preview integration tests, canonical-origin preparation, and all CI checks on PR #109 first.
 
 
 ## Reconciliation update — 2026-11-27
@@ -69,3 +69,11 @@ The goal is a controlled cutover without a broad code rewrite. It is not honest 
 ## Protected Preview HTTP smoke check — 2026-11-27
 
 At documentation checkpoint `c0e8fbfd09399ffb4f10670c89d28073fa686c59`, the authenticated Preview homepage returned HTTP 200 and the server-issued runtime config returned `isProduction: false`. Security response headers included HSTS with `includeSubDomains`, CSP, `nosniff`, frame denial, Referrer-Policy, and Permissions-Policy. Static robots, sitemap, and security.txt endpoints returned HTTP 200 but still reference the existing Vercel production origin. This confirms Preview isolation at the runtime-config boundary and basic HTTP delivery only; it is not a full browser/authentication test.
+
+
+## Latest checkpoint correction — 2026-11-27
+
+- The active release candidate is PR #109, not PR #90. PR #109 remains Draft and unmerged.
+- The mobile Lighthouse workflow currently targets Production only; it is not a Preview browser audit. No Preview Lighthouse score is claimed.
+- The three static canonical assets still contain the Vercel Production origin. The current repository has no package build script, and adding a dynamic API route would consume the limited Vercel Hobby function budget. Do not change the static deployment/build architecture without a separate tested design.
+- The remaining interactive browser, isolated Supabase Auth/data, live owned-domain monitoring-alert, backup/restore, and Auth-plan risk gates remain open. No Production, live Supabase, DNS, or custom-domain change is authorized by this documentation.
