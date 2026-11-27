@@ -15,6 +15,7 @@ import { createPinnedRequest } from "./_lib/pinned-request.js";
 import { isConfirmedSurfaceReference } from "./_lib/surface-confidence.js";
 import { isWithinJsonBodyLimit } from "./_lib/request-size.js";
 import { isApprovedProductionRequest } from "./_lib/runtime-config.js";
+import { renderCanonicalAsset } from "./_lib/canonical-assets.js";
 
 // Reject oversized request bodies before application work begins.
 export const config = { api: { bodyParser: { sizeLimit: "32kb" } } };
@@ -24,6 +25,19 @@ const supabaseAdmin = createSupabaseAdmin();
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
+
+  if (req.method === "GET" && typeof req.query?.canonical_asset === "string") {
+    const asset = renderCanonicalAsset(req.query.canonical_asset, process.env);
+    if (!asset) {
+      return res.status(503).json({ error: "Canonical production origin is not configured." });
+    }
+    res.setHeader("Content-Type", asset.contentType);
+    res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400");
+    if (process.env.VERCEL_ENV !== "production") {
+      res.setHeader("X-Robots-Tag", "noindex");
+    }
+    return res.status(200).send(asset.body);
+  }
 
   if (req.method === "GET" && req.query?.runtime_config === "1") {
     res.setHeader("Content-Type", "application/javascript; charset=utf-8");
