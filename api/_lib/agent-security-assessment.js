@@ -31,9 +31,15 @@ function isRecord(value) {
 }
 
 function describeUnknownFields(source, keys, prefix) {
-  return keys
+  const missingOrInvalid = keys
     .filter((key) => typeof source?.[key] !== "boolean")
     .map((key) => prefix + "." + key);
+  const unexpected = isRecord(source)
+    ? Object.keys(source)
+        .filter((key) => !keys.includes(key))
+        .map((key) => prefix + "." + key)
+    : [];
+  return [...missingOrInvalid, ...unexpected];
 }
 
 /**
@@ -51,9 +57,13 @@ export function assessAgentSecurity(input) {
 
   const capabilities = isRecord(input.capabilities) ? input.capabilities : {};
   const controls = isRecord(input.controls) ? input.controls : {};
+  const unexpectedRootFields = Object.keys(input)
+    .filter((key) => key !== "capabilities" && key !== "controls")
+    .map((key) => "input." + key);
   const unknownFields = [
     ...describeUnknownFields(capabilities, CAPABILITY_KEYS, "capabilities"),
-    ...describeUnknownFields(controls, CONTROL_KEYS, "controls")
+    ...describeUnknownFields(controls, CONTROL_KEYS, "controls"),
+    ...unexpectedRootFields
   ];
 
   const findings = [];
