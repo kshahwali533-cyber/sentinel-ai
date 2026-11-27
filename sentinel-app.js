@@ -1050,7 +1050,12 @@ async function runSecurityScan(isRescan = false) {
     const previewResult = document.getElementById("result");
     if (previewResult) {
       previewResult.classList.remove("is-hidden");
-      previewResult.innerHTML = '<div class="notice">Preview Safe Mode: scanning is disabled in this protected Preview. No scan request was sent. Production is unchanged.</div>';
+      previewResult.innerHTML = `
+        <div class="notice" role="status" aria-live="polite">
+          <strong>Preview Safe Mode is active.</strong>
+          <br><br>
+          Live website scanning is disabled in this protected Preview. No scan request was sent and no account or database data was accessed. Production is unchanged.
+        </div>`;
     }
     return;
   }
