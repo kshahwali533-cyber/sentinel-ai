@@ -1,11 +1,17 @@
-const HOST_PATTERN = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$/i;
-
 function canonicalOrigin(env) {
   const raw = typeof env?.VERCEL_PROJECT_PRODUCTION_URL === "string"
-    ? env.VERCEL_PROJECT_PRODUCTION_URL.trim().toLowerCase().replace(/\\.$/, "")
+    ? env.VERCEL_PROJECT_PRODUCTION_URL.trim().toLowerCase()
     : "";
-  if (!HOST_PATTERN.test(raw)) return null;
-  return "https://" + raw;
+  const host = raw.endsWith(".") ? raw.slice(0, -1) : raw;
+  const labels = host.split(".");
+  const validLabels = labels.length >= 2 && labels.every((label) =>
+    label.length >= 1 &&
+    label.length <= 63 &&
+    /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label)
+  );
+  const validTld = /^[a-z]{2,63}$/.test(labels.at(-1) || "");
+  if (!validLabels || !validTld || host.length > 253) return null;
+  return "https://" + host;
 }
 
 export function renderCanonicalAsset(resource, env = process.env) {
@@ -15,17 +21,17 @@ export function renderCanonicalAsset(resource, env = process.env) {
   if (resource === "robots") {
     return {
       contentType: "text/plain; charset=utf-8",
-      body: "User-agent: *\\nAllow: /\\nDisallow: /api/\\n\\nSitemap: " + origin + "/sitemap.xml\\n"
+      body: "User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: " + origin + "/sitemap.xml\n"
     };
   }
 
   if (resource === "sitemap") {
     return {
       contentType: "application/xml; charset=utf-8",
-      body: '<?xml version="1.0" encoding="UTF-8"?>\\n' +
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\\n' +
-        "  <url><loc>" + origin + "/</loc></url>\\n" +
-        "</urlset>\\n"
+      body: '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+        "  <url><loc>" + origin + "/</loc></url>\n" +
+        "</urlset>\n"
     };
   }
 
@@ -38,7 +44,7 @@ export function renderCanonicalAsset(resource, env = process.env) {
         "Preferred-Languages: en, ur",
         "Canonical: " + origin + "/.well-known/security.txt",
         ""
-      ].join("\\n")
+      ].join("\n")
     };
   }
 
