@@ -14,7 +14,9 @@ export function createMonitoringWorkerHandler({
       productionUrl: env.VERCEL_ENV === "production"
         ? env.VERCEL_PROJECT_PRODUCTION_URL
         : undefined,
-      forwardedHost: req.headers["x-forwarded-host"] || req.headers.host
+      forwardedHost: env.VERCEL_ENV === "production"
+        ? undefined
+        : req.headers["x-forwarded-host"] || req.headers.host
     });
   }
 
