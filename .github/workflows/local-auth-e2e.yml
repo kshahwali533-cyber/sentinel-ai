@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: sentinel-local-auth-e2e-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   local-auth-e2e:
